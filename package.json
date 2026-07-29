@@ -1,20 +1,37 @@
 {
-  "name": "Backend-Node",
+  "name": "backend-express",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Guia de estudo completo de backend com Node.js, Express e TypeScript",
+  "main": "dist/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/index.js"
+    "dev": "node --watch --env-file-if-exists=.env src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "typecheck:play": "tsc --noEmit -p tsconfig.playground.json",
+    "typecheck:ex": "tsc --noEmit -p tsconfig.exercicios.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kessleru/Backend-express.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.29.1",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/kessleru/Backend-express/issues"
+  },
+  "homepage": "https://github.com/kessleru/Backend-express#readme",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.2",
+    "prettier": "^3.9.6",
+    "typescript": "^7.0.2"
+  },
   "dependencies": {
     "express": "^5.2.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.11"
   }
 }

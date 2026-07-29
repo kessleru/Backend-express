@@ -1,0 +1,44 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // Layout dos arquivos
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    // Ambiente: Node.js com ESM
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
+
+    // Compatibilidade com o type stripping do Node 24.
+    // O Node apaga os tipos mas NÃO transforma código, então sintaxe que
+    // gera JavaScript (enum, namespace, import =) é proibida aqui.
+    "erasableSyntaxOnly": true,
+    // Permite escrever `import x from './foo.ts'` (exigido ao rodar com node)
+    // e mesmo assim gerar './foo.js' no build.
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": true,
+
+    // Saídas auxiliares
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+
+    // Checagem estrita
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recomendados
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"],
+  // O playground fica de fora do build e do typecheck principal: código seu
+  // pela metade não pode quebrar o projeto. Para checá-lo, use
+  // `npm run typecheck:play` (config em tsconfig.playground.json).
+  "exclude": ["node_modules", "dist", "src/playground"]
+}

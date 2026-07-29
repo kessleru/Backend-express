@@ -1,0 +1,659 @@
+# Guia de Implementação — Repositório de Estudos de Backend
+
+> Documento de planejamento e continuidade. Serve para **você** saber onde está no
+> currículo e para **sessões futuras do Claude Code** entenderem o projeto sem
+> precisar redescobrir tudo.
+>
+> Última atualização: 2026-07-29
+
+---
+
+## 1. Objetivo do repositório
+
+Transformar este repo num **guia de estudo completo de Express e backend**, com:
+
+- **Teoria** — princípios de backend, não só sintaxe de framework.
+- **Exemplos executáveis** — todo conceito tem código que roda de verdade.
+- **Ferramentas do ecossistema** — do básico ao avançado, cada uma introduzida
+  quando existe um problema real que ela resolve (seção 6).
+- **Espaço reservado** — uma área exclusiva sua, onde você constrói suas coisas
+  sem que o material de estudo atrapalhe (e sem que ninguém sobrescreva).
+
+Público-alvo: você, estudando do zero até conseguir projetar uma API de produção.
+
+Idioma: **português** em toda documentação e comentários.
+
+**Estilo: completo em cobertura, enxuto em texto.** Todos os 20 módulos existem,
+mas cada um é direto ao ponto — código e tabela no lugar de parágrafo. O padrão
+obrigatório está na seção 7.
+
+---
+
+## 2. Estado atual
+
+### Já feito (sessão de 2026-07-29)
+
+- `src/server.ts` migrado de `require` para `import express from 'express'`.
+- `@types/express` instalado (Express 5 não traz tipos próprios).
+- `package.json`: `"type": "commonjs"` → `"type": "module"`, necessário porque o
+  `tsconfig.json` usa `verbatimModuleSyntax: true` + `module: "nodenext"`.
+- Verificado: `npx tsc --noEmit` passa e o módulo carrega em runtime.
+
+### Fase 0 concluída (2026-07-29)
+
+- `.gitignore` restaurado (+ regras para `data/*.sqlite`).
+- `tsconfig.json`: `rootDir`/`outDir` ativados, flags de compatibilidade com o
+  type stripping do Node, `jsx` removido, `src/playground` excluído do build.
+- `tsconfig.playground.json`: typecheck isolado do playground, para que código
+  seu em rascunho não quebre o build principal.
+- `package.json`: `main` corrigido, scripts `dev`/`start`/`build`/`typecheck`/
+  `typecheck:play`/`format`, `nodemon` removido.
+- Prettier + `.editorconfig` configurados.
+- `.env.example`, `data/`, `src/playground/`, `exercicios/`.
+- `CLAUDE.md` e `README.md`.
+- Verificado: `npm run dev`, `npm run build` e `npm start` funcionam; `/` e
+  `/health` respondem.
+
+**ESLint ficou de fora.** O `typescript-eslint` declara peer
+`typescript@">=4.8.4 <6.1.0"` e o projeto usa TS 7 — não há versão compatível
+ainda. Opções: (a) esperar o suporte, (b) baixar para TypeScript 5.9. Por ora o
+`tsc --strict` já cobre boa parte do que o ESLint pegaria.
+
+### Ainda pendente
+
+Fases 1 a 6 da tabela da seção 9.
+
+### Ponto de partida histórico
+
+O commit `a5ddd5b` tinha um `src/index.js` com um CRUD de `/courses` em memória
+(GET/POST/PUT/PATCH/DELETE) e comentários sobre verbos HTTP e tipos de parâmetro.
+Esse conteúdo **não se perde**: vira o exemplo do módulo 03 (Express básico),
+agora em TypeScript e com as explicações movidas para a documentação.
+
+---
+
+## 3. Decisões técnicas (e o porquê de cada uma)
+
+| Decisão                                     | Motivo                                                                                                                                                                                                       |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **ESM** (`"type": "module"`)                | Exigido pela combinação `verbatimModuleSyntax` + `module: nodenext` já presente no tsconfig. Também é o padrão do ecossistema hoje.                                                                          |
+| **Node 24 com type stripping nativo**       | `node src/server.ts` roda TypeScript direto, sem build e sem `ts-node`/`tsx`. Menos ferramenta = menos coisa pra explicar pra quem está estudando.                                                           |
+| **`node --watch`** em vez de `nodemon`      | O Node 24 já tem watch mode embutido. O `nodemon` vira dependência morta. **Ação:** remover `nodemon` do `package.json`.                                                                                     |
+| **`node --env-file`** em vez de `dotenv`    | O Node moderno lê `.env` nativamente. O `dotenv` só entra na doc como nota histórica (você vai ver em todo tutorial antigo).                                                                                 |
+| **`erasableSyntaxOnly: true`**              | O type stripping do Node só apaga tipos, não transforma código. Essa flag faz o `tsc` recusar `enum`, `namespace` e `import =`, que quebrariam em runtime. Erro na hora de escrever, não na hora de rodar.   |
+| **`rewriteRelativeImportExtensions: true`** | Permite escrever `import { x } from './foo.ts'` (o que o Node exige ao rodar direto) e mesmo assim gerar `./foo.js` no build.                                                                                |
+| **`tsc` só para build e typecheck**         | Rodar (`dev`) não passa pelo `tsc`. Ele existe para checar tipos (`typecheck`) e gerar `dist/` (`build`).                                                                                                    |
+| **Banco: SQLite**                           | Zero instalação, banco é um arquivo, e é **SQL de verdade** — o que você aprende transfere para Postgres. Ainda por cima o Node 24 tem `node:sqlite` embutido, então dá pra começar sem dependência nenhuma. |
+| **Progressão de acesso a dados**            | `node:sqlite` (SQL na mão) → Prisma (ORM). Nessa ordem, de propósito: quem aprende ORM antes de SQL não entende o que o ORM está fazendo — nem por que ele às vezes gera uma query horrível.                 |
+| **Uma dependência por vez, quando dói**     | Cada lib entra no módulo que a justifica, depois de você sentir o problema sem ela. Ver a dor antes do remédio é o que faz a ferramenta fazer sentido.                                                       |
+
+---
+
+## 4. Estrutura de pastas alvo
+
+```
+Backend-express/
+├── CLAUDE.md                    # regras curtas para o Claude Code
+├── GUIA-IMPLEMENTACAO.md        # este arquivo
+├── README.md                    # porta de entrada + índice do currículo
+├── .gitignore                   # restaurado (foi deletado)
+├── .env.example                 # variáveis de ambiente documentadas
+├── package.json
+├── tsconfig.json
+│
+├── docs/                        # 📚 TEORIA — um arquivo por módulo
+│   ├── 01-fundamentos-http.md
+│   ├── 02-node-modulos-e-async.md
+│   ├── ...
+│   └── 20-alem-do-rest.md
+│
+├── src/
+│   ├── server.ts                # servidor principal, evolui junto com o curso
+│   │
+│   ├── exemplos/                # 🧪 CÓDIGO DE ESTUDO — referência, não editar
+│   │   ├── 01-http-sem-express/
+│   │   ├── 03-express-basico/
+│   │   └── ...                  # uma pasta por módulo que tem código
+│   │
+│   └── playground/              # 🔒 SEU ESPAÇO — ninguém mexe aqui
+│       ├── README.md            # explica as regras da área
+│       └── .gitkeep
+│
+├── exercicios/                  # 🏋️ EXERCÍCIOS — um enunciado por módulo
+│   ├── 01-fundamentos-http/
+│   │   ├── README.md            # enunciado, critérios de aceite, dicas
+│   │   └── solucao/             # resolução comentada (olhe só depois de tentar)
+│   └── ...
+│
+├── prisma/                      # schema e migrations (a partir do módulo 10)
+├── data/                        # arquivos .sqlite (ignorados no git)
+└── dist/                        # gerado por `npm run build` (ignorado no git)
+```
+
+### A regra do `src/playground/`
+
+Esta é a parte mais importante da organização:
+
+- **`docs/` e `src/exemplos/`** são material didático. O Claude pode criar,
+  editar e reorganizar à vontade.
+- **`src/playground/`** é seu. Sessões futuras do Claude **não devem criar,
+  editar ou apagar nada aí dentro sem você pedir explicitamente**. Se você pedir
+  ajuda com um arquivo do playground, aí sim.
+
+Essa regra fica registrada no `CLAUDE.md` para valer em toda sessão futura.
+
+---
+
+## 5. Currículo — 20 módulos
+
+Cada módulo = 1 arquivo em `docs/`. Os marcados com 🧪 têm código executável em
+`src/exemplos/`. A coluna de ferramentas mostra o que entra de novo ali.
+
+### Parte I — Fundamentos (antes do framework)
+
+**01 — Fundamentos de HTTP e da web** 🧪 · _`node:http`_
+Cliente/servidor, o ciclo request/response. Anatomia de uma requisição: método,
+URL, headers, body. Métodos HTTP e seus significados — e o que são idempotência
+e segurança de um método. Status codes: as cinco famílias e os ~12 que você usa
+de verdade. Headers importantes (`Content-Type`, `Authorization`,
+`Cache-Control`). Statelessness: por que o servidor não lembra de você entre
+requisições, e o que isso força no design.
+_Exemplo: um servidor com `node:http` puro, sem Express — para você ver
+exatamente o que o Express faz por você depois._
+
+**02 — Node.js, módulos e assincronia** 🧪 · _`npm`, semver_
+O que o Node é (runtime V8 + libuv). Event loop explicado sem mistificação: por
+que I/O não bloqueia mas um `for` de 10 milhões de iterações bloqueia. CommonJS
+vs ESM e por que este repo usa ESM. `package.json` campo a campo. Semver e o que
+`^5.2.1` realmente permite. `dependencies` vs `devDependencies`. Callbacks →
+Promises → `async/await`. O `try/catch` que não pega nada.
+_Exemplo: o mesmo trabalho feito de forma bloqueante e não-bloqueante, medindo._
+
+### Parte II — Express
+
+**03 — Express básico** 🧪 · _`express`_
+O que um framework web resolve. `app`, rotas, `request`, `response`. Os três
+tipos de parâmetro e quando usar cada um: **route params** (identificar um
+recurso, obrigatório), **query params** (filtro/paginação, opcional), **body**
+(dados de criação/edição). `express.json()` e por que sem ele `req.body` é
+`undefined`. `res.json()`, `res.status()`, `res.send()`.
+_Exemplo: o CRUD de `/courses` do commit original, portado para TypeScript._
+
+**04 — Roteamento e organização de rotas** 🧪
+Padrões de rota, parâmetros opcionais, wildcards. `express.Router()` para quebrar
+o servidor em arquivos. Prefixos e montagem (`app.use('/api/v1', ...)`). Ordem de
+rotas importa: por que `/courses/new` precisa vir antes de `/courses/:id`.
+Versionamento de API. Design de URLs REST: substantivo no plural, hierarquia,
+o que não fazer (`/getCourses`).
+_Exemplo: o CRUD do módulo 03 refatorado em routers separados._
+
+**05 — Middlewares** 🧪 · _`cors`, `morgan`_
+O conceito central do Express: uma cadeia de funções com `(req, res, next)`.
+Middleware global, de rota e de erro. O que acontece se você esquecer o `next()`.
+Ordem de execução. Escrevendo os seus: logger, timer, verificador de API key.
+Middlewares de terceiros e onde encaixar.
+_Exemplo: uma pilha de middlewares com log mostrando a ordem real de execução._
+
+**06 — Tratamento de erros** 🧪
+Por que `throw` dentro de rota async derruba o processo no Express 4 (e o que
+mudou no Express 5). Error-handling middleware (a função de 4 argumentos).
+Classe `AppError` própria com status code. Erros esperados vs bugs. Nunca vazar
+stack trace para o cliente. Formato consistente de resposta de erro.
+_Exemplo: um handler de erro central + `AppError` aplicados ao CRUD._
+
+**07 — Validação e contratos de entrada** 🧪 · _`zod`_
+Regra de ouro: **nunca confie no cliente**. Validar tipo, formato,
+obrigatoriedade e limites. Validação manual e sua dor. Zod: schemas, `parse` vs
+`safeParse`, inferência de tipo (`z.infer`) — validação e tipagem da mesma fonte.
+Middleware genérico `validate(schema)`. Diferença entre validação (formato) e
+regra de negócio.
+_Exemplo: `POST /courses` com schema Zod e middleware de validação._
+
+### Parte III — Arquitetura e dados
+
+**08 — Arquitetura em camadas**
+O problema: rotas de 200 linhas fazendo tudo. Separação **route → controller →
+service → repository**, com a responsabilidade de cada camada. Regra da direção
+das dependências. Injeção de dependência sem framework. DTOs. Quando _não_ usar
+camadas (projeto pequeno não precisa de 4 níveis). Uma passada honesta em Clean
+Architecture e DDD: o que vale a pena e o que é excesso.
+
+**09 — Banco de dados e SQL com SQLite** 🧪 · _`node:sqlite`_
+Do array em memória para o banco. Por que SQLite é um ótimo banco de estudo (e
+de produção, em muitos casos). SQL na mão: `CREATE TABLE`, `INSERT`, `SELECT`,
+`UPDATE`, `DELETE`, `JOIN`, `GROUP BY`. Modelagem relacional: chaves primárias e
+estrangeiras, relacionamentos 1-N e N-N, tabela de junção. Normalização o
+suficiente. Índices e por que sua query fica lenta sem eles (`EXPLAIN QUERY
+PLAN`). Transações e ACID. **SQL injection** e por que query parametrizada
+resolve. Migrations escritas à mão.
+_Exemplo: o repositório de courses reescrito sobre `node:sqlite`, sem nenhuma
+dependência externa — o resto do app não muda, que era o objetivo da camada
+repository._
+
+**10 — ORM com Prisma** 🧪 · _`prisma`, `@prisma/client`_
+O que um ORM resolve e o que ele cobra em troca. Driver vs query builder vs ORM.
+`schema.prisma`: modelos, relações, tipos. `prisma migrate` e por que o schema
+vive no git. Prisma Client tipado de ponta a ponta. Queries, includes e o
+**problema N+1** — como detectar e resolver. Transações no Prisma. Seeds.
+Prisma Studio. Quando cair de volta pra SQL cru. Comparação rápida com Drizzle
+e Knex.
+_Exemplo: o mesmo repositório do módulo 09, agora com Prisma sobre o mesmo
+SQLite — mostrando que só a camada de dados mudou._
+
+**11 — Autenticação e autorização** 🧪 · _`argon2`, `jsonwebtoken`, `cookie-parser`_
+A diferença entre as duas (quem você é × o que você pode). Hash de senha: por
+que Argon2/bcrypt e nunca SHA-256. Salt e fator de custo. Sessão com cookie vs
+JWT: trade-offs reais, não hype. Anatomia de um JWT e o que **não** colocar no
+payload. Access token + refresh token. Cookies `httpOnly` e `SameSite`.
+Middleware de autenticação e de autorização por papel (RBAC). OAuth2 em visão
+geral.
+_Exemplo: registro, login, rota protegida e rota só-para-admin._
+
+**12 — Testes** 🧪 · _`vitest`, `supertest`_
+A pirâmide: unitário, integração, e2e. O que testar em cada nível. Vitest como
+runner. Testando rotas HTTP com Supertest sem subir servidor de verdade. Mocks,
+stubs e por que a camada repository torna o service fácil de testar. Fixtures e
+banco de teste (SQLite em memória — aqui ele brilha). Cobertura como sintoma,
+não como meta. TDD numa feature real.
+_Exemplo: suíte cobrindo o CRUD e o fluxo de autenticação._
+
+### Parte IV — Produção
+
+**13 — Segurança** 🧪 · _`helmet`, `express-rate-limit`_
+OWASP Top 10 aplicado a uma API Node. Injeção de SQL (retomando o módulo 09).
+XSS e por que ainda importa numa API. CSRF e quando você precisa se preocupar.
+Rate limiting e brute force. CORS explicado de verdade — o que o header faz e o
+que ele **não** faz. `helmet` e os headers que ele liga. Segredos: `.env`,
+variáveis de ambiente, o que nunca vai pro git. Validação de upload.
+Dependências vulneráveis (`npm audit`).
+
+**14 — Observabilidade** 🧪 · _`pino`, `pino-http`_
+Logs estruturados (JSON) vs `console.log`. Níveis de log. Request ID para
+correlacionar uma requisição inteira. Pino. O que **nunca** logar (senha, token,
+CPF). Métricas: RED (Rate, Errors, Duration). Health check e readiness check.
+Tracing distribuído e OpenTelemetry em visão geral.
+_Exemplo: logger com request ID atravessando toda a stack._
+
+**15 — Performance, cache e escala** 🧪 · _`redis`/`ioredis`, `compression`_
+Medir antes de otimizar. Caching: em memória, Redis, HTTP cache headers
+(`ETag`, `Cache-Control`). Estratégias e invalidação de cache. Paginação
+(offset vs cursor) e por que offset degrada. Compressão. Keep-alive. Escala
+vertical vs horizontal. Statelessness como pré-requisito de escala horizontal.
+Graceful shutdown. Load balancing e `node:cluster`. Load testing com `autocannon`.
+_Exemplo: rota lenta, medida, depois cacheada — com número antes e depois._
+
+**16 — Deploy, Docker e CI/CD** 🧪 · _Docker, GitHub Actions_
+Configuração por ambiente sem `if (production)` espalhado. Build de produção.
+Docker: Dockerfile multi-stage, `.dockerignore`, imagem pequena, usuário não-root.
+`docker-compose` para subir app + Redis junto. Variáveis de ambiente em produção.
+CI/CD com GitHub Actions: lint → typecheck → test → build. Migrations no deploy.
+Rollback.
+_Exemplo: Dockerfile + workflow do GitHub Actions funcionando._
+
+### Parte V — Tópicos avançados
+
+**17 — Jobs, filas e trabalho em background** 🧪 · _`bullmq`_
+Por que não fazer trabalho pesado dentro do request. Filas: produtor, consumidor,
+worker. BullMQ sobre Redis. Retry, backoff exponencial e dead letter queue.
+Idempotência de job (o mesmo job pode rodar duas vezes — e vai). Jobs agendados
+(cron). Processamento de e-mail e relatório como casos clássicos.
+_Exemplo: envio de e-mail de boas-vindas movido para uma fila._
+
+**18 — Tempo real: WebSocket e SSE** 🧪 · _`ws`_
+Quando polling basta e quando não basta. Server-Sent Events vs WebSocket:
+trade-offs. Handshake e o ciclo de vida de uma conexão. Broadcast, salas e
+autenticação numa conexão WebSocket. O problema de escalar WebSocket
+horizontalmente (e o pub/sub do Redis como resposta).
+_Exemplo: um chat mínimo e um endpoint SSE de progresso._
+
+**19 — Arquivos e uploads** 🧪 · _`multer`_
+`multipart/form-data` e por que `express.json()` não dá conta. Multer: memória vs
+disco. Limites de tamanho e validação de tipo real (magic bytes, não a extensão).
+Storage local vs S3. URLs pré-assinadas. Streaming de arquivos grandes sem
+estourar a memória. Servir estáticos.
+_Exemplo: upload de imagem de capa do curso, com validação._
+
+**20 — Além do REST: documentação, GraphQL e RPC** 🧪 · _`swagger-ui-express`, `zod-to-openapi`_
+OpenAPI/Swagger: documentação gerada a partir dos schemas Zod que você já
+escreveu no módulo 07. Por que doc que não vem do código apodrece. Visão geral e
+comparação honesta: REST vs GraphQL vs tRPC vs gRPC — que problema cada um
+resolve e quando o custo não compensa. Webhooks.
+_Exemplo: Swagger UI navegável servido pela própria API._
+
+### Apêndices
+
+- **A — Glossário** de termos (idempotência, middleware, ORM, JWT, CORS...).
+- **B — Cheatsheet HTTP**: métodos, status codes e headers em tabela.
+- **C — Checklist de API de produção**: o que revisar antes de subir.
+- **D — Erros comuns de iniciante** e como reconhecê-los.
+- **E — Catálogo de ferramentas**: a seção 6 deste guia, extraída para consulta.
+
+---
+
+## 6. Ecossistema de ferramentas — o que cada uma faz e quando entra
+
+Ordem de introdução do básico ao avançado. Nada é instalado antes do módulo que
+justifica a ferramenta.
+
+### Nível 0 — Já no repositório
+
+| Ferramenta       | Para que serve                                                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Node.js 24**   | O runtime. Aqui usamos três recursos modernos que dispensam libs: type stripping (`node arquivo.ts`), `--watch` e `--env-file`. |
+| **TypeScript 7** | Tipos em tempo de escrita. Neste repo ele **não** compila para rodar — só faz typecheck e o build de produção.                  |
+| **Express 5**    | O framework web. Roteamento + middlewares.                                                                                      |
+| **npm**          | Gerenciador de pacotes e executor de scripts.                                                                                   |
+
+### Nível 1 — Qualidade de código (Fase 0)
+
+| Ferramenta              | Para que serve                                                                                                                                 | Entra em                          |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| **ESLint**              | Encontra código problemático (variável não usada, `await` esquecido, promise solta). Diferente do TS: o TS checa tipo, o ESLint checa prática. | ⛔ bloqueado — peer exige TS <6.1 |
+| **Prettier**            | Formatação automática. Acaba com discussão de estilo.                                                                                          | Fase 0                            |
+| **EditorConfig**        | Alinha o editor (indentação, fim de linha) entre máquinas.                                                                                     | Fase 0                            |
+| **Husky + lint-staged** | Git hooks: roda lint/format no que você está commitando. Impede commit quebrado.                                                               | Fase 0 (opcional)                 |
+
+### Nível 2 — Aplicação (Parte II)
+
+| Ferramenta | Para que serve                                                                                                                 | Entra em |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| **cors**   | Libera o navegador a chamar sua API de outra origem. Sem isso, front em `localhost:3000` não fala com API em `localhost:5050`. | 05       |
+| **morgan** | Log de requisição HTTP pronto. Didático — no módulo 14 é substituído por Pino.                                                 | 05       |
+| **zod**    | Valida a entrada **e** gera o tipo TypeScript do mesmo schema. Uma fonte de verdade.                                           | 07       |
+
+### Nível 3 — Dados (Parte III)
+
+| Ferramenta                      | Para que serve                                                                                                     | Entra em  |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------- |
+| **node:sqlite**                 | Módulo embutido do Node 24. Banco SQL real, zero dependência, banco = 1 arquivo. Aqui você escreve SQL na mão.     | 09        |
+| **better-sqlite3**              | Alternativa madura ao `node:sqlite`, síncrona e muito rápida. Citada como comparação.                              | 09 (nota) |
+| **prisma** + **@prisma/client** | ORM com schema declarativo, migrations e client totalmente tipado. Sobre o mesmo SQLite.                           | 10        |
+| **drizzle-orm** / **knex**      | Alternativas — Drizzle (mais próximo do SQL, tipado) e Knex (query builder clássico). Comparação, sem implementar. | 10 (nota) |
+
+### Nível 4 — Auth e testes
+
+| Ferramenta        | Para que serve                                                                     | Entra em  |
+| ----------------- | ---------------------------------------------------------------------------------- | --------- |
+| **argon2**        | Hash de senha. Vencedor da Password Hashing Competition; hoje preferido ao bcrypt. | 11        |
+| **bcrypt**        | O padrão anterior, ainda onipresente. Você vai encontrar em código legado.         | 11 (nota) |
+| **jsonwebtoken**  | Assina e verifica JWT.                                                             | 11        |
+| **cookie-parser** | Lê cookies do request — necessário para refresh token em cookie `httpOnly`.        | 11        |
+| **vitest**        | Test runner rápido, com TypeScript e watch nativos.                                | 12        |
+| **supertest**     | Dispara requisições HTTP contra o `app` Express sem abrir porta.                   | 12        |
+
+### Nível 5 — Produção
+
+| Ferramenta                   | Para que serve                                                                       | Entra em |
+| ---------------------------- | ------------------------------------------------------------------------------------ | -------- |
+| **helmet**                   | Liga headers HTTP de segurança de uma vez.                                           | 13       |
+| **express-rate-limit**       | Limita requisições por IP. Freia brute force e abuso.                                | 13       |
+| **pino** + **pino-http**     | Log estruturado em JSON, rápido. É o que máquina consegue ler e filtrar.             | 14       |
+| **compression**              | Gzip/Brotli nas respostas. Menos banda, resposta mais rápida.                        | 15       |
+| **redis** (client `ioredis`) | Cache em memória compartilhado entre instâncias. Também é a base de filas e pub/sub. | 15       |
+| **autocannon**               | Load testing por linha de comando. Gera o número que justifica a otimização.         | 15       |
+| **Docker**                   | Empacota app + dependências numa imagem que roda igual em qualquer lugar.            | 16       |
+| **docker-compose**           | Sobe vários serviços juntos (API + Redis) com um comando.                            | 16       |
+| **GitHub Actions**           | CI/CD: roda lint, typecheck e testes a cada push.                                    | 16       |
+
+### Nível 6 — Avançado
+
+| Ferramenta                                  | Para que serve                                                        | Entra em  |
+| ------------------------------------------- | --------------------------------------------------------------------- | --------- |
+| **bullmq**                                  | Filas e workers sobre Redis. Retry, agendamento, concorrência.        | 17        |
+| **ws**                                      | WebSocket cru — o suficiente para entender o protocolo.               | 18        |
+| **socket.io**                               | Camada de conveniência sobre WebSocket (salas, reconexão, fallback).  | 18 (nota) |
+| **multer**                                  | Upload `multipart/form-data`.                                         | 19        |
+| **swagger-ui-express** + **zod-to-openapi** | Documentação OpenAPI navegável gerada dos schemas Zod que já existem. | 20        |
+| **OpenTelemetry**                           | Padrão de tracing/métricas. Visão geral, sem implementar.             | 14 (nota) |
+
+### Ferramentas que este repo deliberadamente **não** usa
+
+Vale saber por quê — você vai encontrá-las em tutoriais:
+
+- **nodemon** — `node --watch` faz o mesmo, embutido.
+- **ts-node / tsx** — o Node 24 roda `.ts` direto.
+- **dotenv** — `node --env-file=.env` é nativo.
+- **body-parser** — virou parte do Express (`express.json()`).
+- **NestJS** — excelente framework, mas esconde o Express atrás de decorators e
+  DI. Ruim para _aprender_ o que está acontecendo por baixo. Vale estudar depois.
+
+---
+
+## 7. Padrão de escrita dos módulos
+
+A meta é **aprender rápido**, não ler um livro. Cobertura completa, texto curto.
+
+### Template obrigatório de cada `docs/NN-*.md`
+
+```markdown
+# NN — Título
+
+**Em uma frase:** o que é isso.
+
+## Por que importa
+
+3 bullets, no máximo. Que problema resolve.
+
+## Conceitos
+
+Tabela ou bullets curtos. Um conceito por linha.
+
+## Na prática
+
+Código comentado. É aqui que mora a explicação de verdade.
+
+## Erros comuns
+
+| Erro | O que acontece | Correção |
+
+## Cheatsheet
+
+O resumo que você volta pra consultar depois.
+
+## Pratique
+
+Link para `exercicios/NN-*/` + 1 desafio extra opcional.
+```
+
+### Regras
+
+| Regra             | Limite                                                               |
+| ----------------- | -------------------------------------------------------------------- |
+| Tamanho do módulo | ~150 linhas. Passou disso, provavelmente são dois módulos.           |
+| Parágrafo         | Máximo 4 linhas. Sem muro de texto.                                  |
+| Prosa vs código   | Se dá pra mostrar em código comentado, mostre em código.             |
+| Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração.             |
+| Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora. |
+| Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.    |
+
+### O que **não** entrar
+
+- História do protocolo/biblioteca, salvo se explicar um comportamento estranho.
+- Enumerar API completa — para isso existe a documentação oficial, com link.
+- Três formas de fazer a mesma coisa. Mostre a recomendada; cite as outras em
+  uma linha.
+- Aviso genérico tipo "lembre-se de sempre testar". Ou é específico, ou sai.
+
+### Exercícios — um por módulo
+
+Todo módulo tem uma pasta `exercicios/NN-nome/`. É a parte que fixa o conteúdo:
+ler código pronto dá sensação de aprendizado, escrever do zero mostra o que você
+realmente sabe.
+
+**Formato do `exercicios/NN-nome/README.md`:**
+
+```markdown
+# Exercício NN — Título
+
+⏱️ ~30 min · 🎯 Nível: iniciante | intermediário | avançado
+
+## Objetivo
+
+Uma frase.
+
+## O que construir
+
+Requisitos numerados e verificáveis. Nada vago.
+
+## Critérios de aceite
+
+- [ ] Checklist do que precisa funcionar.
+
+## Dicas
+
+<details><summary>Dica 1</summary>Empurrão pequeno.</details>
+<details><summary>Dica 2</summary>Empurrão maior.</details>
+
+## Desafio extra
+
+Opcional, para quem terminou rápido.
+```
+
+**Regras dos exercícios:**
+
+| Regra               | Detalhe                                                                   |
+| ------------------- | ------------------------------------------------------------------------- |
+| Onde resolver       | Em `src/playground/`. O enunciado nunca manda editar `src/exemplos/`.     |
+| Tamanho             | 20–45 min. Exercício de 3h vira projeto e ninguém termina.                |
+| Critérios de aceite | Sempre verificáveis — "retorna 404 com `{ error }`", não "trate o erro".  |
+| Dicas               | Progressivas e escondidas em `<details>`, para não entregar de graça.     |
+| Solução             | Em `solucao/`, comentada explicando as decisões — não só o código pronto. |
+| Progressão          | O exercício usa só o que já foi ensinado até aquele módulo.               |
+
+A partir do módulo 03 os exercícios formam um **projeto contínuo** (uma API de
+biblioteca: livros, autores, empréstimos, usuários), que cresce junto com o
+currículo — no fim você tem uma API completa que construiu do zero, e não 20
+exercícios soltos.
+
+---
+
+## 8. Configurações a aplicar
+
+### `tsconfig.json`
+
+```jsonc
+{
+  "compilerOptions": {
+    "rootDir": "./src", // descomentado — resolve o TS5011 no build
+    "outDir": "./dist", // descomentado
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
+
+    "erasableSyntaxOnly": true, // novo — compatível com o Node
+    "allowImportingTsExtensions": true, // novo
+    "rewriteRelativeImportExtensions": true, // novo
+
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  },
+  "include": ["src/**/*.ts"],
+}
+```
+
+Também será **removido** `"jsx": "react-jsx"` — não existe JSX num projeto de
+backend, a flag só polui.
+
+### `package.json`
+
+```jsonc
+{
+  "main": "dist/server.js", // era "index.js", arquivo que nem existe mais
+  "scripts": {
+    "dev": "node --watch --env-file=.env src/server.ts",
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+  },
+}
+```
+
+Scripts de `lint`, `format` e `test` entram junto com as ferramentas
+correspondentes (Fase 0 e módulo 12).
+
+E remover `nodemon` de `devDependencies` (substituído por `node --watch`).
+
+### `.gitignore`
+
+Restaurar o arquivo deletado. Conteúdo original já era bom (`node_modules/`,
+`dist/`, `.env`, logs, arquivos de editor/SO) — acrescentar `data/*.sqlite*`.
+
+### `.env.example`
+
+Versionado, sem valores reais. Documenta que variáveis existem: `PORT`,
+`NODE_ENV`, `DATABASE_URL`, `JWT_SECRET`, `REDIS_URL`.
+
+### Lockfile
+
+O repo tem `pnpm-lock.yaml` versionado mas deletado no working tree, e um
+`package-lock.json` novo (npm). **Escolher um gerenciador e ficar com ele.**
+Recomendação: **npm**, que é o que está em uso — commitar `package-lock.json` e
+remover `pnpm-lock.yaml` do git.
+
+---
+
+## 9. Roadmap de execução
+
+Cada fase é entregável sozinha. Dá pra parar entre fases.
+
+| Fase                        | O que entra                                                                                                                                  | Status            |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint) |
+| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ⬜                |
+| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ⬜                |
+| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ⬜                |
+| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                |
+| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                |
+| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                |
+
+Marque `✅` conforme concluir. Sessões futuras leem esta tabela para saber onde
+retomar.
+
+---
+
+## 10. Instruções para sessões futuras do Claude Code
+
+1. **Leia este arquivo primeiro.** A tabela da seção 9 diz onde o trabalho parou.
+2. **Nunca toque em `src/playground/`** sem pedido explícito. É a área do usuário.
+3. **Escreva em português**, incluindo comentários de código.
+4. **Todo exemplo tem que rodar.** Antes de dizer que um módulo está pronto:
+   execute o exemplo e rode `npm run typecheck`.
+5. **Uma dependência nova só entra no módulo que a justifica** (seção 6) — e a
+   doc precisa explicar qual problema ela resolve e o que ela custa.
+6. **Explique o porquê, não só o como.** O objetivo é ensinar princípios de
+   backend; o Express é o veículo.
+7. **Não reescreva módulos já concluídos** por preferência de estilo. Corrija
+   erro, não gosto.
+8. **Siga o padrão de escrita da seção 7.** Enxuto e completo. Se um módulo
+   passou de ~150 linhas, corte — não é sinal de qualidade.
+9. Ao terminar uma fase, **atualize a tabela da seção 9** neste arquivo.
+
+---
+
+## 11. Como você usa o repositório
+
+```bash
+npm install          # uma vez
+npm run dev          # sobe o servidor com reload automático
+npm run typecheck    # confere os tipos
+npm run build        # gera dist/
+npm start            # roda o build
+```
+
+Sugestão de rotina de estudo por módulo:
+
+1. Ler o `docs/NN-*.md`.
+2. Rodar o exemplo em `src/exemplos/NN-*/` e mexer nele para ver o que quebra.
+3. Reimplementar a ideia do seu jeito em `src/playground/`.
+
+O passo 3 é o que fixa. Ler e rodar código pronto dá sensação de aprendizado;
+escrever do zero mostra o que você realmente sabe.

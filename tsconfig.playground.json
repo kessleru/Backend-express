@@ -1,0 +1,12 @@
+// Config só para o seu playground: mesmas regras do projeto, mas rodando
+// separado, para que código em rascunho não quebre o build principal.
+// Uso: npm run typecheck:play
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src/playground",
+    "noEmit": true
+  },
+  "include": ["src/playground/**/*.ts"],
+  "exclude": []
+}

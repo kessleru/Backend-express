@@ -1,0 +1,11 @@
+// Config para checar os tipos das soluções dos exercícios, que ficam fora
+// de src/. Uso: npm run typecheck:ex
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./exercicios",
+    "noEmit": true
+  },
+  "include": ["exercicios/**/*.ts"],
+  "exclude": []
+}
