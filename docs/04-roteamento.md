@@ -3,6 +3,8 @@
 **Em uma frase:** `express.Router()` transforma um servidor de 500 linhas em
 arquivos pequenos, cada um responsável por um recurso.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Um arquivo por recurso é a diferença entre achar e caçar código.
@@ -23,8 +25,19 @@ rotasCursos.get('/:id', buscar);
 app.use('/api/v1/cursos', rotasCursos); // ← o prefixo mora aqui
 ```
 
-O router não conhece o próprio prefixo. Isso é de propósito: dá para remontar o
-mesmo router em `/api/v2/cursos` sem editar uma linha dele.
+```mermaid
+flowchart LR
+    APP["app"] -->|"/api/v1"| V1["Router v1"]
+    V1 -->|"/cursos"| RC["rotasCursos<br/>'/' · '/:id'"]
+    V1 -->|"/instrutores"| RI["rotasInstrutores"]
+    RC -->|"/:id/aulas"| RA["rotasAulas<br/>mergeParams: true"]
+    APP --> N404["handler404<br/>(por último)"]
+    style N404 fill:#fed7aa,stroke:#ea580c,color:#000
+```
+
+> [!TIP]
+> O router não conhece o próprio prefixo. Isso é de propósito: dá para remontar o
+> mesmo router em `/api/v2/cursos` sem editar uma linha dele.
 
 Um Router tem `.get`, `.post`, `.use`, `.param` — tudo que o `app` tem, menos
 `listen`.
@@ -36,13 +49,20 @@ router.get('/:id', ...);         // ← casa com QUALQUER coisa, inclusive 'novi
 router.get('/novidades', ...);   // ← nunca alcançada
 ```
 
-O Express testa de cima para baixo e **para na primeira que casa**. Então:
+O Express testa de cima para baixo e **para na primeira que casa**.
 
-> **Regra: caminho literal antes de caminho com parâmetro.**
+```mermaid
+flowchart TD
+    R["GET /cursos/novidades"] --> T1{"casa com '/:id'?"}
+    T1 -- "sim, :id = 'novidades'" --> H1["handler de :id<br/>Number('novidades') = NaN"] --> E["404 😵"]
+    T1 -.->|"nunca chega"| T2["'/novidades'"]
+    style E fill:#fecaca,stroke:#dc2626,color:#000
+    style T2 fill:#e5e7eb,stroke:#9ca3af,color:#000
+```
 
-O sintoma é cruel — `/cursos/novidades` cai no handler de `:id`,
-`Number('novidades')` é `NaN`, nada é encontrado e você recebe 404 numa rota que
-existe e está certa.
+> [!IMPORTANT]
+> **Caminho literal antes de caminho com parâmetro.** O sintoma é cruel: você
+> recebe 404 numa rota que existe e está certa.
 
 ### Padrões de caminho — Express 5 mudou
 
@@ -53,8 +73,9 @@ existe e está certa.
 | Pegar o resto      | `/arq/*resto`      | `/arq/*` + `req.params[0]`    |
 | Regex              | use `pathToRegexp` | `/:id(\\d+)`                  |
 
-Duas pegadinhas do 5: `*` **precisa** de nome, e `req.params.resto` vem como
-**array** de segmentos (`['a','b','c.pdf']`), não string.
+> [!WARNING]
+> Duas pegadinhas do 5: `*` **precisa** de nome, e `req.params.resto` vem como
+> **array** de segmentos (`['a','b','c.pdf']`), não string.
 
 ### `router.param` — o 404 escrito uma vez
 
@@ -82,9 +103,10 @@ const rotasAulas = Router({ mergeParams: true }); // ← sem isto, req.params ve
 rotasCursos.use('/:id/aulas', rotasAulas);
 ```
 
-`mergeParams: true` é o que faz o `:id` do pai chegar no filho. E como o
-TypeScript deduz `req.params` do caminho (`'/'`, sem parâmetro), o tipo precisa
-de ajuda: `rotasAulas.get<{ id: string }>('/', ...)`.
+> [!NOTE]
+> `mergeParams: true` é o que faz o `:id` do pai chegar no filho. E como o
+> TypeScript deduz `req.params` do caminho (`'/'`, sem parâmetro), o tipo precisa
+> de ajuda: `rotasAulas.get<{ id: string }>('/', ...)`.
 
 **Aninhe quando a relação é de dependência real** — uma aula não existe fora de
 um curso. Para "os cursos do instrutor 2", tanto `/instrutores/2/cursos` quanto
@@ -134,7 +156,8 @@ app.use((req, res) => {
 });
 ```
 
-`app.use` sem caminho casa com tudo. **No topo do arquivo, tudo virava 404.**
+> [!CAUTION]
+> `app.use` sem caminho casa com tudo. **No topo do arquivo, tudo virava 404.**
 
 ## Na prática
 
@@ -142,7 +165,7 @@ app.use((req, res) => {
 node src/exemplos/04-roteamento/servidor.ts
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5052
 curl $B/api/v1                        # índice de recursos
 curl $B/api/v1/cursos

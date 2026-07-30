@@ -3,6 +3,8 @@
 **Em uma frase:** as rotas dizem **o que** deu errado; um tratador central decide
 **como** isso vira resposta HTTP.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Sem um lugar central, cada rota inventa seu formato de erro e o cliente precisa
@@ -22,9 +24,18 @@
 | Mensagem ao cliente | A real, útil                      | Genérica                      |
 | Log                 | Não precisa (é rotina)            | Completo, com stack           |
 
-A regra que decorre disso: **mensagem de erro que você escreveu pode ir ao
-cliente; mensagem que o runtime escreveu, não.** `connect ECONNREFUSED
-10.0.0.5:5432` é um mapa da sua rede.
+> [!IMPORTANT]
+> **Mensagem de erro que você escreveu pode ir ao cliente; mensagem que o runtime
+> escreveu, não.** `connect ECONNREFUSED 10.0.0.5:5432` é um mapa da sua rede.
+
+```mermaid
+flowchart LR
+    T["throw"] --> Q{"é AppError?"}
+    Q -- sim --> A["status do próprio erro<br/>mensagem REAL ao cliente"]
+    Q -- "não (bug)" --> B["500 genérico ao cliente<br/>+ stack completa no LOG"]
+    style A fill:#bbf7d0,stroke:#16a34a,color:#000
+    style B fill:#fecaca,stroke:#dc2626,color:#000
+```
 
 ### `AppError`
 
@@ -70,9 +81,10 @@ app.get('/x', async (req, res) => {
 | `throw` síncrono   | vai pro tratador                        | vai pro tratador |
 | `throw` em `async` | **`unhandledRejection` → processo cai** | vai pro tratador |
 
-No Express 4, um id inexistente numa rota async derrubava a API inteira. Era por
-isso que existia `express-async-errors` e aquele `asyncHandler(fn)` que você vai
-encontrar em todo tutorial. **No Express 5, nada disso é necessário.**
+> [!NOTE]
+> No Express 4, um id inexistente numa rota async derrubava a API inteira. Era
+> por isso que existia `express-async-errors` e aquele `asyncHandler(fn)` que
+> você vai encontrar em todo tutorial. **No Express 5, nada disso é necessário.**
 
 ### O tratador central
 
@@ -114,8 +126,24 @@ app.use(rotaNaoEncontrada); // 404: joga AppError, não responde direto
 app.use(tratarErro); // sempre o último
 ```
 
-O 404 genérico jogar um `AppError` (em vez de responder) faz ele sair no **mesmo
-formato** dos outros erros. Detalhe pequeno, cliente agradecido.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant R as rota
+    participant S as service
+    participant T as tratarErro
+    C->>R: GET /cursos/99
+    R->>S: buscarPorId(99)
+    S--xR: throw naoEncontrado('Curso', 99)
+    Note over S: o service NÃO conhece `res`
+    R->>T: Express captura e encaminha
+    T-->>C: 404 { erro, status, requestId }
+```
+
+> [!TIP]
+> O 404 genérico jogar um `AppError` (em vez de responder) faz ele sair no
+> **mesmo formato** dos outros erros. Detalhe pequeno, cliente agradecido.
 
 ### `next(erro)` — quando `throw` não serve
 
@@ -146,9 +174,12 @@ process.on('uncaughtException', (e) => {
 O tratador do Express só pega o que passou por uma requisição. Erro em timer ou
 callback solto não passa.
 
-A recomendação oficial do Node é **logar e sair**: um processo que continua depois
-de uma exceção não capturada está em estado desconhecido e pode corromper dados
-silenciosamente. Quem reinicia é o orquestrador (Docker, systemd, PM2) —
+> [!WARNING]
+> A recomendação oficial do Node é **logar e sair**: um processo que continua
+> depois de uma exceção não capturada está em estado desconhecido e pode
+> corromper dados silenciosamente.
+
+Quem reinicia é o orquestrador (Docker, systemd, PM2) —
 [módulo 16](./16-deploy-docker-ci.md). Encerrar sem cortar requisições em
 andamento é _graceful shutdown_, no [15](./15-performance-e-cache.md).
 
@@ -158,7 +189,7 @@ andamento é _graceful shutdown_, no [15](./15-performance-e-cache.md).
 node src/exemplos/06-erros/servidor.ts
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5054
 curl -i $B/cursos/99            # 404 com requestId
 curl -i $B/cursos/2/detalhes    # 409 lançado de rota ASYNC (Express 4 caía aqui)

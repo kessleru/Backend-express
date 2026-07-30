@@ -2,8 +2,11 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
+> [!NOTE]
 > 📚 Continua o projeto. Você vai adicionar uma pasta `middlewares/` à
 > `src/playground/biblioteca/`.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -50,6 +53,19 @@ biblioteca/
    - um 404 genérico no fim
 
 6. `GET /api/v1/livros` continua funcionando **sem** nenhum header.
+
+```mermaid
+flowchart TD
+    R([req]) --> ID["identificar<br/><i>X-Request-Id</i>"] --> LOG["registrar<br/><i>escuta res.on('finish')</i>"]
+    LOG --> CORS["cors + express.json()"] --> LIM["limitar(20, 60s)<br/><i>só em /api</i>"]
+    LIM --> M{"método"}
+    M -- GET --> ROTA["rotas"]
+    M -- "POST · PATCH · DELETE" --> KEY["exigirChave<br/>401 · 403"] --> ROTA
+    ROTA --> ADM["exigirPapel('admin')<br/><i>só em DELETE /autores/:id</i>"]
+    ROTA --> N404["404 genérico"]
+    style LIM fill:#fed7aa,stroke:#ea580c,color:#000
+    style KEY fill:#fecaca,stroke:#dc2626,color:#000
+```
 
 ## Critérios de aceite
 

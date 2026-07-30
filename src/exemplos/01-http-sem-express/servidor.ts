@@ -16,7 +16,9 @@ const servidor = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${PORTA}`);
   const rota = `${req.method} ${url.pathname}`;
 
-  console.log(rota);
+  // Log de depuração: método, caminho e query string.
+  console.log(req.method, url.pathname, url.searchParams.toString());
+  //          GET         /ola          nome=ana
 
   // ---- ROTEAMENTO MANUAL ----------------------------------------------
   // No Express isto vira app.get('/ola', ...). Aqui é um switch na mão.

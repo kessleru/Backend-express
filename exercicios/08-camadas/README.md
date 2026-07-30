@@ -2,8 +2,11 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
+> [!NOTE]
 > 📚 Refatoração grande, sem nenhuma rota nova. No fim, a API responde
 > exatamente igual — e é isso que prova que a refatoração deu certo.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -56,6 +59,22 @@ biblioteca/
    controller.
 
 7. **`servidor.ts`** — monta na ordem repositório → service → controller → rota.
+
+```mermaid
+flowchart LR
+    R["rotas/<br/><i>caminho + validar</i>"] --> C["controllers/<br/><i>≤ 4 linhas</i>"]
+    C --> S["servicos/<br/><b>REGRA</b> · lança AppError"]
+    S --> I["dominio/<br/>RepositorioLivros<br/><i>interface, importa nada</i>"]
+    MEM["repositorios/livros-memoria.ts"] -.->|implementa| I
+    SQL["livros-sqlite.ts<br/><i>(módulo 09)</i>"] -.->|implementa| I
+    S -.->|"também usa"| IA["RepositorioAutores<br/>contarPorAutor()"]
+    style I fill:#bbf7d0,stroke:#16a34a,color:#000
+    style S fill:#dbeafe,stroke:#2563eb,color:#000
+```
+
+> [!IMPORTANT]
+> Um service pode depender de **vários repositórios**. O que ele não deve fazer é
+> depender de outro service — aí a mesma regra ganha dois pontos de entrada.
 
 ## Critérios de aceite
 

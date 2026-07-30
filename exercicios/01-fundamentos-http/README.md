@@ -2,6 +2,19 @@
 
 ⏱️ ~35 min · 🎯 Nível: iniciante
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+- [Objetivo](#objetivo)
+- [O que construir](#o-que-construir)
+- [Comandos para testar](#comandos-para-testar)
+- [Critérios de aceite](#critérios-de-aceite)
+- [Dicas](#dicas)
+- [Desafio extra](#desafio-extra)
+
+<!-- /code_chunk_output -->
+
 ## Objetivo
 
 Construir um servidor HTTP com `node:http` puro que guarda contatos na memória —
@@ -28,19 +41,69 @@ Regras:
 - Body que não é JSON válido → `400`.
 - Toda resposta com body é JSON, com `Content-Type` correto.
 
+## Comandos para testar
+
+Deixe o servidor no ar num terminal:
+
+```bash
+node --watch src/playground/01-http/agenda.ts
+```
+
+Dispare os comandos em **outro** terminal. O `-i` não é opcional aqui: sem ele
+você vê o body e não vê o status, que é metade do exercício. O significado de
+cada flag está em
+[docs/01 → curl](../../docs/01-fundamentos-http.md#curl-o-cliente-http-do-terminal).
+
+```bash {cmd=true}
+# lista tudo → 200 + array
+curl -i localhost:4010/contatos
+
+# filtra pelo nome → 200 só com quem casa
+curl -i "localhost:4010/contatos?nome=an"
+
+# id inexistente → 404
+curl -i localhost:4010/contatos/999
+
+# cria → 201 + header Location: /contatos/<id>
+curl -i -X POST localhost:4010/contatos \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"Ana Souza","email":"ana@exemplo.com"}'
+
+# faltou o email → 400
+curl -i -X POST localhost:4010/contatos \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"Sem Email"}'
+
+# body que não é JSON → 400, nunca 500
+curl -i -X POST localhost:4010/contatos \
+  -H "Content-Type: application/json" \
+  -d 'nao sou json'
+
+# remove → 204 e a resposta acaba sem nenhuma linha de body
+curl -i -X DELETE localhost:4010/contatos/1
+
+# o mesmo id de novo → 404
+curl -i -X DELETE localhost:4010/contatos/1
+
+# rota que não existe → 404
+curl -i localhost:4010/qualquer
+```
+
+> [!TIP]
+> Para ler o JSON confortavelmente: `curl -s localhost:4010/contatos | jq`. O
+> `-s` tira a barra de progresso, que suja a saída quando entra num pipe.
+
 ## Critérios de aceite
 
-- [ ] `curl localhost:4010/contatos` → `200` com array
-- [ ] `curl "localhost:4010/contatos?nome=an"` filtra
-- [ ] `curl localhost:4010/contatos/999` → `404`
-- [ ] `POST` válido → `201`, header `Location`, contato no body
-- [ ] `POST` sem email → `400`
-- [ ] `POST` com body inválido → `400`
-- [ ] `DELETE` existente → `204` **sem corpo**
-- [ ] `DELETE` de novo no mesmo id → `404`
-- [ ] `curl localhost:4010/qualquer` → `404`
-
-Verifique os status com `curl -i` — sem isso você não está testando de verdade.
+- [x] `GET /contatos` → `200` com array
+- [x] `GET /contatos?nome=an` filtra
+- [x] `GET /contatos/999` → `404`
+- [x] `POST` válido → `201`, header `Location`, contato no body
+- [x] `POST` sem email → `400`
+- [x] `POST` com body inválido → `400`
+- [x] `DELETE` existente → `204` **sem corpo**
+- [x] `DELETE` de novo no mesmo id → `404`
+- [x] `GET /qualquer` → `404`
 
 ## Dicas
 

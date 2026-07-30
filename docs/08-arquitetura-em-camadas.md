@@ -3,6 +3,8 @@
 **Em uma frase:** separar "responder HTTP", "decidir a regra" e "guardar o dado"
 em arquivos diferentes, com as dependências apontando sempre para dentro.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Rota de 200 linhas fazendo tudo é impossível de testar e de reusar.
@@ -22,21 +24,45 @@ em arquivos diferentes, com as dependências apontando sempre para dentro.
 
 E no centro, o **domínio**: tipos e a interface do repositório. Não importa nada.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant R as rota
+    participant CT as controller
+    participant S as service
+    participant RP as repositório
+    C->>R: POST /cursos
+    R->>R: validar(schema)
+    R->>CT: dados válidos
+    CT->>S: criar(dados)
+    S->>RP: buscarPorTitulo()
+    RP-->>S: null
+    S->>RP: criar(dados)
+    RP-->>S: Curso
+    S-->>CT: Curso
+    CT-->>C: 201 + Location
+```
+
 ### A regra da direção das dependências
 
-```
-rota → controller → service → RepositorioCursos (interface)
-                                     ▲
-                                     │ implementa
-                          repositorios/cursos-memoria.ts
+```mermaid
+flowchart LR
+    ROTA["rotas/"] --> CTRL["controllers/"] --> SERV["servicos/"] --> IFACE["dominio/<br/><b>RepositorioCursos</b><br/>(interface)"]
+    MEM["repositorios/cursos-memoria.ts"] -.->|implementa| IFACE
+    SQL["repositorios/cursos-sqlite.ts<br/>(módulo 09)"] -.->|implementa| IFACE
+    PRI["repositorios/cursos-prisma.ts<br/>(módulo 10)"] -.->|implementa| IFACE
+    style IFACE fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-As flechas apontam para **dentro**. O service depende da _interface_, nunca do
-arquivo concreto — e é isso que faz trocar array por SQLite (módulo 09) por
-Prisma (10) não alterar uma linha do service.
+> [!IMPORTANT]
+> As flechas apontam para **dentro**. O service depende da _interface_, nunca do
+> arquivo concreto — e é isso que faz trocar array por SQLite (módulo 09) por
+> Prisma (10) não alterar uma linha do service.
 
-Teste rápido do seu código: se `servicos/*.ts` importa `express`, alguma
-responsabilidade escorregou de camada.
+> [!TIP]
+> Teste rápido do seu código: se `servicos/*.ts` importa `express`, alguma
+> responsabilidade escorregou de camada.
 
 ### O contrato do repositório
 
@@ -74,9 +100,10 @@ export function criarServicoCursos(repositorio: RepositorioCursos) {
 }
 ```
 
-É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
-decorator, sem container. No teste você passa um repositório falso; em produção,
-o de verdade.
+> [!NOTE]
+> É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
+> decorator, sem container. No teste você passa um repositório falso; em
+> produção, o de verdade.
 
 Se o repositório fosse importado no topo do arquivo, testar exigiria mockar
 módulo — frágil, lento e acoplado ao caminho do arquivo.
@@ -113,8 +140,9 @@ aqui.
 | "Como isso vira SQL?"               | Repositório |
 | "O formato do body é válido?"       | Schema (07) |
 
-Um controller com mais de 10 linhas por método quase sempre está fazendo trabalho
-de service. Um repositório com `if` de negócio está fazendo trabalho de service.
+> [!TIP]
+> Um controller com mais de 10 linhas por método quase sempre está fazendo
+> trabalho de service. Um repositório com `if` de negócio, idem.
 
 ### DTO
 
@@ -135,9 +163,12 @@ um curso pulando as pré-condições. Mesma ideia do `.strict()` do
 const atualizado = { ...atual, ...dados }; // ❌ não compila, e é bom que não
 ```
 
-Se `dados` é `{ titulo: undefined }` — chave presente, valor ausente — o spread
-grava `undefined` sobre o título salvo e **apaga** o dado. A flag do nosso
-tsconfig recusa isso na compilação. Copie só o que está definido:
+> [!CAUTION]
+> Se `dados` é `{ titulo: undefined }` — chave presente, valor ausente — o spread
+> grava `undefined` sobre o título salvo e **apaga** o dado. A flag do nosso
+> tsconfig recusa isso na compilação.
+
+Copie só o que está definido:
 
 ```ts
 if (dados.titulo !== undefined) atualizado.titulo = dados.titulo;
@@ -187,7 +218,7 @@ regra é o produto. Para um CRUD com autenticação, o custo não retorna.
 node src/exemplos/08-camadas/servidor.ts
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5056/api/v1/cursos
 curl "$B?publicado=true"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"Camadas","horas":5}'

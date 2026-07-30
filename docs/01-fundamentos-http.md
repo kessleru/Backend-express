@@ -3,6 +3,8 @@
 **Em uma frase:** HTTP é o combinado de como um cliente pede algo a um servidor e
 como o servidor responde.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Todo framework web — Express incluso — é uma casca fina sobre isto.
@@ -13,8 +15,18 @@ como o servidor responde.
 
 ### O ciclo
 
-O cliente manda uma **requisição**, o servidor devolve uma **resposta**. Só isso.
-Uma requisição, uma resposta, conexão encerrada.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant S as Servidor
+    C->>S: POST /cursos + headers + body
+    Note over S: processa
+    S-->>C: 201 Created + headers + body
+    Note over C,S: conexão encerrada — o servidor não lembra de você
+```
+
+Uma requisição, uma resposta. Só isso.
 
 ### Anatomia de uma requisição
 
@@ -54,6 +66,17 @@ motivo do navegador avisar "reenviar formulário?" ao dar F5.
 
 ### Status codes
 
+```mermaid
+flowchart TD
+    R[Chegou uma requisição] --> Q{Deu certo?}
+    Q -- sim --> OK["2xx<br/>200 OK · 201 Created · 204 No Content"]
+    Q -- "não, e a culpa é do cliente" --> C4["4xx<br/>400 · 401 · 403 · 404 · 409 · 422 · 429"]
+    Q -- "não, e a culpa é sua" --> C5["5xx<br/>500 · 503"]
+    style C4 fill:#fed7aa,stroke:#ea580c,color:#000
+    style C5 fill:#fecaca,stroke:#dc2626,color:#000
+    style OK fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
 | Família | Significa          | Os que você usa                                                                                                                                   |
 | ------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2xx     | Deu certo          | `200` OK · `201` Created · `204` No Content                                                                                                       |
@@ -61,10 +84,11 @@ motivo do navegador avisar "reenviar formulário?" ao dar F5.
 | 4xx     | **Cliente errou**  | `400` inválido · `401` não autenticado · `403` sem permissão · `404` não existe · `409` conflito · `422` semântica inválida · `429` rápido demais |
 | 5xx     | **Servidor errou** | `500` erro interno · `503` indisponível                                                                                                           |
 
-A distinção 4xx vs 5xx é a mais importante: **de quem é a culpa?** Bug seu nunca
-deve virar 400, e entrada ruim do cliente nunca deve virar 500.
-
-`401` vs `403`: "não sei quem você é" vs "sei quem você é, e você não pode".
+> [!IMPORTANT]
+> A distinção 4xx vs 5xx é a mais importante: **de quem é a culpa?** Bug seu nunca
+> deve virar 400, e entrada ruim do cliente nunca deve virar 500.
+>
+> `401` vs `403`: "não sei quem você é" vs "sei quem você é, e você não pode".
 
 ### Headers que aparecem sempre
 
@@ -82,12 +106,33 @@ O servidor **não lembra** de você entre requisições. Cada uma chega sozinha 
 precisa carregar tudo que é necessário — inclusive quem você é (daí o
 `Authorization` em toda requisição).
 
-Parece limitação, mas é o que permite ter 10 servidores atrás de um load
-balancer: qualquer um atende qualquer requisição. Volta no módulo 15.
+> [!NOTE]
+> Parece limitação, mas é o que permite ter 10 servidores atrás de um load
+> balancer: qualquer um atende qualquer requisição. Volta no módulo 15.
 
 ## Na prática
 
-Um servidor HTTP sem Express nenhum, para você ver o trabalho manual:
+### curl: o cliente HTTP do terminal
+
+`curl` monta uma requisição na mão e imprime a resposta. Sem flag nenhuma ele faz
+um `GET` e mostra **só o body** — status e headers ficam escondidos.
+
+Flag é traço + letra (`-i`) ou dois traços + a palavra inteira (`--include`): a
+mesma coisa, na forma curta e na longa. Maiúscula é outra flag (`-i` inclui os
+headers, `-I` manda um `HEAD`), e as curtas podem ser juntadas (`-is` = `-i -s`).
+
+| Flag | Por extenso  | O que faz                                              |
+| ---- | ------------ | ------------------------------------------------------ |
+| `-i` | `--include`  | Imprime status e headers junto do body                 |
+| `-X` | `--request`  | Escolhe o método: `-X DELETE`                          |
+| `-H` | `--header`   | Manda um header: `-H "Content-Type: application/json"` |
+| `-d` | `--data`     | Manda um body — e já troca o método para `POST`        |
+| `-s` | `--silent`   | Esconde a barra de progresso, para usar com pipe       |
+| `-L` | `--location` | Segue o `Location` de um `3xx`                         |
+
+### Um servidor sem Express
+
+Para você ver o trabalho manual:
 
 ```bash
 node src/exemplos/01-http-sem-express/servidor.ts
@@ -95,11 +140,11 @@ node src/exemplos/01-http-sem-express/servidor.ts
 
 Em outro terminal:
 
-```bash
+```bash {cmd=true}
 curl localhost:4001/
 curl "localhost:4001/ola?nome=ana"
 curl -X POST localhost:4001/eco -H "Content-Type: application/json" -d '{"a":1}'
-curl -i localhost:4001/nao-existe     # -i mostra status e headers
+curl -i localhost:4001/nao-existe
 ```
 
 Repare no código ([`servidor.ts`](../src/exemplos/01-http-sem-express/servidor.ts))
@@ -122,6 +167,7 @@ o que é feito na mão. É exatamente o que o Express vai automatizar no módulo
 | `500` quando o cliente mandou lixo | Some com o erro real do cliente             | Validação → `400`            |
 | Verbo na URL (`/getCursos`)        | O método já diz a ação                      | `GET /cursos`                |
 | Achar que query param é número     | `?idade=30` chega como `"30"`               | Converta e valide            |
+| `curl -d` sem `-H Content-Type`    | curl envia `x-www-form-urlencoded`          | Passe o header na mão        |
 
 ## Cheatsheet
 

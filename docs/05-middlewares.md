@@ -3,6 +3,8 @@
 **Em uma frase:** um middleware é uma função `(req, res, next)` numa fila; cada
 uma pode inspecionar, modificar, passar adiante ou encerrar a requisição.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - É **o** conceito central do Express. Rota é só o último middleware da fila.
@@ -22,8 +24,21 @@ function meuMiddleware(req: Request, res: Response, next: NextFunction) {
 }
 ```
 
-`express.json()` sempre foi isso. Não existe categoria especial: o parser de body,
-o `cors`, sua rota — tudo é middleware.
+```mermaid
+flowchart LR
+    IN([req]) --> MW["middleware"]
+    MW -->|"next()"| PROX["próximo da fila"]
+    MW -->|"res.json()"| FIM([resposta — cadeia encerrada])
+    MW -->|"next(erro)"| ERR["tratador de erro<br/>(4 argumentos)"]
+    MW -->|"nada 😱"| TRAVA["requisição congela<br/>até o timeout"]
+    style FIM fill:#bbf7d0,stroke:#16a34a,color:#000
+    style ERR fill:#fed7aa,stroke:#ea580c,color:#000
+    style TRAVA fill:#fecaca,stroke:#dc2626,color:#000
+```
+
+> [!NOTE]
+> `express.json()` sempre foi isso. Não existe categoria especial: o parser de
+> body, o `cors`, sua rota — tudo é middleware.
 
 ### A ordem é a ordem do arquivo
 
@@ -48,6 +63,22 @@ Não há prioridade, peso ou config. É a ordem em que você escreveu, e nada ma
 
 Middleware roda na **descida** (antes do handler). Para agir _depois_ da
 resposta, escute o evento `finish`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as Cliente
+    participant L as log
+    participant T as cronometro
+    participant A as autenticar
+    participant H as handler
+    C->>L: req
+    L->>T: next()
+    T->>A: next() (registra res.on('finish'))
+    A->>H: next()
+    H-->>C: res.json()
+    Note over T: 🔔 finish — só observa, não altera
+```
 
 ```ts
 function cronometro(_req, res, next) {
@@ -88,8 +119,9 @@ function exigirPapel(papel: string) {
 app.delete('/tudo', exigirPapel('admin'), handler); // note o () — chamada, não referência
 ```
 
-Esquecer o `()` passa a fábrica como se fosse o middleware. Ela roda, devolve uma
-função que ninguém chama, e a requisição trava.
+> [!CAUTION]
+> Esquecer o `()` passa a fábrica como se fosse o middleware. Ela roda, devolve
+> uma função que ninguém chama, e a requisição trava.
 
 ### Passando dados entre middlewares
 
@@ -109,9 +141,11 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 ```
 
-O que faz o Express reconhecer isto é a **aridade**: exatamente 4 parâmetros.
-Remover o `_next` — mesmo sem usar — transforma o tratador num middleware normal
-que nunca recebe erro. É o [módulo 06](./06-tratamento-de-erros.md) inteiro.
+> [!IMPORTANT]
+> O que faz o Express reconhecer isto é a **aridade**: exatamente 4 parâmetros.
+> Remover o `_next` — mesmo sem usar — transforma o tratador num middleware
+> normal que nunca recebe erro. É o [módulo 06](./06-tratamento-de-erros.md)
+> inteiro.
 
 ### Os dois de terceiros deste módulo
 
@@ -138,7 +172,7 @@ GET /privado 200 38 - 0.352 ms        ← morgan
   ← 2 cronometro: 200 em 0.7ms        ← a subida, no evento finish
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5053
 curl $B/publico                                  # passa por 3 middlewares
 curl -i $B/publico | grep -i x-servidor          # header posto por middleware
@@ -151,8 +185,9 @@ curl $B/quebra                                   # 500 pelo middleware de erro
 curl -m 2 $B/travado                             # trava: faltou next()
 ```
 
-A rota `/travado` é o experimento mais útil do módulo — rode e veja o `curl`
-estourar sem nenhum erro no servidor.
+> [!TIP]
+> A rota `/travado` é o experimento mais útil do módulo — rode e veja o `curl`
+> estourar sem nenhum erro no servidor.
 
 ## Erros comuns
 
@@ -183,15 +218,18 @@ res.on('finish', fn); // depois da resposta ir
 req.header('X-Api-Key');
 ```
 
-```
-ORDEM CANÔNICA
-  1. morgan / pino-http      (log: primeiro, para registrar tudo)
-  2. cors, helmet            (headers)
-  3. express.json()          (body)
-  4. middlewares próprios    (auth, rate limit)
-  5. rotas
-  6. 404 genérico
-  7. middleware de erro      (4 args, sempre o último)
+```mermaid
+flowchart TD
+    A["1 · morgan / pino-http<br/><i>log primeiro, para registrar tudo</i>"]
+    B["2 · cors, helmet<br/><i>headers</i>"]
+    C["3 · express.json()<br/><i>body</i>"]
+    D["4 · middlewares próprios<br/><i>auth, rate limit</i>"]
+    E["5 · rotas"]
+    F["6 · 404 genérico"]
+    G["7 · middleware de erro<br/><i>4 args, sempre o último</i>"]
+    A --> B --> C --> D --> E --> F --> G
+    style G fill:#fecaca,stroke:#dc2626,color:#000
+    style E fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
 ## Pratique

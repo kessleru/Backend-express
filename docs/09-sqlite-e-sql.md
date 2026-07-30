@@ -3,6 +3,8 @@
 **Em uma frase:** trocar o array em memória por um banco de verdade — e descobrir
 que só a camada de repositório muda.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Array em memória some no restart. Toda API real tem um banco.
@@ -46,9 +48,9 @@ CREATE TABLE livros (
 | `CHECK`       | Faixa de valores                                          |
 | `FOREIGN KEY` | A referência existe                                       |
 
-> ⚠️ **O SQLite ignora `FOREIGN KEY` por padrão.** Sem
-> `PRAGMA foreign_keys = ON` em **cada conexão**, suas chaves estrangeiras são
-> comentário.
+> [!CAUTION]
+> **O SQLite ignora `FOREIGN KEY` por padrão.** Sem `PRAGMA foreign_keys = ON` em
+> **cada conexão**, suas chaves estrangeiras são comentário.
 
 **Validar no código vs restringir no banco:** a validação protege da sua API; a
 restrição protege de tudo — script de importação, migration, alguém no console de
@@ -61,6 +63,30 @@ produção às 3 da manhã. Faça as duas.
 | 1-N  | FK no lado "muitos"  | `livros.autor_id`                     |
 | N-N  | **tabela de junção** | `livros_generos(livro_id, genero_id)` |
 | 1-1  | FK com `UNIQUE`      | `perfis.usuario_id UNIQUE`            |
+
+```mermaid
+erDiagram
+    AUTORES ||--o{ LIVROS : escreve
+    LIVROS ||--o{ LIVROS_GENEROS : tem
+    GENEROS ||--o{ LIVROS_GENEROS : classifica
+
+    AUTORES {
+        int id PK
+        text nome
+    }
+    LIVROS {
+        int id PK
+        text titulo
+        int autor_id FK
+        int ano "CHECK 1450..2100"
+        text isbn UK "aceita vários NULL"
+        int disponivel "0/1 — não existe BOOLEAN"
+    }
+    LIVROS_GENEROS {
+        int livro_id PK "FK"
+        int genero_id PK "FK"
+    }
+```
 
 Na tabela de junção, use **chave primária composta** — o par vira único e o mesmo
 gênero não entra duas vezes no mesmo livro, sem você checar nada:
@@ -87,9 +113,23 @@ db.exec(`SELECT * FROM livros WHERE titulo = '${malicioso}'`);
 db.prepare('SELECT * FROM livros WHERE titulo = ?').get(malicioso); // 0 resultados
 ```
 
-O detalhe que costuma passar batido: parametrizar **não é escapar aspas**. O valor
-viaja separado do SQL — o banco recebe a query já compilada e os dados à parte.
-Por isso não existe caractere que "escape" da parametrização.
+> [!IMPORTANT]
+> Parametrizar **não é escapar aspas**. O valor viaja separado do SQL — o banco
+> recebe a query já compilada e os dados à parte. Por isso não existe caractere
+> que "escape" da parametrização.
+
+```mermaid
+flowchart LR
+    subgraph ERRADO["❌ concatenar"]
+        A1["string única<br/>SQL + valor juntos"] --> A2["parser do banco"] --> A3["o valor virou INSTRUÇÃO"]
+    end
+    subgraph CERTO["✅ parametrizar"]
+        B1["SQL com ?"] --> B2["compila 1×"]
+        B3["valor"] -.->|"entra depois, como DADO"| B2
+    end
+    style A3 fill:#fecaca,stroke:#dc2626,color:#000
+    style B2 fill:#bbf7d0,stroke:#16a34a,color:#000
+```
 
 Quando você precisa montar SQL dinâmico, os **pedaços** são strings suas e só os
 **valores** vão em `?`:
@@ -143,8 +183,9 @@ SELECT a.nome, COUNT(l.id) AS livros
  GROUP BY a.id;
 ```
 
-O `LEFT` aqui é a diferença entre um relatório certo e um relatório que **omite
-silenciosamente** os autores com zero livros.
+> [!WARNING]
+> O `LEFT` aqui é a diferença entre um relatório certo e um relatório que **omite
+> silenciosamente** os autores com zero livros.
 
 ### GROUP BY, WHERE e HAVING
 
@@ -157,7 +198,15 @@ HAVING COUNT(*) >= 2      -- filtra GRUPOS, depois de agrupar
  ORDER BY decada;
 ```
 
-Confundir `WHERE` com `HAVING` é o erro clássico de quem está aprendendo.
+```mermaid
+flowchart LR
+    T[("livros")] --> W["WHERE<br/><i>filtra LINHAS</i>"] --> G["GROUP BY<br/><i>agrupa</i>"] --> H["HAVING<br/><i>filtra GRUPOS</i>"] --> O["ORDER BY"] --> L["LIMIT"]
+    style W fill:#dbeafe,stroke:#2563eb,color:#000
+    style H fill:#e9d5ff,stroke:#7c3aed,color:#000
+```
+
+Confundir `WHERE` com `HAVING` é o erro clássico de quem está aprendendo — e o
+diagrama acima é a resposta: um roda antes de agrupar, o outro depois.
 
 ### Índices e `EXPLAIN QUERY PLAN`
 
@@ -168,9 +217,10 @@ CREATE INDEX idx_livros_ano ON livros(ano);
 -- SEARCH livros USING INDEX idx_livros_ano      ← vai direto
 ```
 
-`SCAN` com 5 linhas é instantâneo; com 5 milhões é a diferença entre 1 ms e 4
-segundos. **`EXPLAIN QUERY PLAN` é a ferramenta que responde "por que minha query
-está lenta"** — use antes de otimizar por palpite.
+> [!TIP]
+> `SCAN` com 5 linhas é instantâneo; com 5 milhões é a diferença entre 1 ms e 4
+> segundos. **`EXPLAIN QUERY PLAN` responde "por que minha query está lenta"** —
+> use antes de otimizar por palpite.
 
 Índice não é grátis: ocupa espaço e deixa `INSERT`/`UPDATE` mais lentos (o índice
 também é atualizado). Indexe as colunas que aparecem em `WHERE`, `JOIN` e
@@ -201,9 +251,22 @@ try {
 | **I**solamento   | Uma transação não vê o meio de outra             |
 | **D**urabilidade | Depois do `COMMIT`, sobrevive a queda de energia |
 
-Repare no `AND disponivel = 1` dentro do `UPDATE`: é assim que se evita corrida.
-Um `SELECT` antes do `UPDATE` deixaria uma janela entre os dois em que outra
-requisição poderia emprestar o mesmo livro.
+```mermaid
+stateDiagram-v2
+    [*] --> BEGIN
+    BEGIN --> UPDATE: reserva o livro
+    UPDATE --> INSERT: changes > 0
+    UPDATE --> ROLLBACK: changes == 0 (indisponível)
+    INSERT --> COMMIT: registra o empréstimo
+    INSERT --> ROLLBACK: qualquer erro
+    COMMIT --> [*]: gravado
+    ROLLBACK --> [*]: como se nada tivesse acontecido
+```
+
+> [!IMPORTANT]
+> Repare no `AND disponivel = 1` dentro do `UPDATE`: é assim que se evita
+> corrida. Um `SELECT` antes do `UPDATE` deixaria uma janela entre os dois em que
+> outra requisição poderia emprestar o mesmo livro.
 
 ### Migrations à mão
 
@@ -254,7 +317,7 @@ node src/exemplos/09-sqlite/servidor.ts        # a API do módulo 08 sobre SQLit
 O primeiro imprime nove seções, incluindo o `EXPLAIN QUERY PLAN` antes e depois do
 índice, e a transação sendo desfeita.
 
-```bash
+```bash {cmd=true}
 B=localhost:5057/api/v1/cursos
 curl "$B?publicado=true"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"SQL na mão","horas":6}'
@@ -262,8 +325,9 @@ curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"sql NA mão",
 curl -X POST $B/2/publicar
 ```
 
-Depois **derrube o servidor com Ctrl+C e suba de novo**: os dados continuam lá. É
-a diferença que o módulo inteiro existe para mostrar.
+> [!TIP]
+> Depois **derrube o servidor com Ctrl+C e suba de novo**: os dados continuam lá.
+> É a diferença que o módulo inteiro existe para mostrar.
 
 ## Erros comuns
 

@@ -2,8 +2,11 @@
 
 ⏱️ ~35 min · 🎯 Nível: intermediário
 
-> 📚 Continua o projeto. Você vai **remover** todos os `res.status(4xx).json(...)`
-> das rotas — e a API vai ficar mais curta.
+> [!NOTE]
+> 📚 Continua o projeto. Você vai **remover** todos os
+> `res.status(4xx).json(...)` das rotas — e a API vai ficar mais curta.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -47,6 +50,23 @@ indisponível', 503)`.
    `undefined`. Prove que o cliente **não** vê a stack.
 
 6. `process.on('unhandledRejection')` e `uncaughtException` logando e saindo.
+
+```mermaid
+flowchart TD
+    ROTA["rota / middleware / service"] -->|"throw"| EX["Express 5 captura<br/><i>inclusive em async</i>"]
+    EX --> T{"tratarErro<br/>(4 argumentos)"}
+    T -->|"AppError"| A["status do erro<br/>mensagem real"]
+    T -->|"SyntaxError com .body"| B["400 · JSON inválido"]
+    T -->|"qualquer outra coisa"| C["500 genérico ao cliente"]
+    C -.->|"console.error"| LOG["stack completa no TERMINAL<br/>com o mesmo requestId"]
+    style A fill:#bbf7d0,stroke:#16a34a,color:#000
+    style B fill:#fed7aa,stroke:#ea580c,color:#000
+    style C fill:#fecaca,stroke:#dc2626,color:#000
+```
+
+> [!CAUTION]
+> O tratador precisa dos **4 argumentos**. Com 3, o Express o trata como
+> middleware comum, e o cliente recebe HTML com a stack trace inteira.
 
 ## Critérios de aceite
 

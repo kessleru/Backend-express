@@ -4,6 +4,8 @@
 roteamento, leitura de body e escrita de resposta — o trabalho manual do
 [módulo 01](./01-fundamentos-http.md).
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - É o framework mais usado do ecossistema Node; entender ele é entender os outros.
@@ -23,8 +25,9 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 | `writeHead` + `JSON.stringify` + `end`     | `res.json(...)`                |
 | 404 escrito à mão no fim                   | automático                     |
 
-O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
-`node:http`, só com métodos a mais.
+> [!NOTE]
+> O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
+> `node:http`, só com métodos a mais.
 
 ### As três peças
 
@@ -37,6 +40,15 @@ app.get('/rota', (req, res) => res.json({})); // 3. rotas
 app.listen(5051);
 ```
 
+```mermaid
+flowchart LR
+    REQ([requisição]) --> J["express.json()<br/>preenche req.body"]
+    J --> ROTA{"casa com<br/>algum app.get/post?"}
+    ROTA -- sim --> H["handler<br/>(req, res)"] --> RES([res.json])
+    ROTA -- não --> E404["404 automático"]
+    style E404 fill:#fed7aa,stroke:#ea580c,color:#000
+```
+
 ### Os três tipos de parâmetro — a decisão central
 
 | Tipo            | Onde vem          | Acessa por   | Obrigatório? | Para quê                     |
@@ -45,12 +57,17 @@ app.listen(5051);
 | **Query param** | `/cursos?horas=5` | `req.query`  | Não          | Filtro, ordenação, paginação |
 | **Body**        | corpo JSON        | `req.body`   | Sim (criar)  | Dados de criação/edição      |
 
-Regra de decisão:
+```mermaid
+flowchart TD
+    Q{"O dado..."} -->|"identifica UM recurso"| RP["route param<br/>/cursos/:id"]
+    Q -->|"filtra, ordena, pagina<br/>(a lista existe sem ele)"| QP["query param<br/>?horas=5"]
+    Q -->|"é conteúdo"| B["body<br/>POST · PUT · PATCH"]
+    style RP fill:#dbeafe,stroke:#2563eb,color:#000
+    style QP fill:#e9d5ff,stroke:#7c3aed,color:#000
+    style B fill:#bbf7d0,stroke:#16a34a,color:#000
+```
 
-- **Identifica um recurso?** → route param. `/cursos/7`.
-- **Muda o formato da lista, mas a lista existe sem ele?** → query param.
-- **É conteúdo?** → body. E body só em `POST`/`PUT`/`PATCH`.
-
+> [!IMPORTANT]
 > Tudo que vem da URL é **string**. `?horas=5` chega como `"5"`. Converter e
 > validar é sua responsabilidade — sempre.
 
@@ -60,10 +77,11 @@ Regra de decisão:
 app.use(express.json()); // sem isto, req.body é undefined em TODA rota
 ```
 
-Ele só age quando o cliente manda `Content-Type: application/json`. Sem esse
-header, o Express 5 deixa `req.body` como **`undefined`** (o Express 4 deixava
-`{}`) — daí `const { x } = req.body` explodir com `TypeError` e virar um 500 num
-erro que era do cliente.
+> [!WARNING]
+> Ele só age quando o cliente manda `Content-Type: application/json`. Sem esse
+> header, o Express 5 deixa `req.body` como **`undefined`** (o Express 4 deixava
+> `{}`) — daí `const { x } = req.body` explodir com `TypeError` e virar um 500
+> num erro que era do cliente.
 
 ### Escrevendo a resposta
 
@@ -75,8 +93,9 @@ res.status(201).location('/cursos/4').json(x); // header extra
 res.send('texto'); // Content-Type deduzido (text/html aqui)
 ```
 
-Cada requisição recebe **uma** resposta. Responder duas vezes dá
-`ERR_HTTP_HEADERS_SENT` — daí o `return` antes de todo `res.status(4xx)`.
+> [!CAUTION]
+> Cada requisição recebe **uma** resposta. Responder duas vezes dá
+> `ERR_HTTP_HEADERS_SENT` — daí o `return` antes de todo `res.status(4xx)`.
 
 ### PUT vs PATCH na prática
 
@@ -95,7 +114,7 @@ if (titulo !== undefined) curso.titulo = titulo;
 node src/exemplos/03-express-basico/crud-cursos.ts
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5051
 curl $B/cursos                          # lista
 curl "$B/cursos?titulo=http&maxHoras=5" # query params combinados

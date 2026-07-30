@@ -9,21 +9,80 @@ cp .env.example .env
 npm run dev          # http://localhost:5050
 ```
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
+
+## Leia com o preview certo
+
+Os `.md` deste repo usam recursos do **Markdown Preview Enhanced**, extensão
+recomendada em [`.vscode/extensions.json`](./.vscode/extensions.json) — o VS Code
+oferece instalar ao abrir o projeto.
+
+> [!TIP]
+> `Ctrl+K V` abre o preview lado a lado. Sem a extensão nada quebra: os
+> diagramas viram bloco de código, só isso.
+
+### Recursos de Markdown usados nos docs
+
+| Recurso                    | Onde aparece                                    |
+| -------------------------- | ----------------------------------------------- |
+| Diagramas **mermaid**      | Fluxos, camadas, sequências, modelo de dados    |
+| Alertas `> [!NOTE]`        | Avisos, armadilhas e decisões                   |
+| Sumário automático         | `<!-- @import "[TOC]" ... -->` no topo do doc   |
+| Blocos executáveis         | ```` ```bash {cmd=true} ```` nos comandos `curl` |
+| Listas de tarefas          | Critérios de aceite dos exercícios              |
+
+> [!CAUTION]
+> Os blocos `{cmd=true}` só rodam se você ligar
+> `markdown-preview-enhanced.enableScriptExecution`. O repo deixa a opção
+> **desligada** — ligue apenas depois de ler o comando que vai executar.
+
 ## Como estudar
 
-Para cada módulo, na ordem:
-
-1. Ler `docs/NN-*.md` — teoria enxuta, direto ao ponto.
-2. Rodar o exemplo em `src/exemplos/NN-*/` e mexer nele até quebrar.
-3. Resolver `exercicios/NN-*/` dentro de `src/playground/`.
-4. Só então comparar com `exercicios/NN-*/solucao/`.
+```mermaid
+flowchart LR
+    A["📚 docs/NN-*.md<br/>teoria enxuta"] --> B["🧪 src/exemplos/NN-*/<br/>rode e quebre"]
+    B --> C["🏋️ exercicios/NN-*/<br/>resolva no playground"]
+    C --> D["🔍 exercicios/NN-*/solucao/<br/>só agora compare"]
+    D --> A
+```
 
 O passo 3 é o que fixa. Ler código pronto dá sensação de aprendizado; escrever
 do zero mostra o que você realmente sabe.
 
+> [!IMPORTANT]
+> Resolva em `src/playground/`. É a única pasta que é sua — nada mais no repo
+> escreve lá.
+
 ## Currículo
 
 ✅ = pronto para estudar · ⬜ = ainda não escrito
+
+```mermaid
+flowchart TD
+    subgraph I["Parte I — Fundamentos"]
+        M01[01 HTTP] --> M02[02 Node e async]
+    end
+    subgraph II["Parte II — Express"]
+        M03[03 Express] --> M04[04 Roteamento] --> M05[05 Middlewares]
+        M05 --> M06[06 Erros] --> M07[07 Validação]
+    end
+    subgraph III["Parte III — Arquitetura e dados"]
+        M08[08 Camadas] --> M09[09 SQLite] --> M10[10 Prisma]
+        M10 --> M11[11 Auth] --> M12[12 Testes]
+    end
+    subgraph IV["Parte IV — Produção"]
+        M13[13 Segurança] --> M14[14 Observabilidade]
+        M14 --> M15[15 Performance] --> M16[16 Deploy]
+    end
+    subgraph V["Parte V — Avançado"]
+        M17[17 Filas] --> M18[18 Tempo real]
+        M18 --> M19[19 Uploads] --> M20[20 Além do REST]
+    end
+    M02 --> M03
+    M07 --> M08
+    M12 --> M13
+    M16 --> M17
+```
 
 ### Parte I — Fundamentos
 
@@ -76,12 +135,15 @@ Glossário · Cheatsheet HTTP · Checklist de produção · Erros comuns · Cat�
 
 ## Estrutura
 
-```
-docs/              📚 teoria — um arquivo por módulo
-src/exemplos/      🧪 código de referência (rode e modifique)
-exercicios/        🏋️ enunciados + soluções
-src/playground/    🔒 SEU espaço — só você mexe aqui
-src/server.ts      o servidor, que cresce junto com o curso
+```mermaid
+flowchart LR
+    R((repo)) --> D["📚 docs/<br/>teoria, 1 arquivo por módulo"]
+    R --> E["🧪 src/exemplos/<br/>código de referência"]
+    R --> X["🏋️ exercicios/<br/>enunciados + soluções"]
+    R --> P["🔒 src/playground/<br/>SEU espaço"]
+    R --> S["⚙️ src/server.ts<br/>cresce junto com o curso"]
+
+    style P fill:#fde68a,stroke:#d97706,color:#000
 ```
 
 ## Comandos

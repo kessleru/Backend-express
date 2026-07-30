@@ -2,8 +2,11 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
+> [!NOTE]
 > 📚 Continua o projeto. Ao terminar, sua API não tem mais nenhuma linha de
 > `typeof x !== 'string'`.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -65,6 +68,25 @@ middlewares/
 
 7. `GET /livros` passa a devolver
    `{ dados, pagina, porPagina, total }` sempre.
+
+```mermaid
+flowchart LR
+    REQ([req]) --> V["validar(schema, fonte)"]
+    V -->|ok| LOC["res.locals.validados"] --> H["handler<br/><i>só regra de negócio</i>"]
+    V -->|falhou| E["AppError 400<br/>detalhes[]"] --> T["tratador (06)"]
+
+    H --> R1["autorId existe?<br/>não → 400"]
+    H --> R2["isbn repetido?<br/>sim → 409"]
+    H --> R3["já emprestado?<br/>sim → 409"]
+
+    style LOC fill:#bbf7d0,stroke:#16a34a,color:#000
+    style E fill:#fed7aa,stroke:#ea580c,color:#000
+```
+
+> [!IMPORTANT]
+> As três regras de negócio da direita **não** cabem no schema: elas precisam
+> consultar os dados. Schema responde "está bem formado?"; o handler responde "é
+> permitido agora?".
 
 ## Critérios de aceite
 

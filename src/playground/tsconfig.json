@@ -1,0 +1,10 @@
+// Existe só para o editor. O VS Code descobre o projeto de um arquivo subindo
+// as pastas até achar um `tsconfig.json` — ele nunca procura por
+// `tsconfig.playground.json`. Como a raiz exclui `src/playground`, sem este
+// arquivo o playground caía num "inferred project" sem `@types/node`, e o
+// editor acusava "Cannot find name 'Buffer'" mesmo com a tipagem instalada.
+//
+// As regras são as mesmas de sempre: quem manda é `tsconfig.playground.json`.
+{
+  "extends": "../../tsconfig.playground.json"
+}

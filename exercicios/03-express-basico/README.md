@@ -2,9 +2,12 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
+> [!IMPORTANT]
 > 📚 **Aqui começa o projeto contínuo.** Tudo que você escrever daqui até o
 > módulo 20 é a mesma API de biblioteca, crescendo. Guarde em
 > `src/playground/biblioteca/`.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -41,6 +44,16 @@ Comece com 3 livros no array e implemente:
 6. `POST /livros/:id/emprestar` — marca `disponivel: false`. Já emprestado →
    `409 Conflict`.
 7. `POST /livros/:id/devolver` — marca `disponivel: true`.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> Disponível: POST /livros
+    Disponível --> Emprestado: POST /:id/emprestar
+    Emprestado --> Disponível: POST /:id/devolver
+    Emprestado --> Emprestado: emprestar de novo → 409
+    Disponível --> [*]: DELETE → 204
+```
 
 Validação (dentro das rotas, na mão — é a dor que o módulo 07 vai curar):
 

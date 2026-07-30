@@ -3,6 +3,8 @@
 **Em uma frase:** o Prisma gera um client tipado a partir de um schema
 declarativo — você para de escrever SQL e passa a escrever objetos.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Tipagem de ponta a ponta: `titulu` no `where` é erro de compilação, não uma
@@ -19,6 +21,15 @@ declarativo — você para de escrever SQL e passa a escrever objetos.
 | **Driver**        | SQL na mão          | `node:sqlite`, `pg` ([módulo 09](./09-sqlite-e-sql.md)) |
 | **Query builder** | SQL em objetos, 1:1 | Knex, Drizzle                                           |
 | **ORM**           | Objetos do domínio  | Prisma, TypeORM                                         |
+
+```mermaid
+flowchart LR
+    D["Driver<br/>SQL na mão"] --> QB["Query builder<br/>SQL em objetos"] --> O["ORM<br/>objetos do domínio"]
+    D -.->|"+ controle"| D
+    O -.->|"+ produtividade"| O
+    style D fill:#dbeafe,stroke:#2563eb,color:#000
+    style O fill:#e9d5ff,stroke:#7c3aed,color:#000
+```
 
 Quanto mais alto, menos código e menos controle. O Prisma fica entre ORM e query
 builder: não tem entidade "rica" com métodos, só dados tipados.
@@ -58,8 +69,9 @@ model Livro {
 **tabela** (SQL, snake_case). Sem eles, sua convenção de TypeScript acaba ditando
 a do banco.
 
-O campo `autor Autor` **não é coluna** — é o Prisma permitindo navegar. Quem tem a
-coluna é `autorId`.
+> [!NOTE]
+> O campo `autor Autor` **não é coluna** — é o Prisma permitindo navegar. Quem
+> tem a coluna é `autorId`.
 
 ### Prisma 7: a URL saiu do schema
 
@@ -91,8 +103,9 @@ export const prisma = new PrismaClient({
 A separação faz sentido: o schema descreve a **forma** dos dados; conexão é
 configuração de runtime. Antes, gerar o client exigia o `.env` presente.
 
-> ⚠️ O export é `PrismaBetterSqlite3` — **s** minúsculo em "Sqlite", ao contrário
-> do que a documentação de várias versões sugere.
+> [!CAUTION]
+> O export é `PrismaBetterSqlite3` — **s** minúsculo em "Sqlite", ao contrário do
+> que a documentação de várias versões sugere.
 
 E o gerador padrão passou a ser `prisma-client` (ESM, TypeScript de verdade), que
 **exige** um `output`. O antigo `prisma-client-js`, que escrevia dentro de
@@ -111,6 +124,16 @@ Você declara o estado **desejado**; o Prisma calcula o SQL da diferença. O
 resultado é um arquivo em `prisma/migrations/` que **vai para o git** — o mesmo
 histórico que escrevemos à mão no [módulo 09](./09-sqlite-e-sql.md), agora gerado.
 
+```mermaid
+flowchart LR
+    S["schema.prisma<br/><i>estado desejado</i>"] -->|"migrate dev"| M["prisma/migrations/*.sql<br/><i>vai pro git</i>"]
+    M -->|aplica| DB[("banco")]
+    S -->|"generate"| C["Prisma Client tipado<br/><i>src/exemplos/10-prisma/gerado/</i>"]
+    C --> COD["seu código"]
+    style S fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
+> [!IMPORTANT]
 > **Depois de toda migration, rode `prisma generate`.** O `migrate dev` faz isso;
 > se você aplicar de outra forma, o client fica desatualizado e o TypeScript
 > reclama de um campo que já existe no banco.
@@ -145,6 +168,25 @@ for (const autor of autores) {
 
 // ✅ 1 chamada
 const autores = await prisma.autor.findMany({ include: { livros: true } });
+```
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as API
+    participant D as Banco
+    rect rgb(254, 226, 226)
+        Note over A,D: ❌ N+1 — 500 autores = 501 idas
+        A->>D: SELECT * FROM autores
+        loop para CADA autor
+            A->>D: SELECT * FROM livros WHERE autor_id = ?
+        end
+    end
+    rect rgb(220, 252, 231)
+        Note over A,D: ✅ include — 2 queries fixas
+        A->>D: SELECT * FROM autores
+        A->>D: SELECT * FROM livros WHERE autor_id IN (...)
+    end
 ```
 
 Com 3 autores, imperceptível. Com 500, são **501 queries** e a rota leva segundos.
@@ -182,11 +224,12 @@ await prisma.livro.delete({ where: { id } }); // LANÇA se não existe (P2025)
 
 `undefined` = "não mexe neste campo"; `null` = "grave NULL".
 
-> ⚠️ **Atrito com `exactOptionalPropertyTypes: true`** (ligado neste repo):
+> [!CAUTION]
+> **Atrito com `exactOptionalPropertyTypes: true`** (ligado neste repo):
 > `data: { titulo: dados.titulo }` com `titulo?: string | undefined` **não
 > compila**. Os tipos gerados declaram `titulo?: string` sem `| undefined`, e a
-> flag recusa chave presente valendo `undefined` — que é justo o idioma do Prisma.
-> A saída é o spread condicional:
+> flag recusa chave presente valendo `undefined` — que é justo o idioma do
+> Prisma. A saída é o spread condicional:
 > `...(v !== undefined ? { titulo: v } : {})`.
 
 ### Transações
@@ -202,8 +245,9 @@ await prisma.$transaction(async (tx) => {
 });
 ```
 
-**Use `tx`, não `prisma`, dentro da transação interativa.** Usar `prisma` sai da
-transação, e o rollback não desfaz nada — bug silencioso e caro.
+> [!CAUTION]
+> **Use `tx`, não `prisma`, dentro da transação interativa.** Usar `prisma` sai
+> da transação, e o rollback não desfaz nada — bug silencioso e caro.
 
 ### Quando voltar para SQL cru
 
@@ -214,17 +258,22 @@ const r = await prisma.$queryRaw<{ decada: number; quantos: bigint }[]>`
 ```
 
 O template literal transforma os `${}` em parâmetros, então continua imune a
-injeção. **Nunca use `$queryRawUnsafe` com entrada do usuário.**
+injeção.
+
+> [!CAUTION]
+> **Nunca use `$queryRawUnsafe` com entrada do usuário.**
 
 Vale quando: agregação/janela complexa (CTE, window function), a query gerada está
 lenta e você já viu o `EXPLAIN`, ou recurso específico do banco (full-text, JSON
 operators). Você perde a tipagem — o generic é uma **promessa sua**, não uma
 garantia.
 
-> ⚠️ **`COUNT`, `SUM` e `MIN` voltam como `bigint`** no SQLite via `$queryRaw`, e
-> `JSON.stringify` de um bigint **lança** `TypeError: Do not know how to serialize
-a BigInt`. Funciona no `console.log` e dá 500 na rota. Converta com `Number()`.
-> Pela API do Prisma (`_count`, `_min`) isso não acontece — já vem `number`.
+> [!CAUTION]
+> **`COUNT`, `SUM` e `MIN` voltam como `bigint`** no SQLite via `$queryRaw`, e
+> `JSON.stringify` de um bigint **lança**
+> `TypeError: Do not know how to serialize a BigInt`. Funciona no `console.log` e
+> dá 500 na rota. Converta com `Number()`. Pela API do Prisma (`_count`, `_min`)
+> isso não acontece — já vem `number`.
 
 ### O ORM não apaga as diferenças entre bancos
 
@@ -233,8 +282,9 @@ Duas que aparecem no exemplo deste módulo:
 - `createMany({ skipDuplicates: true })` — o Prisma **recusa** no SQLite.
 - `mode: 'insensitive'` no `where` — só Postgres.
 
-As duas falham em runtime ou compilação, não na documentação. É o custo real da
-abstração: a API parece uniforme e não é.
+> [!WARNING]
+> As duas falham em runtime ou compilação, não na documentação. É o custo real da
+> abstração: a API parece uniforme e não é.
 
 ### Prisma Studio
 
@@ -266,20 +316,22 @@ PRISMA_LOG=1 node src/exemplos/10-prisma/01-queries.ts   # ← com o SQL no term
 node src/exemplos/10-prisma/servidor.ts
 ```
 
-No `01-queries.ts`, **conte as linhas `prisma:query`** na seção 3: são 3 no jeito
-errado (1 + 2 autores) contra 2 no `include`. Acrescente autores no seed e conte
-de novo — a diferença cresce sozinha.
+> [!TIP]
+> No `01-queries.ts`, **conte as linhas `prisma:query`** na seção 3: são 3 no
+> jeito errado (1 + 2 autores) contra 2 no `include`. Acrescente autores no seed
+> e conte de novo — a diferença cresce sozinha.
 
-```bash
+```bash {cmd=true}
 B=localhost:5058/api/v1/cursos
 curl "$B?publicado=true" ; curl "$B?titulo=express"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"Prisma","horas":7}'
 curl -X POST $B/2/publicar ; curl -X DELETE $B/2   # 409: publicado não se apaga
 ```
 
-**O ponto do módulo:** compare as respostas com as dos módulos 08 e 09. São as
-mesmas, porque o service é o mesmo arquivo importado. A terceira troca de banco
-não custou nada.
+> [!IMPORTANT]
+> **O ponto do módulo:** compare as respostas com as dos módulos 08 e 09. São as
+> mesmas, porque o service é o mesmo arquivo importado. A terceira troca de banco
+> não custou nada.
 
 ## Erros comuns
 

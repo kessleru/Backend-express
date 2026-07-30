@@ -2,8 +2,11 @@
 
 ⏱️ ~50 min · 🎯 Nível: intermediário
 
+> [!NOTE]
 > 📚 A biblioteca ganha gente. Empréstimo passa a ter um responsável, e cada
 > usuário só vê e devolve o que é dele.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -57,6 +60,10 @@ type Emprestimo = {
   `{ sub, jti }`. `issuer` e `audience` nos dois.
 - `JWT_SECRET` vem do `.env` e o processo **não sobe** sem ele.
 
+> [!WARNING]
+> O fallback `?? 'segredo-de-dev'` é pior que um crash: você faz deploy com o
+> segredo de exemplo e descobre quando alguém forja um token de admin.
+
 ### 3. Rotas de auth
 
 | Rota                   | Faz                                                  |
@@ -76,8 +83,30 @@ type Emprestimo = {
 | `GET /emprestimos/meus`      | só os do usuário logado                      |
 | `GET /emprestimos`           | **admin**: todos                             |
 
-O `usuarioId` vem **do token**, nunca do body. Aceitá-lo do body deixaria
-qualquer um pegar livro no nome de outro.
+```mermaid
+flowchart TD
+    R["POST /livros/:id/devolver"] --> A{"autenticar<br/><i>middleware</i>"}
+    A -- "sem token" --> E401["401"]
+    A -- ok --> S["servico.devolver(livroId, usuarioId, papel)"]
+    S --> B{"existe empréstimo aberto?"}
+    B -- não --> E409["409"]
+    B -- sim --> C{"é o dono<br/>OU é admin?"}
+    C -- não --> E403["403"]
+    C -- sim --> OK["200 · devolvido"]
+
+    style A fill:#dbeafe,stroke:#2563eb,color:#000
+    style C fill:#e9d5ff,stroke:#7c3aed,color:#000
+    style OK fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
+> [!CAUTION]
+> O `usuarioId` vem **do token**, nunca do body. Aceitá-lo do body deixaria
+> qualquer um pegar livro no nome de outro. Vale igual para `papel` e `criadoPor`.
+
+> [!IMPORTANT]
+> Repare no diagrama: **papel** é decidido no middleware (não precisa dos dados);
+> **dono** é decidido no service (precisa buscar o recurso). Essa separação é o
+> conteúdo do módulo.
 
 ### 5. Proteção das rotas existentes
 

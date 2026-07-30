@@ -3,6 +3,8 @@
 **Em uma frase:** o Node roda JavaScript fora do navegador com **uma thread só**,
 e é a assincronia que faz isso bastar para atender milhares de clientes.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - Entender o event loop é o que separa "funciona" de "aguenta carga".
@@ -23,8 +25,16 @@ e é a assincronia que faz isso bastar para atender milhares de clientes.
 
 Existe **uma** fila de trabalho e **uma** thread rodando seu código.
 
-```
-seu código roda → termina → o loop pega o próximo item da fila → roda → ...
+```mermaid
+flowchart LR
+    JS["🧵 Sua thread<br/>(uma só)"] -->|"delega I/O"| OS["Sistema operacional<br/>libuv · thread pool"]
+    OS -->|"terminei"| FILA[["Fila de callbacks"]]
+    FILA --> LOOP{{"Event loop"}}
+    LOOP -->|"próximo item"| JS
+
+    CPU["🔥 for de 200 milhões"] -.->|"ocupa a thread"| JS
+    style CPU fill:#fecaca,stroke:#dc2626,color:#000
+    style JS fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
 - **I/O não bloqueia:** ler um arquivo é delegado ao sistema operacional. O Node
@@ -32,8 +42,9 @@ seu código roda → termina → o loop pega o próximo item da fila → roda �
 - **CPU bloqueia:** um `for` de 200 milhões de voltas é o _seu_ código. Enquanto
   ele roda, nenhum timer dispara e nenhum cliente é atendido.
 
-> Regra prática: espera é grátis, cálculo é caro. Backend passa a vida esperando
-> banco e rede — daí o modelo funcionar tão bem.
+> [!TIP]
+> Espera é grátis, cálculo é caro. Backend passa a vida esperando banco e rede —
+> daí o modelo funcionar tão bem.
 
 ### Ordem de execução
 
@@ -42,6 +53,12 @@ console.log('1');
 setTimeout(() => console.log('4'), 0); // macrotask: vai pro fim da fila
 void Promise.resolve().then(() => console.log('3')); // microtask: fura a fila
 console.log('2');
+```
+
+```mermaid
+flowchart LR
+    S["código síncrono<br/>1 · 2"] --> M["microtasks<br/>.then · await<br/>3"] --> T["macrotasks<br/>setTimeout · I/O<br/>4"]
+    style M fill:#dbeafe,stroke:#2563eb,color:#000
 ```
 
 Microtasks (`.then`, `await`) rodam antes de qualquer macrotask (`setTimeout`,
@@ -62,9 +79,10 @@ ESM é o padrão do ecossistema hoje, permite `await` no topo do arquivo e é
 exigido pelo `verbatimModuleSyntax` do nosso `tsconfig.json`. CommonJS você ainda
 vai encontrar em todo tutorial de 2019 — reconheça e traduza.
 
-**Detalhe deste repo:** import relativo leva a extensão real (`./foo.ts`), porque
-o Node exige extensão em ESM. O `rewriteRelativeImportExtensions` troca por
-`.js` no `npm run build`.
+> [!NOTE]
+> **Detalhe deste repo:** import relativo leva a extensão real (`./foo.ts`),
+> porque o Node exige extensão em ESM. O `rewriteRelativeImportExtensions` troca
+> por `.js` no `npm run build`.
 
 ### `package.json` campo a campo
 
@@ -77,8 +95,9 @@ o Node exige extensão em ESM. O `rewriteRelativeImportExtensions` troca por
 | `dependencies`    | Precisa **em produção** (`express`).                      |
 | `devDependencies` | Só para desenvolver (`typescript`, `prettier`, `vitest`). |
 
-Errar a coluna `dependencies`/`devDependencies` não dá erro local — dá erro no
-deploy, onde `npm ci --omit=dev` não instala o que você pôs no lugar errado.
+> [!WARNING]
+> Errar a coluna `dependencies`/`devDependencies` não dá erro local — dá erro no
+> deploy, onde `npm ci --omit=dev` não instala o que você pôs no lugar errado.
 
 ### Semver
 
@@ -100,6 +119,14 @@ grava a versão exata que foi instalada. Commite sempre. E `npm ci` (em vez de
 `npm install`) instala exatamente o lockfile, sem atualizar nada.
 
 ### Callbacks → Promises → async/await
+
+```mermaid
+timeline
+    title Três gerações do mesmo problema
+    Callback : erro no 1º argumento : aninha até virar pirâmide
+    Promise : .then / .catch : encadeia plano
+    async-await : lê como código síncrono : try/catch normal
+```
 
 ```ts
 // 1. Callback: erro é o primeiro argumento, por convenção.
@@ -139,12 +166,13 @@ try {
 }
 ```
 
-Sem o `await`, a rejeição vira **unhandled rejection** e o Node derruba o
-processo. Este é o bug número um de backend Node.
+> [!CAUTION]
+> Sem o `await`, a rejeição vira **unhandled rejection** e o Node derruba o
+> processo. Este é o bug número um de backend Node.
 
 ## Na prática
 
-```bash
+```bash {cmd=true}
 node src/exemplos/02-node-async/event-loop.ts   # I/O não bloqueia, CPU bloqueia
 node src/exemplos/02-node-async/promises.ts     # as 3 gerações + armadilhas
 ```

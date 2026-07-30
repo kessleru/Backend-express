@@ -502,12 +502,37 @@ Link para `exercicios/NN-*/` + 1 desafio extra opcional.
 
 | Regra             | Limite                                                               |
 | ----------------- | -------------------------------------------------------------------- |
-| Tamanho do módulo | ~150 linhas. Passou disso, provavelmente são dois módulos.           |
+| Tamanho do módulo | **Sem limite.** Acaba quando o assunto acaba, não na linha N.        |
 | Parágrafo         | Máximo 4 linhas. Sem muro de texto.                                  |
 | Prosa vs código   | Se dá pra mostrar em código comentado, mostre em código.             |
 | Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração.             |
 | Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora. |
 | Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.    |
+
+### Recursos de Markdown (Markdown Preview Enhanced)
+
+Os `.md` são escritos para o preview do MPE sem quebrar a renderização do GitHub.
+As extensões recomendadas estão em `.vscode/extensions.json`.
+
+| Recurso                                     | Onde                                              |
+| ------------------------------------------- | ------------------------------------------------- |
+| `<!-- @import "[TOC]" {cmd="toc" ...} -->`  | Topo de todo `docs/NN-*.md` e enunciado           |
+| ` ```mermaid `                              | Fluxo, sequência, camadas, ER, estado, gantt      |
+| `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]`     | Contexto, atalho, regra que decide                |
+| `> [!WARNING]` / `[!CAUTION]`               | Armadilha e erro caro                             |
+| ` ```bash {cmd=true} `                      | Blocos `curl`/script que terminam sozinhos        |
+| `- [ ]`                                     | Critérios de aceite                               |
+
+**Diagrama substitui prosa, não soma** — ao inserir um, corte o parágrafo que
+ficou redundante. Nunca `{cmd=true}` num comando que sobe servidor. E
+`enableScriptExecution` permanece **desligado** em `.vscode/settings.json`, por
+segurança.
+
+### Comentários no código
+
+Comentário é para o que muda uma decisão: o ponto-chave do trecho, a armadilha, o
+porquê. `// TODO` marca o que um módulo à frente resolve. Código errado só
+aparece se vier acompanhado da versão correta logo abaixo.
 
 ### O que **não** entrar
 
@@ -676,8 +701,8 @@ retomar.
    backend; o Express é o veículo.
 7. **Não reescreva módulos já concluídos** por preferência de estilo. Corrija
    erro, não gosto.
-8. **Siga o padrão de escrita da seção 7.** Enxuto e completo. Se um módulo
-   passou de ~150 linhas, corte — não é sinal de qualidade.
+8. **Siga o padrão de escrita da seção 7.** Enxuto e completo. Corte o que se
+   repete ou não muda uma decisão; nunca corte por causa da contagem de linhas.
 9. Ao terminar uma fase, **atualize a tabela da seção 9** neste arquivo.
 
 ---

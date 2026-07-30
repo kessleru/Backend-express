@@ -2,8 +2,11 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
+> [!NOTE]
 > 📚 Continua o projeto: você vai **refatorar** o que fez no exercício 03 e
 > adicionar um segundo recurso.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -46,6 +49,22 @@ biblioteca/
 
 5. `POST /livros` passa a exigir `autorId` de um autor que **existe** → senão
    `400`.
+
+```mermaid
+flowchart LR
+    APP["servidor.ts"] -->|"/api/v1"| V1["Router v1"]
+    V1 -->|"/livros"| L["rotas/livros.ts<br/>'/' · '/disponiveis' · '/:id'"]
+    V1 -->|"/autores"| A["rotas/autores.ts<br/>'/' · '/:id' · '/:id/livros'"]
+    L -.->|importa| D["dados.ts"]
+    A -.->|importa| D
+    APP --> N["404 genérico<br/>(no fim)"]
+    style D fill:#dbeafe,stroke:#2563eb,color:#000
+    style N fill:#fed7aa,stroke:#ea580c,color:#000
+```
+
+> [!WARNING]
+> `/livros/disponiveis` precisa ser declarada **antes** de `/livros/:id`. Fora
+> dessa ordem você recebe 404 numa rota que existe.
 
 ## Critérios de aceite
 

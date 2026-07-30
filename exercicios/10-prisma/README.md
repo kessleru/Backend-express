@@ -2,8 +2,11 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
+> [!IMPORTANT]
 > 📚 Terceira troca de banco. Se o módulo 08 foi bem feito, `servicos/`,
 > `controllers/`, `rotas/` e `dominio/` continuam intocados.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -36,6 +39,36 @@ tabelas do exercício 09:
 - `@@id([livroId, generoId])` na junção
 - `@@index` em `autorId` e `disponivel`
 
+```mermaid
+erDiagram
+    Autor ||--o{ Livro : "onDelete Restrict"
+    Livro ||--o{ LivroGenero : "onDelete Cascade"
+    Genero ||--o{ LivroGenero : ""
+
+    Autor {
+        Int id PK
+        String nome
+        String nacionalidade
+        DateTime nascimento "opcional"
+    }
+    Livro {
+        Int id PK
+        String titulo
+        Int autorId FK "map autor_id · index"
+        Int ano
+        String isbn UK "opcional"
+        Boolean disponivel "index"
+    }
+    LivroGenero {
+        Int livroId PK "FK"
+        Int generoId PK "FK"
+    }
+    Genero {
+        Int id PK
+        String nome UK
+    }
+```
+
 Depois: `npx prisma migrate dev --name biblioteca`
 
 ### 2. Client
@@ -59,6 +92,10 @@ Implementam as mesmas interfaces de `dominio/`. Exigências:
 ### 4. Composition root
 
 `servidor.ts` muda **duas linhas**.
+
+> [!CAUTION]
+> Dentro de `$transaction(async (tx) => ...)` use **`tx`**, nunca `prisma`. Com
+> `prisma` você sai da transação e o rollback não desfaz nada — silenciosamente.
 
 ## Critérios de aceite
 

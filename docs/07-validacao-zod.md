@@ -3,6 +3,8 @@
 **Em uma frase:** um schema Zod descreve o que a entrada pode ser — e o
 TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
+
 ## Por que importa
 
 - **Nunca confie no cliente.** `req.body` é `any`: um objeto que chegou pela rede.
@@ -14,9 +16,10 @@ TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
 ### A regra de ouro
 
-Todo dado que vem de fora é suspeito: body, query, params, headers, arquivo,
-resposta de API de terceiro. Não porque o usuário é malicioso — mas porque ele é
-**um cliente que você não controla**, e um dia vai mandar `horas: "8"`.
+> [!IMPORTANT]
+> Todo dado que vem de fora é suspeito: body, query, params, headers, arquivo,
+> resposta de API de terceiro. Não porque o usuário é malicioso — mas porque ele
+> é **um cliente que você não controla**, e um dia vai mandar `horas: "8"`.
 
 Valide quatro coisas: **tipo**, **formato**, **obrigatoriedade** e **limites**.
 
@@ -45,6 +48,13 @@ export const criarCursoSchema = z
 export type CriarCurso = z.infer<typeof criarCursoSchema>; // o tipo vem do schema
 ```
 
+```mermaid
+flowchart LR
+    S["schema Zod<br/><b>única fonte de verdade</b>"] -->|"runtime"| V["valida o que chegou"]
+    S -->|"z.infer"| T["tipo TypeScript"]
+    style S fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
 Mudar a regra muda o tipo, e o TypeScript aponta todo lugar que precisa
 acompanhar. É o oposto de manter `type` e `validar()` sincronizados na mão.
 
@@ -61,9 +71,10 @@ type Saida = z.output<typeof criarCursoSchema>; // publicado: boolean (garantido
 
 ### `.strict()` — rejeite o que você não conhece
 
-Sem ele, o Zod **descarta em silêncio** campo desconhecido. O cliente que digitou
-`hora` em vez de `horas` recebe "campo obrigatório" sem entender por quê. Com
-`.strict()`, ele recebe `Unrecognized key: "hora"`.
+> [!WARNING]
+> Sem ele, o Zod **descarta em silêncio** campo desconhecido. O cliente que
+> digitou `hora` em vez de `horas` recebe "campo obrigatório" sem entender por
+> quê. Com `.strict()`, ele recebe `Unrecognized key: "hora"`.
 
 Segurança também: sem `.strict()`, `{ ...req.body }` num `Object.assign` pode
 escrever campos que você nunca quis expor (`admin: true`).
@@ -74,8 +85,11 @@ escrever campos que você nunca quis expor (`admin: true`).
 maxHoras: z.coerce.number().int().positive().optional(), // "5" → 5
 ```
 
-**Nunca `z.coerce.boolean()` em query:** `Boolean("false") === true`, então
-`?publicado=false` filtraria os publicados. Mapeie explicitamente:
+> [!CAUTION]
+> **Nunca `z.coerce.boolean()` em query:** `Boolean("false") === true`, então
+> `?publicado=false` filtraria os publicados.
+
+Mapeie explicitamente:
 
 ```ts
 publicado: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
@@ -87,10 +101,11 @@ publicado: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
 const atualizar = criarCursoSchema.partial(); // ❌ parece certo, não é
 ```
 
-`.partial()` torna o campo opcional, **mas o `.default()` continua valendo**. Um
-`PATCH { "horas": 6 }` sai da validação com `publicado: false` e
-`nivel: 'iniciante'` — e sobrescreve o que estava salvo. PATCH que apaga campo em
-silêncio é dos bugs mais difíceis de perceber.
+> [!CAUTION]
+> `.partial()` torna o campo opcional, **mas o `.default()` continua valendo**.
+> Um `PATCH { "horas": 6 }` sai da validação com `publicado: false` e
+> `nivel: 'iniciante'` — e sobrescreve o que estava salvo. PATCH que apaga campo
+> em silêncio é dos bugs mais difíceis de perceber.
 
 Correto: monte o schema de atualização a partir dos campos **sem** default.
 
@@ -123,12 +138,13 @@ Dois detalhes fáceis de errar:
 cliente não descobre qual campo falta. Com `{}`, ele recebe a lista de campos
 obrigatórios.
 
-**Não faça `req[fonte] = resultado.data`** — e é o que quase todo tutorial faz.
-No Express 5 isso explode para query:
-
-```
-TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
-```
+> [!CAUTION]
+> **Não faça `req[fonte] = resultado.data`** — e é o que quase todo tutorial faz.
+> No Express 5 isso explode para query:
+>
+> ```
+> TypeError: Cannot set property query of #<IncomingMessage> which has only a getter
+> ```
 
 O Express 5 transformou `req.query` em getter com parse lazy. `req.body` ainda é
 gravável, `req.query` não. Guardar em `res.locals` funciona para as três fontes e
@@ -182,9 +198,10 @@ marcar o input certo.
 | Onde               | Schema, no middleware | Service / handler                      |
 | Status             | `400`                 | `409`, `403`, `422`                    |
 
-O Zod não tem como saber que o título já existe. Não tente forçá-lo com
-`.refine()` assíncrono acessando o banco: isso mistura camadas e torna o schema
-impossível de reusar em teste.
+> [!WARNING]
+> O Zod não tem como saber que o título já existe. Não tente forçá-lo com
+> `.refine()` assíncrono acessando o banco: isso mistura camadas e torna o schema
+> impossível de reusar em teste.
 
 `.refine()` serve para regra entre **campos da mesma entrada**:
 
@@ -204,7 +221,7 @@ marcar.
 node src/exemplos/07-validacao/servidor.ts
 ```
 
-```bash
+```bash {cmd=true}
 B=localhost:5055
 curl "$B/cursos?maxHoras=5"          # coerce: "5" → 5
 curl "$B/cursos?publicado=false"     # o boolean feito à mão
@@ -266,11 +283,13 @@ z.infer<typeof s>    // = z.output; o tipo derivado
 z.input<typeof s>    // antes dos defaults
 ```
 
-```
-FLUXO
-  requisição → validar(schema) → res.locals.validados → handler → service
-                     ↓ falhou
-                AppError 400 + detalhes[] → tratador (módulo 06)
+```mermaid
+flowchart LR
+    REQ([requisição]) --> V["validar(schema, fonte)"]
+    V -->|"success"| L["res.locals.validados"] --> H["handler"] --> S["service"]
+    V -->|"!success"| E["AppError 400<br/>+ detalhes[]"] --> T["tratador<br/>(módulo 06)"]
+    style E fill:#fed7aa,stroke:#ea580c,color:#000
+    style L fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
 ## Pratique

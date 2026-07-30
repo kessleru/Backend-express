@@ -2,8 +2,11 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
+> [!IMPORTANT]
 > 📚 O teste do módulo 08: você vai trocar o banco **sem tocar** em service,
 > controller ou rota.
+
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -37,6 +40,32 @@ biblioteca/
 
 A tabela `_migrations` registra o que já rodou. Rodar duas vezes não pode falhar.
 
+```mermaid
+erDiagram
+    AUTORES ||--o{ LIVROS : "ON DELETE RESTRICT"
+    LIVROS ||--o{ LIVROS_GENEROS : "ON DELETE CASCADE"
+    GENEROS ||--o{ LIVROS_GENEROS : ""
+
+    AUTORES {
+        int id PK
+        text nome "NOT NULL"
+        text nacionalidade "NOT NULL"
+        text nascimento "opcional"
+    }
+    LIVROS {
+        int id PK
+        text titulo "NOT NULL"
+        int autor_id FK "idx"
+        int ano "CHECK 1450..2100"
+        text isbn UK
+        int disponivel "DEFAULT 1 · idx"
+    }
+    LIVROS_GENEROS {
+        int livro_id PK "FK"
+        int genero_id PK "FK"
+    }
+```
+
 ### 2. Repositórios
 
 - Implementam **exatamente** as interfaces de `dominio/` do exercício 08.
@@ -50,6 +79,11 @@ A tabela `_migrations` registra o que já rodou. Rodar duas vezes não pode falh
 ### 3. Composition root
 
 `servidor.ts` muda **duas linhas**: as que criam os repositórios.
+
+> [!CAUTION]
+> `PRAGMA foreign_keys = ON` é **por conexão**. Sem ele o SQLite aceita
+> `autor_id = 999` alegremente e você descobre meses depois, com o banco cheio de
+> órfãos.
 
 ## Critérios de aceite
 

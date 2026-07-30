@@ -2,6 +2,8 @@
 
 ⏱️ ~30 min · 🎯 Nível: iniciante
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
+
 ## Objetivo
 
 Sentir na prática a diferença entre série e paralelo, e escrever tratamento de
@@ -33,6 +35,22 @@ Crie `src/playground/02-async/precos.ts`.
 5. Um bloco final que roda as três com
    `['A1','A2','A3','A4','A5','A6']` e imprime os tempos, e depois roda a
    tolerante com `['A1','X9','A3']`.
+
+```mermaid
+gantt
+    title O que você deve medir (6 SKUs de 250 ms)
+    dateFormat X
+    axisFormat %L ms
+    section Série
+    A1 :0, 250
+    A2 :250, 500
+    A3 :500, 750
+    A4 :750, 1000
+    A5 :1000, 1250
+    A6 :1250, 1500
+    section Paralelo
+    A1..A6 juntos :0, 250
+```
 
 Regras:
 
