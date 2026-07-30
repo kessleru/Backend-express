@@ -38,13 +38,13 @@ Content-Type: application/json
 
 ### Métodos
 
-| Método | Para quê | Seguro? | Idempotente? |
-|---|---|---|---|
-| `GET` | Buscar | Sim | Sim |
-| `POST` | Criar | Não | **Não** |
-| `PUT` | Substituir inteiro | Não | Sim |
-| `PATCH` | Alterar um pedaço | Não | Não |
-| `DELETE` | Remover | Não | Sim |
+| Método   | Para quê           | Seguro? | Idempotente? |
+| -------- | ------------------ | ------- | ------------ |
+| `GET`    | Buscar             | Sim     | Sim          |
+| `POST`   | Criar              | Não     | **Não**      |
+| `PUT`    | Substituir inteiro | Não     | Sim          |
+| `PATCH`  | Alterar um pedaço  | Não     | Não          |
+| `DELETE` | Remover            | Não     | Sim          |
 
 - **Seguro** = não muda nada no servidor.
 - **Idempotente** = repetir 10× dá o mesmo resultado de fazer 1×.
@@ -54,12 +54,12 @@ motivo do navegador avisar "reenviar formulário?" ao dar F5.
 
 ### Status codes
 
-| Família | Significa | Os que você usa |
-|---|---|---|
-| 2xx | Deu certo | `200` OK · `201` Created · `204` No Content |
-| 3xx | Redireciona | `301` permanente · `302` temporário · `304` não mudou |
-| 4xx | **Cliente errou** | `400` inválido · `401` não autenticado · `403` sem permissão · `404` não existe · `409` conflito · `422` semântica inválida · `429` rápido demais |
-| 5xx | **Servidor errou** | `500` erro interno · `503` indisponível |
+| Família | Significa          | Os que você usa                                                                                                                                   |
+| ------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2xx     | Deu certo          | `200` OK · `201` Created · `204` No Content                                                                                                       |
+| 3xx     | Redireciona        | `301` permanente · `302` temporário · `304` não mudou                                                                                             |
+| 4xx     | **Cliente errou**  | `400` inválido · `401` não autenticado · `403` sem permissão · `404` não existe · `409` conflito · `422` semântica inválida · `429` rápido demais |
+| 5xx     | **Servidor errou** | `500` erro interno · `503` indisponível                                                                                                           |
 
 A distinção 4xx vs 5xx é a mais importante: **de quem é a culpa?** Bug seu nunca
 deve virar 400, e entrada ruim do cliente nunca deve virar 500.
@@ -68,13 +68,13 @@ deve virar 400, e entrada ruim do cliente nunca deve virar 500.
 
 ### Headers que aparecem sempre
 
-| Header | Para quê |
-|---|---|
-| `Content-Type` | Formato do body (`application/json`) |
-| `Authorization` | Credencial (`Bearer <token>`) |
-| `Accept` | Formato que o cliente quer de volta |
-| `Cache-Control` | Se e por quanto tempo pode guardar |
-| `Location` | Onde está o recurso recém-criado (com `201`) |
+| Header          | Para quê                                     |
+| --------------- | -------------------------------------------- |
+| `Content-Type`  | Formato do body (`application/json`)         |
+| `Authorization` | Credencial (`Bearer <token>`)                |
+| `Accept`        | Formato que o cliente quer de volta          |
+| `Cache-Control` | Se e por quanto tempo pode guardar           |
+| `Location`      | Onde está o recurso recém-criado (com `201`) |
 
 ### Statelessness
 
@@ -105,23 +105,23 @@ curl -i localhost:4001/nao-existe     # -i mostra status e headers
 Repare no código ([`servidor.ts`](../src/exemplos/01-http-sem-express/servidor.ts))
 o que é feito na mão. É exatamente o que o Express vai automatizar no módulo 03:
 
-| Na mão aqui | No Express |
-|---|---|
-| `if (rota === 'GET /ola')` | `app.get('/ola', ...)` |
-| Juntar os chunks do body | `app.use(express.json())` |
-| `res.writeHead(200, {...})` + `JSON.stringify` | `res.json(...)` |
-| 404 no fim do handler | Automático |
+| Na mão aqui                                    | No Express                |
+| ---------------------------------------------- | ------------------------- |
+| `if (rota === 'GET /ola')`                     | `app.get('/ola', ...)`    |
+| Juntar os chunks do body                       | `app.use(express.json())` |
+| `res.writeHead(200, {...})` + `JSON.stringify` | `res.json(...)`           |
+| 404 no fim do handler                          | Automático                |
 
 ## Erros comuns
 
-| Erro | O que acontece | Correção |
-|---|---|---|
-| Esquecer `res.end()` | O cliente fica esperando até dar timeout | Toda rota tem que responder |
-| Responder duas vezes | `ERR_HTTP_HEADERS_SENT` | `return` depois de responder |
-| `200` para tudo | Cliente não sabe distinguir sucesso de erro | Use o status certo |
-| `500` quando o cliente mandou lixo | Some com o erro real do cliente | Validação → `400` |
-| Verbo na URL (`/getCursos`) | O método já diz a ação | `GET /cursos` |
-| Achar que query param é número | `?idade=30` chega como `"30"` | Converta e valide |
+| Erro                               | O que acontece                              | Correção                     |
+| ---------------------------------- | ------------------------------------------- | ---------------------------- |
+| Esquecer `res.end()`               | O cliente fica esperando até dar timeout    | Toda rota tem que responder  |
+| Responder duas vezes               | `ERR_HTTP_HEADERS_SENT`                     | `return` depois de responder |
+| `200` para tudo                    | Cliente não sabe distinguir sucesso de erro | Use o status certo           |
+| `500` quando o cliente mandou lixo | Some com o erro real do cliente             | Validação → `400`            |
+| Verbo na URL (`/getCursos`)        | O método já diz a ação                      | `GET /cursos`                |
+| Achar que query param é número     | `?idade=30` chega como `"30"`               | Converta e valide            |
 
 ## Cheatsheet
 

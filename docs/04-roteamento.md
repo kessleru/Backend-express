@@ -1,0 +1,196 @@
+# 04 — Roteamento e organização de rotas
+
+**Em uma frase:** `express.Router()` transforma um servidor de 500 linhas em
+arquivos pequenos, cada um responsável por um recurso.
+
+## Por que importa
+
+- Um arquivo por recurso é a diferença entre achar e caçar código.
+- Ordem de rota é fonte de bug silencioso: a rota existe e devolve 404.
+- URL bem desenhada dispensa documentação; URL ruim precisa de manual.
+
+## Conceitos
+
+### Router é um mini-app
+
+```ts
+// rotas/cursos.ts
+export const rotasCursos = Router();
+rotasCursos.get('/', listar); //  ← caminho relativo, sem '/cursos'
+rotasCursos.get('/:id', buscar);
+
+// servidor.ts
+app.use('/api/v1/cursos', rotasCursos); // ← o prefixo mora aqui
+```
+
+O router não conhece o próprio prefixo. Isso é de propósito: dá para remontar o
+mesmo router em `/api/v2/cursos` sem editar uma linha dele.
+
+Um Router tem `.get`, `.post`, `.use`, `.param` — tudo que o `app` tem, menos
+`listen`.
+
+### Ordem importa (o bug clássico)
+
+```ts
+router.get('/:id', ...);         // ← casa com QUALQUER coisa, inclusive 'novidades'
+router.get('/novidades', ...);   // ← nunca alcançada
+```
+
+O Express testa de cima para baixo e **para na primeira que casa**. Então:
+
+> **Regra: caminho literal antes de caminho com parâmetro.**
+
+O sintoma é cruel — `/cursos/novidades` cai no handler de `:id`,
+`Number('novidades')` é `NaN`, nada é encontrado e você recebe 404 numa rota que
+existe e está certa.
+
+### Padrões de caminho — Express 5 mudou
+
+| Quero              | Express 5          | Express 4 (não funciona mais) |
+| ------------------ | ------------------ | ----------------------------- |
+| Parâmetro          | `/cursos/:id`      | igual                         |
+| Parâmetro opcional | `/rel{/:formato}`  | `/rel/:formato?`              |
+| Pegar o resto      | `/arq/*resto`      | `/arq/*` + `req.params[0]`    |
+| Regex              | use `pathToRegexp` | `/:id(\\d+)`                  |
+
+Duas pegadinhas do 5: `*` **precisa** de nome, e `req.params.resto` vem como
+**array** de segmentos (`['a','b','c.pdf']`), não string.
+
+### `router.param` — o 404 escrito uma vez
+
+Em vez de repetir "busca ou 404" em cinco handlers:
+
+```ts
+router.param('id', (req, res, next, valor) => {
+  const curso = cursos.find((c) => c.id === Number(valor));
+  if (!curso) return res.status(404).json({ erro: 'não encontrado' });
+  res.locals.curso = curso; // passa adiante nesta requisição
+  next(); // sem isto a requisição congela
+});
+
+router.get('/:id', (_req, res) => res.json(res.locals.curso));
+```
+
+`res.locals` é o lugar oficial para carregar dados entre middlewares da mesma
+requisição. Ele morre quando a resposta é enviada — o assunto de verdade é o
+[módulo 05](./05-middlewares.md).
+
+### Routers aninhados
+
+```ts
+const rotasAulas = Router({ mergeParams: true }); // ← sem isto, req.params vem vazio
+rotasCursos.use('/:id/aulas', rotasAulas);
+```
+
+`mergeParams: true` é o que faz o `:id` do pai chegar no filho. E como o
+TypeScript deduz `req.params` do caminho (`'/'`, sem parâmetro), o tipo precisa
+de ajuda: `rotasAulas.get<{ id: string }>('/', ...)`.
+
+**Aninhe quando a relação é de dependência real** — uma aula não existe fora de
+um curso. Para "os cursos do instrutor 2", tanto `/instrutores/2/cursos` quanto
+`/cursos?instrutorId=2` são defensáveis; o filtro ganha quando você quer combinar
+vários critérios.
+
+Aninhamento de três níveis (`/a/1/b/2/c/3`) é sinal de que você está modelando o
+banco na URL. Pare no segundo.
+
+### Design de URL REST
+
+| Faça                    | Não faça                      | Por quê                            |
+| ----------------------- | ----------------------------- | ---------------------------------- |
+| `GET /cursos`           | `GET /getCursos`              | O método HTTP já é o verbo         |
+| `POST /cursos`          | `POST /cursos/criar`          | idem                               |
+| `/cursos` (plural)      | `/curso`                      | Coleção é plural; seja consistente |
+| `/cursos/7`             | `/cursos?id=7`                | Query é filtro, não identidade     |
+| `/instrutores/2/cursos` | `/cursosDoInstrutor/2`        | Hierarquia com barra               |
+| `?ordenar=ano&pagina=2` | `/cursosOrdenadosPorAno`      | Variação vai na query              |
+| `/cursos-online`        | `/cursosOnline`, `/cursos_on` | kebab-case por convenção           |
+
+**Exceção honesta:** existem operações que não são CRUD. Emprestar um livro não é
+"substituir o livro". A convenção prática é um sub-recurso em POST:
+`POST /livros/7/emprestar`. Melhor uma URL com verbo do que forçar o cliente a
+mandar `PATCH { disponivel: false }` e deixá-lo decidir a regra de negócio.
+
+### Versionamento
+
+```ts
+const v1 = Router();
+v1.use('/cursos', rotasCursos);
+app.use('/api/v1', v1);
+```
+
+Versão no caminho é a opção simples: visível no log, testável no navegador.
+Alternativa "mais correta": header `Accept: application/vnd.api.v2+json` — e bem
+mais chata de debugar.
+
+Só suba a versão em mudança **incompatível** (campo removido, formato alterado).
+Adicionar um campo opcional não quebra ninguém e não merece uma v2.
+
+### 404 no fim
+
+```ts
+app.use((req, res) => {
+  res.status(404).json({ erro: `Rota não encontrada: ${req.method} ${req.path}` });
+});
+```
+
+`app.use` sem caminho casa com tudo. **No topo do arquivo, tudo virava 404.**
+
+## Na prática
+
+```bash
+node src/exemplos/04-roteamento/servidor.ts
+```
+
+```bash
+B=localhost:5052
+curl $B/api/v1                        # índice de recursos
+curl $B/api/v1/cursos
+curl $B/api/v1/cursos/novidades       # literal antes de :id — funciona
+curl $B/api/v1/cursos/1/aulas         # router aninhado com mergeParams
+curl $B/api/v1/instrutores/1/cursos
+curl $B/relatorio ; curl $B/relatorio/csv   # parâmetro opcional
+curl $B/arquivos/a/b/c.pdf            # wildcard → array de segmentos
+curl -i $B/nada                       # o 404 do fim
+```
+
+São as mesmas rotas do [módulo 03](./03-express-basico.md) — mas o
+[`servidor.ts`](../src/exemplos/04-roteamento/servidor.ts) não sabe mais o que é
+um curso. Ele só decide onde cada grupo mora.
+
+## Erros comuns
+
+| Erro                              | O que acontece                   | Correção                        |
+| --------------------------------- | -------------------------------- | ------------------------------- |
+| `/:id` antes de `/novidades`      | 404 numa rota que existe         | Literal antes de parâmetro      |
+| 404 genérico no topo              | Toda requisição vira 404         | Sempre por último               |
+| `/cursos/:id` dentro do router    | Vira `/cursos/cursos/:id`        | Caminho relativo: `/:id`        |
+| Aninhar sem `mergeParams`         | `req.params` do pai vem vazio    | `Router({ mergeParams: true })` |
+| `/:formato?` no Express 5         | Erro ao iniciar o servidor       | `{/:formato}`                   |
+| `*` sem nome no Express 5         | Erro ao iniciar                  | `*resto`                        |
+| Tratar `params.resto` como string | `.split()` falha: é array        | `.join('/')`                    |
+| Esquecer `next()` no `param`      | Requisição congela até timeout   | Sempre `next()` ou responder    |
+| Uma v2 por campo novo             | Duas APIs para manter sem motivo | Só em mudança incompatível      |
+
+## Cheatsheet
+
+```ts
+const r = Router(); // mini-app
+const r = Router({ mergeParams: true }); // herda params do pai
+app.use('/prefixo', r); // monta
+r.param('id', handler); // roda antes de toda rota com :id
+r.route('/:id').get(a).put(b); // agrupa métodos do mesmo caminho
+
+('/cursos/:id'); // parâmetro
+('/rel{/:formato}'); // opcional (Express 5)
+('/arq/*resto'); // resto → array
+app.use(handler404); // por último, sem caminho
+```
+
+```
+Ordem de declaração = ordem de teste. Literal antes de parâmetro. 404 no fim.
+```
+
+## Pratique
+
+👉 [`exercicios/04-roteamento/`](../exercicios/04-roteamento/)

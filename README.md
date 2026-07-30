@@ -23,32 +23,34 @@ do zero mostra o que você realmente sabe.
 
 ## Currículo
 
+✅ = pronto para estudar · ⬜ = ainda não escrito
+
 ### Parte I — Fundamentos
 
-| #   | Módulo                | O que você aprende                               |
-| --- | --------------------- | ------------------------------------------------ |
-| 01  | Fundamentos de HTTP   | Request/response, métodos, status codes, headers |
-| 02  | Node, módulos e async | Event loop, ESM, npm, Promises                   |
+| #   | Módulo                                                     | O que você aprende                               |     |
+| --- | ---------------------------------------------------------- | ------------------------------------------------ | --- |
+| 01  | [Fundamentos de HTTP](./docs/01-fundamentos-http.md)       | Request/response, métodos, status codes, headers | ✅  |
+| 02  | [Node, módulos e async](./docs/02-node-modulos-e-async.md) | Event loop, ESM, npm, Promises                   | ✅  |
 
 ### Parte II — Express
 
-| #   | Módulo              | O que você aprende                     |
-| --- | ------------------- | -------------------------------------- |
-| 03  | Express básico      | Rotas, params, query, body, CRUD       |
-| 04  | Roteamento          | Router, versionamento, design de URLs  |
-| 05  | Middlewares         | A cadeia `(req, res, next)`, CORS      |
-| 06  | Tratamento de erros | Handler central, `AppError`            |
-| 07  | Validação           | Zod, schemas, nunca confiar no cliente |
+| #   | Módulo                                                  | O que você aprende                     |     |
+| --- | ------------------------------------------------------- | -------------------------------------- | --- |
+| 03  | [Express básico](./docs/03-express-basico.md)           | Rotas, params, query, body, CRUD       | ✅  |
+| 04  | [Roteamento](./docs/04-roteamento.md)                   | Router, versionamento, design de URLs  | ✅  |
+| 05  | [Middlewares](./docs/05-middlewares.md)                 | A cadeia `(req, res, next)`, CORS      | ✅  |
+| 06  | [Tratamento de erros](./docs/06-tratamento-de-erros.md) | Handler central, `AppError`            | ✅  |
+| 07  | [Validação](./docs/07-validacao-zod.md)                 | Zod, schemas, nunca confiar no cliente | ✅  |
 
 ### Parte III — Arquitetura e dados
 
-| #   | Módulo                 | O que você aprende                         |
-| --- | ---------------------- | ------------------------------------------ |
-| 08  | Arquitetura em camadas | Route → controller → service → repository  |
-| 09  | SQLite e SQL           | SQL na mão, modelagem, índices, transações |
-| 10  | Prisma (ORM)           | Schema, migrations, client tipado, N+1     |
-| 11  | Autenticação           | Hash de senha, JWT, cookies, RBAC          |
-| 12  | Testes                 | Vitest, Supertest, mocks, TDD              |
+| #   | Módulo                                                        | O que você aprende                         |     |
+| --- | ------------------------------------------------------------- | ------------------------------------------ | --- |
+| 08  | [Arquitetura em camadas](./docs/08-arquitetura-em-camadas.md) | Route → controller → service → repository  | ✅  |
+| 09  | [SQLite e SQL](./docs/09-sqlite-e-sql.md)                     | SQL na mão, modelagem, índices, transações | ✅  |
+| 10  | [Prisma (ORM)](./docs/10-prisma-orm.md)                       | Schema, migrations, client tipado, N+1     | ✅  |
+| 11  | [Autenticação](./docs/11-autenticacao.md)                     | Hash de senha, JWT, cookies, RBAC          | ✅  |
+| 12  | Testes                                                        | Vitest, Supertest, mocks, TDD              | ⬜  |
 
 ### Parte IV — Produção
 
@@ -89,9 +91,20 @@ src/server.ts      o servidor, que cresce junto com o curso
 | `npm run dev`            | Servidor com reload automático     |
 | `npm run typecheck`      | Confere os tipos do projeto        |
 | `npm run typecheck:play` | Confere os tipos do seu playground |
+| `npm run typecheck:ex`   | Confere os tipos das soluções      |
 | `npm run build`          | Gera `dist/`                       |
 | `npm start`              | Roda o build de produção           |
 | `npm run format`         | Formata tudo com Prettier          |
+
+A partir do módulo 10 (Prisma):
+
+| Comando               | O que faz                                     |
+| --------------------- | --------------------------------------------- |
+| `npm run db:migrate`  | Cria e aplica migration a partir do schema    |
+| `npm run db:generate` | Regera o Prisma Client                        |
+| `npm run db:seed`     | Popula o banco com os dados de exemplo        |
+| `npm run db:reset`    | Apaga, reaplica as migrations e roda o seed   |
+| `npm run db:studio`   | Abre o navegador de banco em `localhost:5555` |
 
 ## Stack
 

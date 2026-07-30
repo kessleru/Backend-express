@@ -79,7 +79,9 @@ console.log(`6. em série  → ${Date.now() - inicioSerie}ms`);
 // Rápido: ~200ms. Dispara as três e espera o conjunto.
 const inicioParalelo = Date.now();
 const emParalelo = await Promise.all(ids.map((id) => buscarUsuario(id)));
-console.log(`7. paralelo  → ${Date.now() - inicioParalelo}ms (${emParalelo.length} usuários)`);
+console.log(
+  `7. paralelo  → ${Date.now() - inicioParalelo}ms (${emParalelo.length} usuários)`,
+);
 
 // Promise.all falha inteiro se UMA falhar ("tudo ou nada").
 // Quando você quer o resultado de cada uma, com sucesso ou falha:

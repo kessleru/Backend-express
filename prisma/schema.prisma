@@ -1,0 +1,111 @@
+// O SCHEMA — a fonte de verdade do banco no Prisma.
+//
+// Este arquivo substitui as migrations escritas à mão do módulo 09. Você
+// descreve o estado DESEJADO; o `prisma migrate` calcula o SQL que leva o banco
+// do estado atual até ele.
+//
+// Ele vive no git, junto do código que depende dele — schema e código sempre na
+// mesma versão. É o mesmo princípio das migrations do módulo 09.
+
+generator client {
+  // No Prisma 7 o gerador padrão é `prisma-client` (ESM, TypeScript de verdade),
+  // e ele EXIGE um `output`. O antigo `prisma-client-js`, que escrevia dentro de
+  // node_modules, está a caminho da aposentadoria.
+  provider = "prisma-client"
+  output   = "../src/exemplos/10-prisma/gerado"
+
+  // `runtime` diz para qual ambiente gerar. `nodejs` é o nosso caso.
+  runtime = "nodejs"
+}
+
+datasource db {
+  provider = "sqlite"
+  // No Prisma 7 a URL NÃO mora mais aqui — ela foi para `prisma.config.ts`.
+  // Motivo: o schema é sobre a FORMA dos dados; conexão é configuração de
+  // runtime. Antes, `url = env("DATABASE_URL")` misturava as duas coisas, e o
+  // schema precisava do .env presente até para gerar o client.
+}
+
+// ---------------------------------------------------------------------
+// MODELOS
+// ---------------------------------------------------------------------
+
+model Autor {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  nacionalidade String
+  nascimento    DateTime? // `?` = opcional; no banco, NULL
+  criadoEm      DateTime @default(now()) @map("criado_em")
+
+  // A relação. Este campo NÃO existe como coluna no banco — é o Prisma
+  // permitindo navegar de autor para livros. Quem tem a coluna é `Livro.autorId`.
+  livros Livro[]
+
+  // `@@map` separa o nome do MODELO (usado no código, PascalCase) do nome da
+  // TABELA (usado no SQL, snake_case). Sem isso, sua convenção de TypeScript
+  // acaba ditando a do banco.
+  @@map("autores")
+}
+
+model Livro {
+  id         Int     @id @default(autoincrement())
+  titulo     String
+  ano        Int
+  isbn       String? @unique // opcional e único: vários NULL são permitidos
+  disponivel Boolean @default(true) // o Prisma converte para 0/1 no SQLite
+
+  autorId Int   @map("autor_id")
+  // `onDelete: Restrict` é a mesma regra do módulo 09: recusa apagar autor com
+  // livros. As opções são Restrict, Cascade, SetNull e NoAction.
+  autor   Autor @relation(fields: [autorId], references: [id], onDelete: Restrict)
+
+  // N-N com tabela de junção EXPLÍCITA (`LivroGenero`).
+  //
+  // O Prisma também sabe fazer N-N implícito (`generos Genero[]` dos dois lados,
+  // e ele cria a tabela sozinho). Escolhi explícita porque:
+  //   1. você vê a tabela que o módulo 09 criou à mão, e a correspondência fica clara
+  //   2. dá para adicionar colunas na junção depois (ex.: `principal Boolean`)
+  // O implícito é mais curto e você não consegue acrescentar nada nele.
+  generos LivroGenero[]
+
+  @@index([autorId])
+  @@index([disponivel])
+  @@map("livros")
+}
+
+model Genero {
+  id     Int           @id @default(autoincrement())
+  nome   String        @unique
+  livros LivroGenero[]
+
+  @@map("generos")
+}
+
+/// O mesmo `Curso` dos módulos 08 e 09, para o servidor de exemplo reusar o
+/// service e as rotas de lá sem nenhuma adaptação.
+///
+/// `@@unique` no título com `mode: insensitive` não existe no SQLite (é um
+/// recurso do Postgres), então a unicidade case-insensitive continua sendo regra
+/// do service aqui — exemplo de "o ORM não esconde as diferenças entre bancos".
+model Curso {
+  id        Int     @id @default(autoincrement())
+  titulo    String  @unique
+  horas     Int
+  publicado Boolean @default(false)
+
+  @@index([publicado])
+  @@map("cursos")
+}
+
+model LivroGenero {
+  livroId  Int @map("livro_id")
+  generoId Int @map("genero_id")
+
+  livro  Livro  @relation(fields: [livroId], references: [id], onDelete: Cascade)
+  genero Genero @relation(fields: [generoId], references: [id], onDelete: Restrict)
+
+  // Chave primária COMPOSTA — o mesmo `PRIMARY KEY (livro_id, genero_id)` do
+  // módulo 09. O par é único, então o gênero não se repete no mesmo livro.
+  @@id([livroId, generoId])
+  @@map("livros_generos")
+}

@@ -77,6 +77,7 @@ Envolva o `JSON.parse` em `try/catch` — body inválido é `400`, não `500`.
 res.writeHead(204);
 res.end(); // sem argumento — nem `{}`, nem string vazia
 ```
+
 </details>
 
 <details><summary>Dica 4 — gerar id</summary>

@@ -4,7 +4,7 @@
 > currículo e para **sessões futuras do Claude Code** entenderem o projeto sem
 > precisar redescobrir tudo.
 >
-> Última atualização: 2026-07-29
+> Última atualização: 2026-07-30
 
 ---
 
@@ -59,9 +59,52 @@ obrigatório está na seção 7.
 ainda. Opções: (a) esperar o suporte, (b) baixar para TypeScript 5.9. Por ora o
 `tsc --strict` já cobre boa parte do que o ESLint pegaria.
 
+### Fases 1 e 2 concluídas (2026-07-30)
+
+- **Módulos 01–07** com doc, exemplo executável e exercício + solução.
+- Dependências novas: `cors`, `morgan` (módulo 05) e `zod` (07).
+- `tsconfig.exercicios.json` + script `typecheck:ex`, para checar os tipos das
+  soluções (que ficam fora de `src/`).
+- Achados que viraram conteúdo, todos verificados rodando:
+  - Express 5 deixa `req.body` **`undefined`** (não `{}`) sem `Content-Type`.
+  - Express 5 tornou `req.query` **getter**: `req.query = validado` lança
+    `TypeError`. O middleware de validação guarda em `res.locals`.
+  - Wildcard do Express 5 (`/*resto`) devolve **array** de segmentos.
+  - Zod: `schemaComDefault.partial()` **não** serve para PATCH — os `.default()`
+    continuam valendo e sobrescrevem o registro salvo.
+  - Zod 4: `z.string().email()` está deprecado; use `z.email()`.
+
+### Fase 3 em andamento (2026-07-30)
+
+- **Módulos 08 a 11** com doc, exemplo executável e exercício. Solução pronta
+  para 08, 09 e 10; a do **11 ainda não existe** (só o enunciado).
+- Dependências novas: `prisma` + `@prisma/client` +
+  `@prisma/adapter-better-sqlite3` (10) e `argon2`, `jsonwebtoken`,
+  `cookie-parser` (11).
+- Scripts novos: `db:migrate`, `db:generate`, `db:seed`, `db:reset`, `db:studio`.
+- `prisma/schema.prisma`, `prisma.config.ts`, `prisma/seed.ts` e a primeira
+  migration versionada.
+- Achados que viraram conteúdo, todos verificados rodando:
+  - **Prisma 7** tirou o `url` do `datasource` (erro P1012): ele vai para
+    `prisma.config.ts`, e o client recebe um **adapter** no construtor.
+  - O export do adapter é `PrismaBetterSqlite3` — **s** minúsculo.
+  - `createMany({ skipDuplicates: true })` não funciona no SQLite.
+  - `COUNT`/`SUM`/`MIN` via `$queryRaw` voltam `bigint`, e `JSON.stringify` de
+    bigint lança — 500 misterioso na rota.
+  - `exactOptionalPropertyTypes: true` briga com o idioma do Prisma
+    (`data: { x: undefined }` não compila) e com spread de update em geral.
+    Solução: spread condicional.
+  - `validar()` precisa de `req.body ?? {}`, senão body ausente produz
+    "expected object, received undefined" em vez de listar os campos que faltam.
+    Corrigido no exemplo do módulo 07 e nas 4 soluções que o copiam.
+  - `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10
+    poder importar o Prisma Client gerado em `src/`.
+
 ### Ainda pendente
 
-Fases 1 a 6 da tabela da seção 9.
+- Solução do exercício 11 (o enunciado está pronto, com 7 dicas).
+- Módulo 12 (testes: `vitest` + `supertest`) — fecha a Fase 3.
+- Fases 4, 5 e 6 da tabela da seção 9.
 
 ### Ponto de partida histórico
 
@@ -605,15 +648,15 @@ remover `pnpm-lock.yaml` do git.
 
 Cada fase é entregável sozinha. Dá pra parar entre fases.
 
-| Fase                        | O que entra                                                                                                                                  | Status            |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint) |
-| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ⬜                |
-| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ⬜                |
-| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ⬜                |
-| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                |
-| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                |
-| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                |
+| Fase                        | O que entra                                                                                                                                  | Status                                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint)                                               |
+| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                                                              |
+| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                                                              |
+| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | 🔶 08–11 feitos (falta a solução do exercício 11 e o módulo 12) |
+| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                                                              |
+| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                                                              |
+| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                                                              |
 
 Marque `✅` conforme concluir. Sessões futuras leem esta tabela para saber onde
 retomar.

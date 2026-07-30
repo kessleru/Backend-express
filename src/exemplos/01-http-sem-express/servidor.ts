@@ -70,6 +70,8 @@ servidor.listen(PORTA, () => {
   console.log('Experimente:');
   console.log(`  curl localhost:${PORTA}/`);
   console.log(`  curl "localhost:${PORTA}/ola?nome=ana"`);
-  console.log(`  curl -X POST localhost:${PORTA}/eco -H "Content-Type: application/json" -d '{"a":1}'`);
+  console.log(
+    `  curl -X POST localhost:${PORTA}/eco -H "Content-Type: application/json" -d '{"a":1}'`,
+  );
   console.log(`  curl -i localhost:${PORTA}/nao-existe`);
 });

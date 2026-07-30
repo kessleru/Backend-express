@@ -1,79 +1,126 @@
-● Update(exercicios/01-fundamentos-http/solucao/agenda.ts)
-  ⎿  Added 1 line, removed 1 line
-      44  }
-      45  
-      46  /** Junta os pedaços (chunks) do body e devolve como texto. */
-      47 -async function lerBody(req: import('node:http').IncomingMessage): Promise<string> {                    
-      47 +async function lerBody(req: IncomingMessage): Promise<string> {                                        
-      48    const pedacos: Buffer[] = [];
-      49    for await (const pedaco of req) {
-      50      pedacos.push(pedaco as Buffer);
+# Onde a sessão parou — 2026-07-30
 
-● Write(tsconfig.exercicios.json)
-  ⎿  Wrote 11 lines to tsconfig.exercicios.json
-       1 // Config para checar os tipos das soluções dos exercícios, que ficam fora
-       2 // de src/. Uso: npm run typecheck:ex
-       3 {
-       4   "extends": "./tsconfig.json",
-       5   "compilerOptions": {
-       6     "rootDir": "./exercicios",
-       7     "noEmit": true
-       8   },
-       9   "include": ["exercicios/**/*.ts"],
-      10   "exclude": []
-● Testando a solução contra cada critério de aceite:
+> Este arquivo é o bilhete para a próxima sessão. O planejamento completo continua
+> em `GUIA-IMPLEMENTACAO.md` (a seção 2 tem os achados técnicos, a 9 tem a tabela
+> de fases).
 
-● Bash(npm run typecheck:ex 2>&1|tail -6 && echo "TYPECHECK EX OK" && (node
-      exercicios/01-fundamentos-http/solucao/agenda.ts &) && sleep 1.3 && B=localhost:4010 && \
-      e…)
-  ⎿  Error: Exit code 144
+## Resumo em uma linha
 
-     > backend-express@1.0.0 typecheck:ex
-     > tsc --noEmit -p tsconfig.exercicios.json
+**Fases 1 e 2 concluídas. Fase 3 até o módulo 11.** Faltam: a solução do exercício
+11, o módulo 12 e as fases 4, 5 e 6.
 
-     TYPECHECK EX OK
-     Agenda rodando em http://localhost:4010
-     1 lista:      200 [{"id":1,"nome":"Ana Souza","email":"ana@exemplo.com"},{"id"
-     2 filtro:     [{"id":1,"nome":"Ana Souza","email":"ana@exemplo.com"}]
-     3 404:        404
-     … +10 lines (ctrl+o to expand)
+## O que está pronto
 
-● Módulo 01 completo — 12/12 critérios passando. Agora o módulo 02:
+| Módulo                    | Doc | Exemplo | Enunciado | Solução      |
+| ------------------------- | --- | ------- | --------- | ------------ |
+| 01 Fundamentos de HTTP    | ✅  | ✅      | ✅        | ✅           |
+| 02 Node, módulos e async  | ✅  | ✅      | ✅        | ✅           |
+| 03 Express básico         | ✅  | ✅      | ✅        | ✅           |
+| 04 Roteamento             | ✅  | ✅      | ✅        | ✅           |
+| 05 Middlewares            | ✅  | ✅      | ✅        | ✅           |
+| 06 Tratamento de erros    | ✅  | ✅      | ✅        | ✅           |
+| 07 Validação (Zod)        | ✅  | ✅      | ✅        | ✅           |
+| 08 Arquitetura em camadas | ✅  | ✅      | ✅        | ✅           |
+| 09 SQLite e SQL           | ✅  | ✅      | ✅        | ✅           |
+| 10 Prisma (ORM)           | ✅  | ✅      | ✅        | ✅           |
+| 11 Autenticação           | ✅  | ✅      | ✅        | ❌ **falta** |
+| 12 Testes                 | ❌  | ❌      | ❌        | ❌           |
+| 13–20                     | ❌  | ❌      | ❌        | ❌           |
 
-● Write(src/exemplos/02-node-async/event-loop.ts)
-  ⎿  Wrote 66 lines to src/exemplos/02-node-async/event-loop.ts
-       1 /**
-       2  * Por que "Node é não-bloqueante" — e onde essa promessa quebra.
-       3  *
-       4  * Rodar:  node src/exemplos/02-node-async/event-loop.ts
-       5  */
-       6 import { setTimeout as esperar } from 'node:timers/promises';
-       7
-       8 function agora() {
-       9   return new Date().toISOString().slice(11, 23); // só HH:MM:SS.mmm
-      10 }
-     … +56 lines (ctrl+o to expand)
+## Verificado nesta sessão
 
-● Write(src/exemplos/02-node-async/promises.ts)
-  ⎿  Wrote 87 lines to src/exemplos/02-node-async/promises.ts
-       1 /**
-       2  * Callbacks → Promises → async/await, e as armadilhas de erro no caminho.
-       3  *
-       4  * Rodar:  node src/exemplos/02-node-async/promises.ts
-       5  */
-       6 import { setTimeout as esperar } from 'node:timers/promises';
-       7
-       8 type Usuario = { id: number; nome: string };
-       9
-      10 /** Simula ir ao banco: demora um pouco e às vezes falha. */
-     … +77 lines (ctrl+o to expand)
+```
+npm run typecheck      → passa
+npm run typecheck:ex   → passa
+npm run build          → passa
+```
 
-● Bash(npm run typecheck 2>&1|tail -6 && echo "=== event-loop ===" && node src/exemplos/02-node-async/event-loop.ts &&
-      echo "=== promises ===" && node src/exemplos/02-…)
-  ⎿  > backend-express@1.0.0 typecheck
-     > tsc --noEmit
-     … +23 lines (ctrl+o to expand)
-  ⎿  (timeout 2m)
-  ⎿  Allowed by auto mode classifier
-  ⎿  You've hit your session limit · resets 9:50pm (UTC)
-     /upgrade to increase your usage limit.
+Os **20 servidores** (11 exemplos + 9 soluções) sobem e respondem `200`. Todos os
+9 scripts não-servidores rodam sem erro. Cada exercício foi testado contra os
+próprios critérios de aceite, com `curl`, um por um.
+
+`npm run typecheck:play` dá `TS18003` porque `src/playground/` não tem nenhum
+`.ts` ainda. É esperado — não é problema.
+
+## O PRÓXIMO PASSO exato
+
+### 1. Solução do exercício 11 (`exercicios/11-auth/solucao/`)
+
+O enunciado (`exercicios/11-auth/README.md`) está completo, com 7 dicas
+progressivas e 18 critérios de aceite. A solução foi **começada e removida** para
+não deixar código pela metade no repo — comece do zero.
+
+Plano que estava em andamento:
+
+1. Copiar a base do exercício 08 (memória, mais simples de testar que SQLite):
+   ```bash
+   cp -r exercicios/08-camadas/solucao/{dominio,repositorios,servicos,controllers,rotas,schemas,middlewares,erros} \
+         exercicios/11-auth/solucao/
+   ```
+2. `dominio/usuario.ts` — `Usuario`, `NovoUsuario`, `UsuarioPublico` (via `Pick`,
+   para o TS recusar `res.json(usuario)` com o hash dentro), `RepositorioUsuarios`
+   (precisa de `buscarPorEmail`) e `RepositorioRefresh` (indexado por `jti`, é o
+   que torna o logout possível).
+3. `dominio/emprestimo.ts` — com `buscarAbertoPorLivro` e `listarPorUsuario`.
+4. `auth/senhas.ts` e `auth/tokens.ts` — podem ser adaptados de
+   `src/exemplos/11-auth/`, mas o `JWT_SECRET` tem que **derrubar o processo** se
+   estiver ausente ou com menos de 32 caracteres (é critério de aceite).
+5. `middlewares/autenticar.ts` — `autenticar` (401) e `exigirPapel` (403).
+6. `servicos/autenticacao.ts` e `servicos/emprestimos.ts`.
+7. `rotas/auth.ts` + montar em `servidor.ts` na porta **4110**.
+
+**A parte que dá o conteúdo do módulo:** autorização por **dono do recurso** (só
+quem pegou o livro, ou um admin, devolve). Ela **não** cabe num middleware, porque
+precisa buscar o recurso para saber quem é o dono — logo é regra de negócio e mora
+no service. Está explicado na dica 3 do enunciado.
+
+Cuidado com dois critérios de aceite que costumam escapar:
+
+- `usuarioId` vem **do token**, nunca do body.
+- Remover a `X-Api-Key` dos módulos 05–10 — ela era o placeholder disto.
+
+### 2. Módulo 12 — testes (fecha a Fase 3)
+
+```bash
+npm i -D vitest supertest @types/supertest
+```
+
+O currículo pede (seção 5 do guia): pirâmide de testes, Vitest como runner,
+Supertest batendo no `app` sem abrir porta, mocks, fixtures, SQLite em memória
+(`:memory:`) para o banco de teste, cobertura como sintoma e TDD numa feature real.
+
+Duas coisas que a Fase 3 preparou de propósito para este módulo:
+
+- **A interface de repositório do módulo 08** — testar o service com um
+  repositório falso passado por argumento, sem mockar módulo.
+- **O teste da stack trace** — o desafio extra do exercício 06 pede um teste que
+  garanta que a stack nunca vaza em produção. É um bom primeiro caso.
+
+Para o Supertest funcionar, os servidores precisam **exportar o `app`** em vez de
+só chamar `listen`. Hoje nenhum faz isso: vale extrair um `criarApp()` no exemplo
+do módulo 12 e mencionar por que — sem reescrever os módulos anteriores (regra 7
+da seção 10 do guia).
+
+### 3. Depois
+
+Fases 4 (13–16), 5 (17–20) e 6 (apêndices A–E), na ordem da tabela da seção 9.
+
+## Convenções que se firmaram e valem manter
+
+- **Portas:** exemplo do módulo NN → `50NN` (`src/exemplos`); solução do
+  exercício NN → `4NN0`. O módulo 01 usa 4001/4010.
+- Cada exercício NN copia a solução do NN−1 e evolui. É duplicação de propósito:
+  cada solução roda sozinha, e o `diff` entre duas soluções vizinhas mostra
+  exatamente o que o módulo acrescentou. Os módulos 09 e 10 dependem disso —
+  `diff -rq` entre `servicos/` de 08, 09 e 10 dá "idênticos", que é a prova de que
+  a camada de repositório cumpriu a promessa.
+- Todo achado de comportamento (Express 5, Zod 4, Prisma 7) vira **conteúdo
+  comentado no código** e uma linha na tabela "Erros comuns" do doc. Não vira só
+  correção silenciosa.
+- O `.env` já tem `DATABASE_URL_PRISMA`; o banco do Prisma
+  (`data/prisma-10.sqlite`) é separado do módulo 09 (`data/biblioteca-09.sqlite`)
+  para os dois exemplos conviverem.
+
+## Nada foi commitado
+
+Todo o trabalho está no working tree. `git status` mostra tudo como novo/modificado.
