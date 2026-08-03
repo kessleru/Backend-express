@@ -64,6 +64,33 @@ flowchart LR
 > Teste rápido do seu código: se `servicos/*.ts` importa `express`, alguma
 > responsabilidade escorregou de camada.
 
+**O princípio (inversão de dependência): dependa de abstrações, não de
+implementações.** Mas a formulação que importa é a prática — **quem é mais
+estável não pode depender de quem é mais volátil.**
+
+Ordene as peças por quanto elas mudam:
+
+| Volatilidade | Peça                                  | Muda quando              |
+| ------------ | ------------------------------------- | ------------------------ |
+| Alta         | Framework, driver de banco, ORM       | você troca de ferramenta |
+| Média        | Rota, controller, formato de resposta | a API evolui             |
+| **Baixa**    | **Regra de negócio, domínio**         | o **negócio** muda       |
+
+"Livro emprestado não pode ser removido" continua verdade com Express, com
+Fastify, com SQLite, com Postgres e num script de linha de comando. Se essa regra
+importa `express`, ela passa a mudar toda vez que o **framework** muda — o
+estável ficou refém do volátil.
+
+A interface do repositório é a costura: ela pertence ao **lado estável** (mora em
+`dominio/`), e é o lado volátil que se dobra para atendê-la. Repare que a seta
+aponta ao contrário do fluxo de execução — o service **chama** o repositório, mas
+**depende** de um tipo que ele próprio define. Isso é a "inversão".
+
+> [!NOTE]
+> A prova disso não é teórica neste repositório: rode
+> `diff -rq exercicios/08-camadas/solucao/servicos exercicios/10-prisma/solucao/servicos`.
+> Entre um array em memória e o Prisma, os services são **idênticos**.
+
 ### O contrato do repositório
 
 ```ts
@@ -108,6 +135,32 @@ export function criarServicoCursos(repositorio: RepositorioCursos) {
 Se o repositório fosse importado no topo do arquivo, testar exigiria mockar
 módulo — frágil, lento e acoplado ao caminho do arquivo.
 
+**O princípio: uma dependência importada é uma decisão tomada; uma dependência
+recebida é uma decisão adiada.** Adiar não é indecisão — é deixar a escolha para
+quem tem contexto para fazê-la.
+
+Quem tem contexto varia por execução, e é aí que o ganho aparece:
+
+| Quem monta              | Passa                    |
+| ----------------------- | ------------------------ |
+| `servidor.ts`           | o repositório de verdade |
+| O teste (módulo 12)     | um em memória, isolado   |
+| Um script de importação | um que grava em lote     |
+| Um worker de fila (17)  | o mesmo de produção      |
+
+> [!NOTE]
+> É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
+> decorator, sem container. "Injeção de dependência" tem nome de coisa grande e é
+> um parâmetro de função — o que os frameworks adicionam é resolução automática
+> de quem passa o quê, útil quando há centenas de peças, e desnecessário aqui.
+
+> [!WARNING]
+> **O custo é real:** o `servidor.ts` cresce, e ler "o que este service usa?"
+> exige olhar quem o construiu, não o topo do arquivo. Em projeto pequeno isso é
+> burocracia. A linha divisória prática: injete o que **tem mais de uma
+> implementação plausível** (banco, envio de e-mail, relógio, gerador de id) e
+> importe o resto direto.
+
 O tipo sai de graça:
 
 ```ts
@@ -128,6 +181,17 @@ app.use('/api/v1/cursos', rotas);
 
 Essa é a resposta prática para "onde a decisão concreta é tomada?". Aqui — e só
 aqui.
+
+**O princípio: concentre as decisões concretas num lugar só, o mais tarde
+possível.** Se o `new PrismaClient()` estiver espalhado por 12 arquivos, trocar de
+banco é uma caçada; se estiver no composition root, é uma linha.
+
+O padrão tem uma consequência que só aparece no [módulo 12](./12-testes.md): o
+composition root é justamente o que **não** se testa — ele não tem lógica, só
+montagem. E como toda a lógica está nas peças que ele monta, testar a lógica
+nunca exige subir a aplicação inteira.
+
+É a mesma ideia do `criarApp(deps)`: **separar montar de rodar**.
 
 ### O que vai em cada camada, na dúvida
 
@@ -192,6 +256,27 @@ níveis. Camadas custam arquivos, indireção e navegação.
 A ordem de adoção que faz sentido: **service primeiro** (regra fora do handler),
 **repositório depois** (quando o banco entrar), **controller por último** (quando
 a rota ficar grande).
+
+**O princípio: abstração é um investimento, e investimento tem que retornar.**
+Cada camada compra uma flexibilidade específica — se você não vai usar aquela
+flexibilidade, comprou indireção e não levou nada.
+
+| Camada          | O que ela compra                              | Não compre se...                        |
+| --------------- | --------------------------------------------- | --------------------------------------- |
+| **Service**     | regra testável e reusável fora do HTTP        | não há regra — é só passar dado adiante |
+| **Repositório** | trocar de banco, testar sem I/O               | o banco é definitivo e você não testa   |
+| **Controller**  | rota legível quando há muito mapeamento       | o handler cabe em 4 linhas              |
+| **DTO/Mapper**  | o formato externo variar sem mexer no interno | os dois são iguais e vão continuar      |
+
+> [!TIP]
+> O sinal de que uma camada não está pagando: ela só **repassa**.
+> `controller.listar()` que chama `servico.listar()` que chama `repo.listar()`,
+> sem nenhum acrescentar nada, são três arquivos abertos para ler uma linha
+> útil. Nesse caso, junte — e separe de novo no dia em que a regra aparecer.
+>
+> O erro oposto é mais caro e mais comum: postergar a separação até a regra estar
+> espalhada por 20 handlers. Por isso **service primeiro**: é a camada que quase
+> sempre paga.
 
 ### Clean Architecture e DDD, sem hype
 
@@ -272,6 +357,16 @@ export type ServicoX = ReturnType<typeof criarServicoX>;
 const repo = criarRepositorioSQLite(db);  // troque aqui, só aqui
 const servico = criarServicoX(repo);
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                         | Onde reaparece |
+| --------------------------------------------------------------------------------- | -------------- |
+| **Quem é mais estável não pode depender de quem é mais volátil.**                 | 09, 10, 12     |
+| **Dependência importada é decisão tomada; recebida é decisão adiada.**            | 12             |
+| **Concentre as decisões concretas num lugar só** (composition root).              | 11, 12, 16     |
+| **Abstração é investimento — só compre a flexibilidade que vai usar.**            | 10, 20         |
+| **Não expor um campo na entrada É a regra de segurança**, não um detalhe de tipo. | 11             |
 
 ## Pratique
 

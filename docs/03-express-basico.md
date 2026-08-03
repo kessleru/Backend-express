@@ -27,7 +27,25 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 
 > [!NOTE]
 > O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
-> `node:http`, só com métodos a mais.
+> `node:http`, só com métodos a mais. `res.json(x)` termina em `res.end(...)`.
+
+**O princípio:** um framework web não inventa capacidade nova — ele **remove
+trabalho repetitivo e padroniza a decisão**. Toda linha da coluna da esquerda
+você conseguiria escrever; o problema é que cada pessoa escreveria diferente, e a
+sexta rota já não pareceria com a primeira.
+
+E o que ele cobra em troca, para você saber que existe escolha:
+
+| Custo                              | O que significa na prática                                          |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| Uma abstração para aprender        | Middleware, `next()`, ordem de registro — coisas que o HTTP não tem |
+| Comportamento implícito            | `express.json()` decide pelo `Content-Type` sem você ver            |
+| Dependência                        | Versão nova quebra coisa (Express 5 mudou `req.query` e `req.body`) |
+| Perde-se contato com o baixo nível | Fica mais difícil saber por que algo é lento ou não fecha a conexão |
+
+O acordo compensa na esmagadora maioria dos casos — mas ele **é** um acordo. É
+por isso que o módulo 01 veio primeiro: sem escrever o servidor cru uma vez, o
+Express parece mágica em vez de conveniência.
 
 ### As três peças
 
@@ -67,9 +85,33 @@ flowchart TD
     style B fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
+**O princípio que decide os três:** cada posição carrega um tipo diferente de
+informação, e a posição é parte do contrato.
+
+| Posição         | Responde a pergunta  | Some da URL e...                          |
+| --------------- | -------------------- | ----------------------------------------- |
+| **Route param** | _qual_ recurso?      | a URL deixa de apontar para algo          |
+| **Query param** | _como_ eu quero ver? | a URL continua válida, com a visão padrão |
+| **Body**        | _com que conteúdo_?  | não há o que criar ou alterar             |
+
+O teste prático: **tire o parâmetro e veja se a URL ainda faz sentido.**
+`/livros` sem `?ano=1937` continua sendo uma lista; `/livros/` sem o `:id` não é
+nada. Por isso filtro nunca vira segmento de caminho (`/livros/ano/1937` é o erro
+clássico) e identificador nunca vira query (`/livro?id=7`).
+
+Duas consequências que não são estéticas:
+
+- **Cacheabilidade.** Proxies e navegadores usam a URL inteira como chave.
+  Identificador no corpo torna a resposta incachável.
+- **Log e métrica.** `/livros/:id` agrupa 10 mil requisições numa linha de
+  métrica; `?id=7` explode em 10 mil rótulos distintos.
+
 > [!IMPORTANT]
-> Tudo que vem da URL é **string**. `?horas=5` chega como `"5"`. Converter e
-> validar é sua responsabilidade — sempre.
+> Tudo que vem da URL é **string**. `?horas=5` chega como `"5"`, e `?horas=5&horas=9`
+> chega como `["5","9"]` — um array onde seu código espera texto. Converter e
+> validar é sua responsabilidade, sempre. É a primeira aparição da regra que o
+> [módulo 07](./07-validacao-zod.md) transforma em disciplina: **nunca confie na
+> forma do que chega de fora.**
 
 ### `express.json()`
 
@@ -97,6 +139,12 @@ res.send('texto'); // Content-Type deduzido (text/html aqui)
 > Cada requisição recebe **uma** resposta. Responder duas vezes dá
 > `ERR_HTTP_HEADERS_SENT` — daí o `return` antes de todo `res.status(4xx)`.
 
+**Por que é assim:** headers vão na frente do corpo, no fio. Depois que o
+primeiro byte do corpo saiu, mudar o status é fisicamente impossível — o cliente
+já leu `200`. `res.headersSent` é o jeito de perguntar se ainda dá tempo, e é a
+razão de o tratador de erro do [módulo 06](./06-tratamento-de-erros.md) precisar
+checá-lo.
+
 ### PUT vs PATCH na prática
 
 ```ts
@@ -107,6 +155,26 @@ app.put('/cursos/:id', ...);
 // PATCH altera só o que veio. `undefined` significa "não mandou".
 if (titulo !== undefined) curso.titulo = titulo;
 ```
+
+A diferença não é de gosto — ela vem de uma propriedade do método:
+
+| Método    | Idempotente?       | Significa                                                          |
+| --------- | ------------------ | ------------------------------------------------------------------ |
+| **PUT**   | **sim**            | mandar 3× é igual a mandar 1× — o estado final é o que você enviou |
+| **PATCH** | **não** (em geral) | depende do estado atual; `{"horas": +1}` acumula                   |
+| **POST**  | não                | 3× cria 3 recursos                                                 |
+
+Isso importa em produção: cliente com timeout **repete** a requisição. Se o
+método é idempotente, repetir é seguro; se não é, você precisa de chave de
+idempotência para não criar o pedido duas vezes.
+
+> [!WARNING]
+> O erro clássico do PATCH é aplicar um objeto com `undefined` dentro:
+> `{ ...atual, ...enviado }` **apaga** o campo salvo quando `enviado.titulo` é
+> `undefined`. É o mesmo bug que reaparece no
+> [módulo 08](./08-arquitetura-em-camadas.md) com `exactOptionalPropertyTypes` e
+> no [módulo 07](./07-validacao-zod.md) com `.partial()`. Copiar campo a campo,
+> checando `!== undefined`, é o que resolve.
 
 ## Na prática
 
@@ -175,6 +243,16 @@ res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 | Substituir       | `PUT /cursos/:id`    | `200`            |
 | Alterar em parte | `PATCH /cursos/:id`  | `200`            |
 | Remover          | `DELETE /cursos/:id` | `204`            |
+
+## Os princípios deste módulo
+
+| Princípio                                                                                                       | Onde reaparece               |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **Framework não dá capacidade nova; ele padroniza a decisão.**                                                  | 05 (middlewares), 10 (ORM)   |
+| **A posição do dado é parte do contrato** — caminho identifica, query modifica a visão, corpo carrega conteúdo. | 04 (design de URL)           |
+| **Nunca confie na forma do que chega de fora.**                                                                 | 07 (Zod), 09 (SQL injection) |
+| **Idempotência decide se repetir é seguro.**                                                                    | 17 (jobs), 15 (retry)        |
+| **`undefined` não é "apague isto".**                                                                            | 07, 08, 10                   |
 
 ## Pratique
 

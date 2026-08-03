@@ -28,6 +28,25 @@
 > **Mensagem de erro que você escreveu pode ir ao cliente; mensagem que o runtime
 > escreveu, não.** `connect ECONNREFUSED 10.0.0.5:5432` é um mapa da sua rede.
 
+**O princípio:** a distinção não é sobre gravidade — é sobre **quem consegue
+resolver**.
+
+| Quem resolve | Status | O que a resposta precisa ter                | Quem é acordado |
+| ------------ | ------ | ------------------------------------------- | --------------- |
+| O cliente    | 4xx    | o que corrigir, com precisão                | ninguém         |
+| Você         | 5xx    | uma referência para o suporte (`requestId`) | você            |
+
+Errar essa classificação custa nas duas direções, e as duas doem em produção:
+
+- **Bug virando 4xx** — some do alerta. Sua taxa de erro fica linda enquanto os
+  usuários não conseguem usar o sistema. É o pior dos dois.
+- **Erro do cliente virando 5xx** — polui o alerta com ruído, e a equipe aprende a
+  ignorar a métrica que deveria acordá-la. Você caça um bug que não existe.
+
+> [!TIP]
+> O teste para classificar: **"o cliente consegue fazer alguma coisa diferente
+> para isso funcionar?"** Se sim, 4xx. Se ele já fez tudo certo, 5xx.
+
 ```mermaid
 flowchart LR
     T["throw"] --> Q{"é AppError?"}
@@ -67,6 +86,38 @@ function acharCurso(id: string): Curso {
 A função não precisa saber que existe HTTP. Isso é o que permite reusá-la num
 service ([módulo 08](./08-arquitetura-em-camadas.md)) e num worker de fila
 ([17](./17-jobs-e-filas.md)), onde não há requisição nenhuma.
+
+**O princípio:** **quem detecta o problema raramente é quem sabe como comunicá-lo.**
+`throw` separa as duas responsabilidades:
+
+| Quem       | Sabe                                     | Não sabe                          |
+| ---------- | ---------------------------------------- | --------------------------------- |
+| O service  | que o curso não existe, e que isso é 404 | se a resposta é JSON, HTML ou log |
+| O tratador | o formato da resposta, o `requestId`     | por que o erro aconteceu          |
+
+E há um ganho estrutural que não é óbvio: `throw` **interrompe**. Um
+`res.status(404).json(...)` no meio de uma função exige que quem chamou saiba
+parar — e o `return` esquecido vira `ERR_HTTP_HEADERS_SENT` ou, pior, a execução
+continua com um dado inválido.
+
+```ts
+// ❌ Continua rodando depois de "responder".
+function achar(id) {
+  const c = cursos.find(...);
+  if (!c) res.status(404).json({});   // faltou return
+  return c;                            // devolve undefined mundo afora
+}
+
+// ✅ Interrompe de verdade. Quem chamou não precisa lembrar de nada.
+function achar(id) {
+  const c = cursos.find(...);
+  if (!c) throw naoEncontrado('Curso', id);
+  return c;                            // aqui, `c` é garantidamente um Curso
+}
+```
+
+O segundo tem um bônus de tipo: depois do `throw`, o TypeScript **sabe** que `c`
+não é `undefined`. O primeiro obriga um `!` ou um `if` a mais em cada chamador.
 
 ### O que mudou no Express 5
 
@@ -117,6 +168,26 @@ Três detalhes que importam:
 3. **`requestId` na resposta.** O cliente cita o id no suporte, você acha todas as
    linhas de log daquela requisição. Vem do
    [módulo 05](./05-middlewares.md#passando-dados-entre-middlewares).
+
+**O princípio do lugar único:** o formato da resposta de erro é **contrato
+público**. Um cliente escreve UM tratamento de erro; se cada rota inventar o seu
+(`{erro}`, `{message}`, `{error:{msg}}`), ele precisa de um `if` por endpoint — e
+o `if` que faltar vira uma tela em branco.
+
+Centralizar dá três coisas que rota-a-rota não dá:
+
+| Ganho                         | Por quê                                                    |
+| ----------------------------- | ---------------------------------------------------------- |
+| Formato consistente           | Um lugar decide, e não há como divergir                    |
+| Nada vaza por omissão         | O caminho do bug é sempre o genérico, mesmo para erro novo |
+| Dá para **testar de uma vez** | Um teste cobre o formato de toda a API (módulo 12)         |
+
+> [!CAUTION]
+> O terceiro é o que sustenta os outros dois ao longo do tempo. A decisão "a stack
+> nunca sai na resposta" não se defende sozinha: basta alguém adicionar
+> `erro.message` durante uma investigação e esquecer de tirar. **Nada quebra** —
+> a API continua respondendo 500. É por isso que o [módulo 12](./12-testes.md)
+> tem um teste dedicado a isso.
 
 ### A ordem, de novo
 
@@ -178,6 +249,26 @@ callback solto não passa.
 > A recomendação oficial do Node é **logar e sair**: um processo que continua
 > depois de uma exceção não capturada está em estado desconhecido e pode
 > corromper dados silenciosamente.
+
+**O princípio: falhe rápido e alto, em vez de continuar quebrado.** Ele
+contraria o instinto — parece que manter o servidor de pé é sempre melhor —, mas
+a conta é esta:
+
+| Continuar rodando                             | Reiniciar                         |
+| --------------------------------------------- | --------------------------------- |
+| Estado interno possivelmente corrompido       | Estado limpo, conhecido           |
+| Erros novos e estranhos, longe da causa       | Uma falha, no ponto certo, no log |
+| Conexão de banco pendurada, memória vazando   | Tudo devolvido ao sistema         |
+| Downtime **invisível** (responde, mas errado) | Downtime de 2 segundos, visível   |
+
+A mesma ideia já apareceu no [módulo 11](./11-autenticacao.md): o processo morre
+sem `JWT_SECRET` em vez de usar um segredo de exemplo. E é o oposto do
+`try/catch` vazio, que é a forma mais eficiente de esconder um problema de si
+mesmo.
+
+> [!TIP]
+> "Falhar rápido" vale para **inicialização e estado**, não para requisição. Um
+> `400` não derruba nada — quem falha alto é o processo, não a resposta.
 
 Quem reinicia é o orquestrador (Docker, systemd, PM2) —
 [módulo 16](./16-deploy-docker-ci.md). Encerrar sem cortar requisições em
@@ -245,6 +336,16 @@ app.use(tratarErro); // ÚLTIMO, 4 argumentos
 | Rate limit                           | `429`         |
 | Bug seu                              | `500`         |
 | Dependência externa falhou           | `502` / `503` |
+
+## Os princípios deste módulo
+
+| Princípio                                                                             | Onde reaparece |
+| ------------------------------------------------------------------------------------- | -------------- |
+| **A classificação do erro é sobre quem consegue resolver**, não sobre gravidade.      | 12, 13, 14     |
+| **Quem detecta o problema não é quem sabe comunicá-lo** — daí `throw`.                | 08, 17         |
+| **Formato de erro é contrato público:** um lugar decide, e dá para testar de uma vez. | 07, 12         |
+| **Mensagem que você escreveu pode sair; mensagem do runtime, não.**                   | 11, 13         |
+| **Falhe rápido e alto em vez de continuar quebrado.**                                 | 11, 16         |
 
 ## Pratique
 

@@ -17,15 +17,26 @@ completo (20 módulos), o catálogo de ferramentas e a tabela de progresso
 
 ## Estilo de escrita (detalhes na seção 7 do guia)
 
-Completo em cobertura, enxuto em texto. Sem explicação massiva.
+Completo em cobertura, **denso em conteúdo**, enxuto em texto. Corte redundância,
+nunca profundidade — módulo raso é defeito, módulo longo não é.
 
-- **Módulo de `docs/`: não tem limite de tamanho.** O módulo termina quando o
-  assunto acabou. O corte é por redundância — linha que não muda uma decisão sai,
-  esteja o arquivo com 80 ou 300 linhas.
-- Parágrafo: até 4 linhas.
+**Todo conceito passa pelas cinco camadas** (seção 7 do guia): problema →
+**princípio** → mecânica → trade-off → consequência. O princípio é sempre
+**nomeado em negrito**, numa frase que vale fora da ferramenta ("a senha nunca é
+armazenada", não "usamos hash"). É a camada que não se corta.
+
+- **Módulo de `docs/`: não tem limite de tamanho.** Termina quando o assunto
+  acabou. O corte é por redundância — linha que não muda uma decisão sai.
+- Mostre a **dor primeiro**: o jeito ruim (marcado como ruim) antes do bom.
+- **Toda decisão tem um porquê.** Nenhum número, flag ou opção entra sem a frase
+  que explica a escolha.
+- **Diga o custo.** Técnica sem contrapartida declarada não ensina a escolher.
+- Exemplo é **progressivo** (cresce do mínimo) e **real** (domínio da biblioteca,
+  nunca `foo`/`bar`).
+- **Falso amigo vira destaque**: o que parece certo e está errado (`.partial()`
+  no PATCH, `decode` no lugar de `verify`).
+- Parágrafo: até 4 linhas. Tabela e lista no lugar de texto corrido.
 - Se dá pra mostrar em código comentado, mostre em código — não em prosa.
-- Tabela e lista no lugar de texto corrido.
-- Só a teoria que muda uma decisão. História e curiosidade ficam de fora.
 - Conceito já explicado vira link para o módulo, não é reexplicado.
 
 Todo módulo segue o template de `docs/` e tem um exercício correspondente em
@@ -36,14 +47,14 @@ Todo módulo segue o template de `docs/` e tem um exercício correspondente em
 Os `.md` são escritos para o preview do **MPE** (extensão recomendada em
 `.vscode/extensions.json`), sem quebrar no GitHub.
 
-| Recurso                                       | Quando usar                                     |
-| --------------------------------------------- | ----------------------------------------------- |
-| `<!-- @import "[TOC]" {cmd="toc" ...} -->`    | Topo de todo doc e enunciado                    |
-| ` ```mermaid `                                | Fluxo, sequência, camadas, ER, estado           |
-| `> [!NOTE]` `[!TIP]` `[!IMPORTANT]`           | Contexto e atalho                               |
-| `> [!WARNING]` `[!CAUTION]`                   | Armadilha e erro que custa caro                 |
-| ` ```bash {cmd=true} `                        | Só em bloco `curl`/script que **termina** sozinho |
-| `- [ ]`                                       | Critérios de aceite dos exercícios              |
+| Recurso                                    | Quando usar                                       |
+| ------------------------------------------ | ------------------------------------------------- |
+| `<!-- @import "[TOC]" {cmd="toc" ...} -->` | Topo de todo doc e enunciado                      |
+| ` ```mermaid `                             | Fluxo, sequência, camadas, ER, estado             |
+| `> [!NOTE]` `[!TIP]` `[!IMPORTANT]`        | Contexto e atalho                                 |
+| `> [!WARNING]` `[!CAUTION]`                | Armadilha e erro que custa caro                   |
+| ` ```bash {cmd=true} `                     | Só em bloco `curl`/script que **termina** sozinho |
+| `- [ ]`                                    | Critérios de aceite dos exercícios                |
 
 Regras:
 
@@ -58,6 +69,9 @@ Regras:
 
 ## Comentários no código
 
+- Comentário de exemplo é **material didático**, não anotação: explica o
+  princípio e a armadilha, não a sintaxe. `// faz o hash da senha` sai; "o salt
+  não é passado porque o argon2 gera um por senha e o embute" fica.
 - Comentário existe para o que **muda uma decisão**: o ponto-chave do trecho, a
   armadilha, o porquê. Descrição óbvia (`// monta o objeto`) não entra.
 - `// TODO` marca o que um módulo mais à frente resolve.

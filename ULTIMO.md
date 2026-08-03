@@ -1,126 +1,130 @@
-# Onde a sessão parou — 2026-07-30
+# Onde a sessão parou — 2026-08-03
 
 > Este arquivo é o bilhete para a próxima sessão. O planejamento completo continua
-> em `GUIA-IMPLEMENTACAO.md` (a seção 2 tem os achados técnicos, a 9 tem a tabela
-> de fases).
+> em `GUIA-IMPLEMENTACAO.md` (a seção 2 tem os achados técnicos, a 7 tem a régua
+> de qualidade de ensino, a 9 tem a tabela de fases).
 
 ## Resumo em uma linha
 
-**Fases 1 e 2 concluídas. Fase 3 até o módulo 11.** Faltam: a solução do exercício
-11, o módulo 12 e as fases 4, 5 e 6.
+**Fase 3 fechada: módulos 01 a 12 completos**, com doc, exemplo, enunciado e
+solução — e os docs 01–11 revisados sob a régua nova de profundidade. Faltam as
+fases 4, 5 e 6.
 
 ## O que está pronto
 
-| Módulo                    | Doc | Exemplo | Enunciado | Solução      |
-| ------------------------- | --- | ------- | --------- | ------------ |
-| 01 Fundamentos de HTTP    | ✅  | ✅      | ✅        | ✅           |
-| 02 Node, módulos e async  | ✅  | ✅      | ✅        | ✅           |
-| 03 Express básico         | ✅  | ✅      | ✅        | ✅           |
-| 04 Roteamento             | ✅  | ✅      | ✅        | ✅           |
-| 05 Middlewares            | ✅  | ✅      | ✅        | ✅           |
-| 06 Tratamento de erros    | ✅  | ✅      | ✅        | ✅           |
-| 07 Validação (Zod)        | ✅  | ✅      | ✅        | ✅           |
-| 08 Arquitetura em camadas | ✅  | ✅      | ✅        | ✅           |
-| 09 SQLite e SQL           | ✅  | ✅      | ✅        | ✅           |
-| 10 Prisma (ORM)           | ✅  | ✅      | ✅        | ✅           |
-| 11 Autenticação           | ✅  | ✅      | ✅        | ❌ **falta** |
-| 12 Testes                 | ❌  | ❌      | ❌        | ❌           |
-| 13–20                     | ❌  | ❌      | ❌        | ❌           |
+| Módulo                    | Doc | Exemplo | Enunciado | Solução |
+| ------------------------- | --- | ------- | --------- | ------- |
+| 01 Fundamentos de HTTP    | ✅  | ✅      | ✅        | ✅      |
+| 02 Node, módulos e async  | ✅  | ✅      | ✅        | ✅      |
+| 03 Express básico         | ✅  | ✅      | ✅        | ✅      |
+| 04 Roteamento             | ✅  | ✅      | ✅        | ✅      |
+| 05 Middlewares            | ✅  | ✅      | ✅        | ✅      |
+| 06 Tratamento de erros    | ✅  | ✅      | ✅        | ✅      |
+| 07 Validação (Zod)        | ✅  | ✅      | ✅        | ✅      |
+| 08 Arquitetura em camadas | ✅  | ✅      | ✅        | ✅      |
+| 09 SQLite e SQL           | ✅  | ✅      | ✅        | ✅      |
+| 10 Prisma (ORM)           | ✅  | ✅      | ✅        | ✅      |
+| 11 Autenticação           | ✅  | ✅      | ✅        | ✅      |
+| 12 Testes                 | ✅  | ✅      | ✅        | ✅      |
+| 13–20                     | ❌  | ❌      | ❌        | ❌      |
 
 ## Verificado nesta sessão
 
 ```
 npm run typecheck      → passa
 npm run typecheck:ex   → passa
-npm run build          → passa
+npm run build          → passa (dist/ sem arquivo de teste)
+npm test               → 113 testes, 10 arquivos, verde
+npm test (2ª vez)      → mesmo resultado (isolamento ok)
+npm run test:cov       → ~80% statements
 ```
 
-Os **20 servidores** (11 exemplos + 9 soluções) sobem e respondem `200`. Todos os
-9 scripts não-servidores rodam sem erro. Cada exercício foi testado contra os
-próprios critérios de aceite, com `curl`, um por um.
+Solução do exercício 11 conferida com `curl` contra os 18 critérios de aceite:
+**30 checagens, 0 falhas**. Mais: sem `JWT_SECRET` (ou com menos de 32
+caracteres) o servidor recusa subir, e `grep senhaHash controllers/` não acha
+código nenhum.
 
-`npm run typecheck:play` dá `TS18003` porque `src/playground/` não tem nenhum
-`.ts` ainda. É esperado — não é problema.
+Servidores que sobem e respondem: `4110` (solução 11), `4120` (solução 12),
+`5060` (exemplo 12).
+
+## A REGRA NOVA desta sessão
+
+O usuário pediu **mais profundidade de ensino**, e isso virou norma escrita:
+
+- `GUIA-IMPLEMENTACAO.md` seção 7 → subseção **"Qualidade de ensino"**, com as
+  **cinco camadas obrigatórias** de todo conceito (problema → **princípio** →
+  mecânica → trade-off → consequência) e a tabela de regras de material.
+- `CLAUDE.md` foi alinhado: "corte redundância, nunca profundidade"; o princípio
+  é sempre **nomeado em negrito**, numa frase que vale fora da ferramenta.
+
+Os módulos 11 e 12 já nasceram sob essa régua. Os **01 a 10, não** — foi por isso
+que a revisão entrou como pendência.
+
+## Revisão de profundidade dos docs 01–11 — FEITA nesta sessão
+
+Todos os 11 docs anteriores foram passados sob a régua nova. O que entrou em cada
+um, sem reescrever nada do que já existia:
+
+- **Um bloco "princípio" por conceito central**, sempre nomeado em negrito e numa
+  frase que vale fora da ferramenta.
+- **Uma seção "Os princípios deste módulo"** no fim de cada doc (01 a 11), em
+  tabela, com a coluna "onde reaparece" ligando ao resto do currículo.
+- **Custos declarados** onde só havia elogio: o que o Express cobra (03), o que
+  camadas custam (08), o que o ORM esconde (10), o que JWT troca por escala (11).
+
+Adições de conteúdo que valem citar, porque não estavam em lugar nenhum:
+
+| Doc | O que entrou                                                                         |
+| --- | ------------------------------------------------------------------------------------ |
+| 01  | Quem depende de "seguro/idempotente" (CDN, retry, fila); pares de status confundidos |
+| 02  | Comparação com thread-por-requisição; `Promise.all` vs série; o dono do erro         |
+| 03  | O teste "tire o parâmetro e veja se a URL faz sentido"; PUT/PATCH e idempotência     |
+| 04  | Por que o Express não reordena rotas sozinho; custo real de versionar                |
+| 05  | Express vs Koa (a cadeia só desce); CORS não é segurança do servidor                 |
+| 06  | Classificação por "quem resolve"; `throw` interrompe e estreita o tipo               |
+| 07  | Validação é função pura × regra depende do estado; `UNIQUE` fecha a corrida          |
+| 08  | Volatilidade como critério; camada é investimento e tem que retornar                 |
+| 09  | Injeção como família (SQL, shell, HTML, log); transação é unidade de negócio         |
+| 10  | Toda abstração vaza; N+1 com a conta de latência por ambiente                        |
+| 11  | Revogação × escala como a MESMA escolha vista de ângulos                             |
 
 ## O PRÓXIMO PASSO exato
 
-### 1. Solução do exercício 11 (`exercicios/11-auth/solucao/`)
+### 1. Fase 4 — módulos 13 a 16
 
-O enunciado (`exercicios/11-auth/README.md`) está completo, com 7 dicas
-progressivas e 18 critérios de aceite. A solução foi **começada e removida** para
-não deixar código pela metade no repo — comece do zero.
+Na ordem: 13 Segurança (`helmet`, `express-rate-limit`), 14 Observabilidade
+(`pino`, `pino-http`), 15 Performance e cache (`redis`/`ioredis`,
+`compression`, `autocannon`), 16 Deploy (Docker, GitHub Actions).
 
-Plano que estava em andamento:
+Duas coisas que o módulo 12 preparou para o 13:
 
-1. Copiar a base do exercício 08 (memória, mais simples de testar que SQLite):
-   ```bash
-   cp -r exercicios/08-camadas/solucao/{dominio,repositorios,servicos,controllers,rotas,schemas,middlewares,erros} \
-         exercicios/11-auth/solucao/
-   ```
-2. `dominio/usuario.ts` — `Usuario`, `NovoUsuario`, `UsuarioPublico` (via `Pick`,
-   para o TS recusar `res.json(usuario)` com o hash dentro), `RepositorioUsuarios`
-   (precisa de `buscarPorEmail`) e `RepositorioRefresh` (indexado por `jti`, é o
-   que torna o logout possível).
-3. `dominio/emprestimo.ts` — com `buscarAbertoPorLivro` e `listarPorUsuario`.
-4. `auth/senhas.ts` e `auth/tokens.ts` — podem ser adaptados de
-   `src/exemplos/11-auth/`, mas o `JWT_SECRET` tem que **derrubar o processo** se
-   estiver ausente ou com menos de 32 caracteres (é critério de aceite).
-5. `middlewares/autenticar.ts` — `autenticar` (401) e `exigirPapel` (403).
-6. `servicos/autenticacao.ts` e `servicos/emprestimos.ts`.
-7. `rotas/auth.ts` + montar em `servidor.ts` na porta **4110**.
+- O `limitar()` escrito à mão (módulo 05) agora tem testes — dá para trocá-lo
+  por `express-rate-limit` e provar que o comportamento não mudou.
+- A suíte de `seguranca.test.ts` é a base natural do 13: testes de ausência já
+  cobrem stack e hash; faltam os headers do `helmet`.
 
-**A parte que dá o conteúdo do módulo:** autorização por **dono do recurso** (só
-quem pegou o livro, ou um admin, devolve). Ela **não** cabe num middleware, porque
-precisa buscar o recurso para saber quem é o dono — logo é regra de negócio e mora
-no service. Está explicado na dica 3 do enunciado.
+### 2. Depois
 
-Cuidado com dois critérios de aceite que costumam escapar:
-
-- `usuarioId` vem **do token**, nunca do body.
-- Remover a `X-Api-Key` dos módulos 05–10 — ela era o placeholder disto.
-
-### 2. Módulo 12 — testes (fecha a Fase 3)
-
-```bash
-npm i -D vitest supertest @types/supertest
-```
-
-O currículo pede (seção 5 do guia): pirâmide de testes, Vitest como runner,
-Supertest batendo no `app` sem abrir porta, mocks, fixtures, SQLite em memória
-(`:memory:`) para o banco de teste, cobertura como sintoma e TDD numa feature real.
-
-Duas coisas que a Fase 3 preparou de propósito para este módulo:
-
-- **A interface de repositório do módulo 08** — testar o service com um
-  repositório falso passado por argumento, sem mockar módulo.
-- **O teste da stack trace** — o desafio extra do exercício 06 pede um teste que
-  garanta que a stack nunca vaza em produção. É um bom primeiro caso.
-
-Para o Supertest funcionar, os servidores precisam **exportar o `app`** em vez de
-só chamar `listen`. Hoje nenhum faz isso: vale extrair um `criarApp()` no exemplo
-do módulo 12 e mencionar por que — sem reescrever os módulos anteriores (regra 7
-da seção 10 do guia).
-
-### 3. Depois
-
-Fases 4 (13–16), 5 (17–20) e 6 (apêndices A–E), na ordem da tabela da seção 9.
+Fases 5 (17–20) e 6 (apêndices A–E).
 
 ## Convenções que se firmaram e valem manter
 
 - **Portas:** exemplo do módulo NN → `50NN` (`src/exemplos`); solução do
   exercício NN → `4NN0`. O módulo 01 usa 4001/4010.
 - Cada exercício NN copia a solução do NN−1 e evolui. É duplicação de propósito:
-  cada solução roda sozinha, e o `diff` entre duas soluções vizinhas mostra
-  exatamente o que o módulo acrescentou. Os módulos 09 e 10 dependem disso —
-  `diff -rq` entre `servicos/` de 08, 09 e 10 dá "idênticos", que é a prova de que
-  a camada de repositório cumpriu a promessa.
-- Todo achado de comportamento (Express 5, Zod 4, Prisma 7) vira **conteúdo
-  comentado no código** e uma linha na tabela "Erros comuns" do doc. Não vira só
-  correção silenciosa.
-- O `.env` já tem `DATABASE_URL_PRISMA`; o banco do Prisma
-  (`data/prisma-10.sqlite`) é separado do módulo 09 (`data/biblioteca-09.sqlite`)
-  para os dois exemplos conviverem.
+  cada solução roda sozinha, e o `diff` entre duas vizinhas mostra exatamente o
+  que o módulo acrescentou. O 11 é a exceção deliberada — ele copia o **08**
+  (memória), porque auth em memória é mais fácil de testar que auth sobre Prisma,
+  e o enunciado permite qualquer repositório.
+- **A partir do 12, todo app novo se monta com `criarApp(deps)`;** só
+  `servidor.ts` chama `listen`. Os módulos 01–11 ficaram como estão de propósito.
+- Todo achado de comportamento (Express 5, Zod 4, Prisma 7, Vitest 4) vira
+  **conteúdo comentado no código** e uma linha na tabela "Erros comuns" do doc.
+  Não vira só correção silenciosa.
+- Teste que trava um achado vale mais que teste de caminho feliz. Exemplo vivo:
+  o `POST` sem `Content-Type` → 400, que protege o `?? {}` do módulo 07.
 
 ## Nada foi commitado
 
-Todo o trabalho está no working tree. `git status` mostra tudo como novo/modificado.
+Todo o trabalho está no working tree. `git status` mostra tudo como
+novo/modificado.

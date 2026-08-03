@@ -42,6 +42,24 @@ flowchart LR
 Um Router tem `.get`, `.post`, `.use`, `.param` — tudo que o `app` tem, menos
 `listen`.
 
+**O princípio:** **quem é montado não decide onde é montado.** É a mesma ideia da
+injeção de dependência do [módulo 08](./08-arquitetura-em-camadas.md) e da
+extração do `criarApp()` no [módulo 12](./12-testes.md): o componente declara o
+que faz; **outro** lugar decide onde ele vive.
+
+O que isso compra, na ordem em que você vai precisar:
+
+| Ganho                         | Como aparece                                                       |
+| ----------------------------- | ------------------------------------------------------------------ |
+| Remontar em outro prefixo     | `/api/v2/cursos` sem tocar no router                               |
+| Montar duas vezes             | a mesma rota em `/api` e em `/interno`, com middlewares diferentes |
+| Testar isolado                | montar só aquele router num app mínimo (módulo 12)                 |
+| Ler a API inteira num arquivo | `servidor.ts` vira o mapa; nenhum recurso se esconde               |
+
+O sintoma de ter violado isso é o router que escreve o próprio caminho completo
+(`rotasCursos.get('/cursos/:id')`): ele passa a só funcionar num lugar, e o
+prefixo fica repetido em N arquivos.
+
 ### Ordem importa (o bug clássico)
 
 ```ts
@@ -63,6 +81,25 @@ flowchart TD
 > [!IMPORTANT]
 > **Caminho literal antes de caminho com parâmetro.** O sintoma é cruel: você
 > recebe 404 numa rota que existe e está certa.
+
+**Por que o Express não resolve isso sozinho:** ele poderia ordenar as rotas da
+mais específica para a mais genérica — alguns frameworks fazem (o roteamento por
+arquivo do Next.js, por exemplo). O Express escolheu o contrário: **a ordem do
+seu arquivo É a ordem de avaliação**, sem reordenação escondida.
+
+| Modelo                    | Ganha                                       | Perde                                             |
+| ------------------------- | ------------------------------------------- | ------------------------------------------------- |
+| Ordem declarada (Express) | previsível; dá para ler e simular na cabeça | pega quem não sabe da regra                       |
+| Especificidade automática | "funciona" sem pensar                       | difícil prever qual rota casou quando há conflito |
+
+A troca vale porque **middleware depende de ordem de qualquer jeito** (módulo
+05): autenticar tem que rodar antes do handler. Um sistema que reordena rotas mas
+não middlewares seria pior que qualquer um dos dois puros.
+
+> [!TIP]
+> A regra vale para `app.use` também, e lá machuca mais: `app.use('/livros', x)`
+> casa por **prefixo**, então ele intercepta `/livros/1`, `/livros/qualquer-coisa`
+> e tudo abaixo. Sub-router montado antes das rotas irmãs come todas elas.
 
 ### Padrões de caminho — Express 5 mudou
 
@@ -128,10 +165,28 @@ banco na URL. Pare no segundo.
 | `?ordenar=ano&pagina=2` | `/cursosOrdenadosPorAno`      | Variação vai na query              |
 | `/cursos-online`        | `/cursosOnline`, `/cursos_on` | kebab-case por convenção           |
 
-**Exceção honesta:** existem operações que não são CRUD. Emprestar um livro não é
-"substituir o livro". A convenção prática é um sub-recurso em POST:
-`POST /livros/7/emprestar`. Melhor uma URL com verbo do que forçar o cliente a
-mandar `PATCH { disponivel: false }` e deixá-lo decidir a regra de negócio.
+**O princípio por trás da tabela inteira:** a URL nomeia **coisas** (substantivos)
+e o método diz o que fazer com elas. Repetir a ação no caminho é dizer a mesma
+coisa duas vezes — e as duas podem discordar (`POST /cursos/deletar`).
+
+A consequência prática não é estética. Uma API de substantivos é **previsível**:
+quem aprendeu `GET/POST/PATCH/DELETE /livros` já sabe usar `/autores` sem abrir
+documentação. Uma API de verbos (`/getCursos`, `/listarCursosAtivos`,
+`/buscarCursoPorId`) precisa de manual para cada endpoint, e cresce em número de
+endpoints em vez de crescer em parâmetros.
+
+> [!IMPORTANT]
+> **Exceção honesta:** existem operações que não são CRUD. Emprestar um livro não
+> é "substituir o livro". A convenção prática é um sub-recurso em POST:
+> `POST /livros/7/emprestar`.
+>
+> Melhor uma URL com verbo do que forçar o cliente a mandar
+> `PATCH { disponivel: false }` — isso moveria a **regra de negócio para o
+> cliente**, que passaria a decidir o que "emprestar" significa. Amanhã a regra
+> ganha "registrar quem pegou" (módulo 11) e todo cliente precisa mudar.
+>
+> A pergunta que resolve o caso: **a ação tem regra própria?** Se sim, ela merece
+> um endpoint; se é só escrever um campo, é `PATCH`.
 
 ### Versionamento
 
@@ -147,6 +202,26 @@ mais chata de debugar.
 
 Só suba a versão em mudança **incompatível** (campo removido, formato alterado).
 Adicionar um campo opcional não quebra ninguém e não merece uma v2.
+
+**O princípio:** versionar é assumir que **você não controla os clientes**. Se
+controlasse (front e API no mesmo deploy), bastava mudar os dois juntos — e aí
+versão nenhuma é necessária. Versionamento é o preço de ter consumidor que
+atualiza no ritmo dele.
+
+Por isso a conta é sempre a mesma: **cada versão viva é uma versão para manter.**
+Duas versões dobram o esforço de todo bug fix e de todo teste. O caminho barato,
+em ordem:
+
+| Estratégia                   | Custo                                     |
+| ---------------------------- | ----------------------------------------- |
+| Adicionar campo **opcional** | zero — clientes antigos ignoram           |
+| Adicionar endpoint novo      | zero                                      |
+| Depreciar com aviso e prazo  | baixo — header `Deprecation`, log, e-mail |
+| Criar `/v2`                  | **alto** — duas bases para manter         |
+
+O que quebra cliente e nem sempre parece: remover ou renomear campo, mudar tipo
+(`"7"` → `7`), mudar status code, tornar obrigatório um campo que era opcional, e
+mudar a **ordem** de uma lista que alguém assumia estável.
 
 ### 404 no fim
 
@@ -213,6 +288,16 @@ app.use(handler404); // por último, sem caminho
 ```
 Ordem de declaração = ordem de teste. Literal antes de parâmetro. 404 no fim.
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                                  | Onde reaparece |
+| ------------------------------------------------------------------------------------------ | -------------- |
+| **Quem é montado não decide onde é montado.**                                              | 08, 12         |
+| **A ordem que você escreve é a ordem que roda** — sem reordenação escondida.               | 05, 11         |
+| **A URL nomeia coisas; o método diz a ação.**                                              | 20 (OpenAPI)   |
+| **A ação com regra própria merece endpoint; escrever um campo é `PATCH`.**                 | 08, 11         |
+| **Versionar é o preço de não controlar os clientes** — cada versão viva é uma para manter. | 16             |
 
 ## Pratique
 

@@ -23,6 +23,33 @@ TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
 Valide quatro coisas: **tipo**, **formato**, **obrigatoriedade** e **limites**.
 
+**O princípio: a validação é a fronteira do sistema.** Dentro dela, o código pode
+confiar nos dados; fora, não. Sem uma fronteira nítida, a desconfiança se espalha
+— cada função passa a fazer sua própria checagem defensiva, e ninguém sabe mais
+quem já validou o quê.
+
+```mermaid
+flowchart LR
+    F([mundo lá fora<br/>body · query · header · API terceira]) --> V["🛡️ validação<br/><i>a fronteira</i>"]
+    V --> D["dentro: tipos confiáveis<br/>service · repositório"]
+    style V fill:#fed7aa,stroke:#ea580c,color:#000
+    style D fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
+Por que **antes** de tudo, e não "quando precisar":
+
+| Validar na fronteira            | Validar espalhado                               |
+| ------------------------------- | ----------------------------------------------- |
+| Um lugar, fácil de auditar      | Checagem repetida, e a que falta é invisível    |
+| Erro chega junto e completo     | Uma mensagem por vez, o usuário corrige em loop |
+| O tipo depois dela é verdadeiro | `any` viajando três camadas adiante             |
+
+> [!IMPORTANT]
+> **`limites` é o item que mais se esquece, e o que mais custa.** `?porPagina=999999`
+> não é dado inválido — é um pedido perfeitamente formado que derruba o servidor.
+> Todo campo aberto (string, array, número, upload) precisa de um teto: é
+> validação **e** é defesa contra negação de serviço (módulo 13).
+
 ### A dor sem Zod
 
 ```ts
@@ -57,6 +84,30 @@ flowchart LR
 
 Mudar a regra muda o tipo, e o TypeScript aponta todo lugar que precisa
 acompanhar. É o oposto de manter `type` e `validar()` sincronizados na mão.
+
+**O princípio: duas fontes de verdade sempre divergem — a questão é quando.**
+
+O `type` escrito à mão e o `if` de validação descrevem a mesma regra em dois
+lugares. Nada obriga os dois a concordarem, e nada avisa quando param de
+concordar: você adiciona um campo no `type`, esquece o `if`, e o TypeScript
+continua feliz porque `req.body` é `any`.
+
+Derivar um do outro (`z.infer`) elimina a categoria inteira de bug. É a mesma
+ideia que aparece em:
+
+| Onde                             | O derivado                       |
+| -------------------------------- | -------------------------------- |
+| Zod (07)                         | o tipo vem do schema             |
+| `ReturnType<typeof criarX>` (08) | o tipo do service vem da fábrica |
+| Prisma (10)                      | o client tipado vem do schema    |
+| OpenAPI (20)                     | a documentação vem do schema Zod |
+
+> [!TIP]
+> **O custo:** o tipo passa a depender da biblioteca de validação. É aceitável no
+> contrato HTTP, e é justamente por isso que o [módulo 08](./08-arquitetura-em-camadas.md)
+> escreve os tipos de **domínio** à mão: o negócio não deve depender do Zod. O
+> schema descreve o que a API aceita; o domínio, o que o negócio é. Eles se
+> parecem hoje e podem divergir amanhã.
 
 ### `z.input` vs `z.output`
 
@@ -198,10 +249,30 @@ marcar o input certo.
 | Onde               | Schema, no middleware | Service / handler                      |
 | Status             | `400`                 | `409`, `403`, `422`                    |
 
+**O princípio que separa as duas: validação é uma função pura da entrada; regra
+de negócio depende do estado do mundo.**
+
+A consequência é bem concreta, e não é sobre organização de pastas:
+
+| Propriedade                      | Validação                    | Regra de negócio                   |
+| -------------------------------- | ---------------------------- | ---------------------------------- |
+| Mesma entrada → mesmo resultado? | **sempre**                   | não: hoje passa, amanhã é conflito |
+| Precisa de I/O?                  | não                          | sim                                |
+| Dá para rodar no **cliente**?    | sim (o front reusa o schema) | não                                |
+| Pode ser cacheada?               | sim                          | não                                |
+
+Por isso a validação pode acontecer no navegador **e** no servidor com o mesmo
+schema — e por isso a regra de negócio só pode acontecer no servidor. O front que
+checa "e-mail já existe" está fazendo uma sugestão de UX; a verdade é a checagem
+do servidor, sempre, porque entre a pergunta e a gravação alguém pode ter
+cadastrado.
+
 > [!WARNING]
 > O Zod não tem como saber que o título já existe. Não tente forçá-lo com
-> `.refine()` assíncrono acessando o banco: isso mistura camadas e torna o schema
-> impossível de reusar em teste.
+> `.refine()` assíncrono acessando o banco: isso mistura camadas, torna o schema
+> impossível de reusar em teste e no front, e **ainda não resolve** — entre o
+> `.refine()` e o `INSERT` existe uma janela de corrida. Quem garante unicidade
+> de verdade é a constraint `UNIQUE` no banco ([módulo 09](./09-sqlite-e-sql.md)).
 
 `.refine()` serve para regra entre **campos da mesma entrada**:
 
@@ -291,6 +362,16 @@ flowchart LR
     style E fill:#fed7aa,stroke:#ea580c,color:#000
     style L fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                         | Onde reaparece |
+| --------------------------------------------------------------------------------- | -------------- |
+| **A validação é a fronteira:** dentro dela dá para confiar, fora não.             | 08, 11, 13     |
+| **Duas fontes de verdade sempre divergem** — derive uma da outra.                 | 08, 10, 20     |
+| **Todo campo aberto precisa de um teto** — limite é validação e é defesa.         | 13, 15         |
+| **Validação é função pura da entrada; regra de negócio depende do estado.**       | 08, 11         |
+| **Rejeite o que você não conhece** (`.strict()`) em vez de descartar em silêncio. | 13             |
 
 ## Pratique
 

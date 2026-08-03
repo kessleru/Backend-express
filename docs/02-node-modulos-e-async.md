@@ -42,9 +42,33 @@ flowchart LR
 - **CPU bloqueia:** um `for` de 200 milhões de voltas é o _seu_ código. Enquanto
   ele roda, nenhum timer dispara e nenhum cliente é atendido.
 
+**O princípio:** o Node não é rápido porque é paralelo — ele é **eficiente porque
+não desperdiça thread esperando**.
+
+Compare com o modelo clássico (uma thread por requisição, como o PHP tradicional
+ou o Java servlet antigo):
+
+| Modelo                    | 10 mil conexões esperando o banco                          |
+| ------------------------- | ---------------------------------------------------------- |
+| Uma thread por requisição | 10 mil threads, ~1 MB de pilha cada = ~10 GB de RAM parada |
+| Event loop (Node)         | 1 thread, 10 mil callbacks registrados = alguns MB         |
+
 > [!TIP]
-> Espera é grátis, cálculo é caro. Backend passa a vida esperando banco e rede —
-> daí o modelo funcionar tão bem.
+> **Espera é grátis, cálculo é caro.** Backend passa a vida esperando banco e
+> rede — daí o modelo funcionar tão bem.
+
+E é por isso que a fraqueza é exatamente a imagem espelhada: qualquer trabalho de
+**CPU** trava tudo, porque não há outra thread para atender ninguém.
+
+| Sintoma em produção                         | Causa quase certa                                     |
+| ------------------------------------------- | ----------------------------------------------------- |
+| Latência de **todas** as rotas sobe junto   | Alguém bloqueou o loop                                |
+| Health check começa a dar timeout sob carga | O loop não chega a responder                          |
+| CPU em 100% com uma requisição só           | Laço pesado, regex catastrófica, `JSON.parse` gigante |
+
+As saídas, em ordem de preferência: não fazer o trabalho no request (fila, módulo
+17), quebrá-lo em pedaços que devolvem o loop, ou mandá-lo para outra thread
+(`worker_threads`). "Otimizar o laço" quase nunca é a resposta.
 
 ### Ordem de execução
 
@@ -148,6 +172,35 @@ try {
 `async/await` **é** Promise por baixo — açúcar sintático, não outro mecanismo.
 Toda função `async` devolve uma Promise, mesmo que você retorne um número.
 
+**O princípio:** uma Promise é um **valor que ainda não chegou**, e `await` é
+"pause esta função até chegar". A palavra que engana é "pause": a função pausa, a
+**thread não**. Ela sai para atender outra requisição e volta depois.
+
+Daí uma regra prática que economiza latência de graça:
+
+```ts
+// ❌ SÉRIE — 600ms. Cada await espera o anterior sem precisar.
+const autor = await buscarAutor(1);
+const livros = await buscarLivros(1);
+const generos = await buscarGeneros(1);
+
+// ✅ PARALELO — 200ms. Dispara os três e espera o conjunto.
+const [autor, livros, generos] = await Promise.all([
+  buscarAutor(1),
+  buscarLivros(1),
+  buscarGeneros(1),
+]);
+```
+
+Só serialize quando o segundo passo **precisa** do resultado do primeiro. É a
+mesma ideia que reaparece no [módulo 10](./10-prisma-orm.md) como problema N+1 —
+lá o laço serializa 100 consultas que caberiam em uma.
+
+> [!WARNING]
+> `Promise.all` é **tudo ou nada**: a primeira rejeição descarta o resto (que
+> continua rodando, sem ninguém escutando). Quando você quer o resultado parcial,
+> é `Promise.allSettled`.
+
 ### O `try/catch` que não pega nada
 
 ```ts
@@ -169,6 +222,30 @@ try {
 > [!CAUTION]
 > Sem o `await`, a rejeição vira **unhandled rejection** e o Node derruba o
 > processo. Este é o bug número um de backend Node.
+
+**A raiz do problema:** `try/catch` captura por **pilha de chamadas**, e uma
+Promise sem `await` sai da pilha imediatamente. Quando ela rejeita, o `try` já
+terminou há muito tempo — não existe mais para onde o erro subir.
+
+É a mesma razão pela qual `.forEach(async ...)` não espera nada: o `forEach`
+recebe uma função que devolve Promise, ignora o retorno e segue.
+
+```ts
+// ❌ Termina "na hora" e as gravações continuam soltas no ar.
+livros.forEach(async (l) => await salvar(l));
+
+// ✅ Em série, quando a ordem importa:
+for (const l of livros) await salvar(l);
+
+// ✅ Em paralelo, quando não importa:
+await Promise.all(livros.map((l) => salvar(l)));
+```
+
+> [!TIP]
+> A regra que evita a família inteira desses bugs: **toda função que devolve
+> Promise ou é `await`ada, ou tem `.catch`, ou leva `void` na frente** para dizer
+> "eu sei, é intencional". Se você não consegue escolher qual dos três, o código
+> tem um dono de erro indefinido.
 
 ## Na prática
 
@@ -211,6 +288,16 @@ npm ci             # instala o lockfile exato (use no CI/deploy)
 npm i -D pacote    # entra em devDependencies
 npm ls pacote      # mostra a versão realmente instalada
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                          | Onde reaparece |
+| ---------------------------------------------------------------------------------- | -------------- |
+| **O Node não é paralelo; ele é eficiente por não desperdiçar thread esperando.**   | 15, 17         |
+| **Espera é grátis, cálculo é caro** — trabalho de CPU no request trava todo mundo. | 15, 17         |
+| **Serialize só o que depende do anterior.**                                        | 10 (N+1), 15   |
+| **Toda Promise precisa de um dono do erro:** `await`, `.catch` ou `void`.          | 06             |
+| **O lockfile é o que garante build reproduzível**, não a faixa de versão.          | 16 (CI/CD)     |
 
 ## Pratique
 

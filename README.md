@@ -23,13 +23,13 @@ oferece instalar ao abrir o projeto.
 
 ### Recursos de Markdown usados nos docs
 
-| Recurso                    | Onde aparece                                    |
-| -------------------------- | ----------------------------------------------- |
-| Diagramas **mermaid**      | Fluxos, camadas, sequências, modelo de dados    |
-| Alertas `> [!NOTE]`        | Avisos, armadilhas e decisões                   |
-| Sumário automático         | `<!-- @import "[TOC]" ... -->` no topo do doc   |
-| Blocos executáveis         | ```` ```bash {cmd=true} ```` nos comandos `curl` |
-| Listas de tarefas          | Critérios de aceite dos exercícios              |
+| Recurso               | Onde aparece                                  |
+| --------------------- | --------------------------------------------- |
+| Diagramas **mermaid** | Fluxos, camadas, sequências, modelo de dados  |
+| Alertas `> [!NOTE]`   | Avisos, armadilhas e decisões                 |
+| Sumário automático    | `<!-- @import "[TOC]" ... -->` no topo do doc |
+| Blocos executáveis    | ` ```bash {cmd=true} ` nos comandos `curl`    |
+| Listas de tarefas     | Critérios de aceite dos exercícios            |
 
 > [!CAUTION]
 > Os blocos `{cmd=true}` só rodam se você ligar
@@ -109,7 +109,7 @@ flowchart TD
 | 09  | [SQLite e SQL](./docs/09-sqlite-e-sql.md)                     | SQL na mão, modelagem, índices, transações | ✅  |
 | 10  | [Prisma (ORM)](./docs/10-prisma-orm.md)                       | Schema, migrations, client tipado, N+1     | ✅  |
 | 11  | [Autenticação](./docs/11-autenticacao.md)                     | Hash de senha, JWT, cookies, RBAC          | ✅  |
-| 12  | Testes                                                        | Vitest, Supertest, mocks, TDD              | ⬜  |
+| 12  | [Testes](./docs/12-testes.md)                                 | Pirâmide, Vitest, Supertest, dublês, TDD   | ✅  |
 
 ### Parte IV — Produção
 
@@ -157,6 +157,14 @@ flowchart LR
 | `npm run build`          | Gera `dist/`                       |
 | `npm start`              | Roda o build de produção           |
 | `npm run format`         | Formata tudo com Prettier          |
+
+A partir do módulo 12 (testes):
+
+| Comando              | O que faz                                     |
+| -------------------- | --------------------------------------------- |
+| `npm test`           | Roda a suíte uma vez                          |
+| `npm run test:watch` | Reexecuta o que muda enquanto você escreve    |
+| `npm run test:cov`   | Cobertura; relatório em `coverage/index.html` |
 
 A partir do módulo 10 (Prisma):
 

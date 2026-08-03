@@ -118,6 +118,28 @@ db.prepare('SELECT * FROM livros WHERE titulo = ?').get(malicioso); // 0 resulta
 > recebe a query já compilada e os dados à parte. Por isso não existe caractere
 > que "escape" da parametrização.
 
+**O princípio, e ele vale muito além de SQL: nunca misture instrução com dado.**
+Toda vulnerabilidade de injeção é a mesma falha, com roupas diferentes:
+
+| Contexto | A instrução | Como se faz certo                       |
+| -------- | ----------- | --------------------------------------- |
+| Banco    | SQL         | query parametrizada (`?`)               |
+| Shell    | comando     | `spawn(cmd, [args])`, nunca `exec(str)` |
+| HTML     | marcação    | escapar na saída / template que escapa  |
+| Log      | formato     | log estruturado (JSON), módulo 14       |
+| E-mail   | cabeçalho   | recusar `\n` no assunto                 |
+
+Repare no que todas têm em comum: alguém **construiu uma string** juntando texto
+confiável com texto de fora, e entregou a um interpretador. Escapar é tentar
+adivinhar todos os caracteres perigosos daquele interpretador — e você vai
+esquecer um. Separar os canais **elimina a pergunta**.
+
+> [!CAUTION]
+> Validar (módulo 07) **não** substitui parametrizar. Um título legítimo pode
+> conter apóstrofo — `O'Brien` é nome de gente, não ataque. Validação decide o que
+> é um valor aceitável; parametrização decide que ele **é um valor**. As duas
+> coisas, sempre.
+
 ```mermaid
 flowchart LR
     subgraph ERRADO["❌ concatenar"]
@@ -263,10 +285,39 @@ stateDiagram-v2
     ROLLBACK --> [*]: como se nada tivesse acontecido
 ```
 
+**O princípio: transação é a unidade de trabalho do NEGÓCIO, não do banco.**
+"Emprestar um livro" é uma coisa só para quem usa o sistema — que sejam duas
+escritas é detalhe de implementação, e o usuário nunca deveria ver um estado
+intermediário.
+
+O jeito de encontrar o limite certo: **liste os estados possíveis se o processo
+morrer no meio.** Se algum deles é inaceitável, as operações pertencem à mesma
+transação.
+
+| Se cair entre as duas escritas | Estado resultante                             | Aceitável?                            |
+| ------------------------------ | --------------------------------------------- | ------------------------------------- |
+| Sem transação                  | livro indisponível, sem empréstimo registrado | **não** — ninguém consegue devolvê-lo |
+| Com transação                  | nada aconteceu                                | sim                                   |
+
+> [!WARNING]
+> Transação longa é o erro do outro lado: ela segura locks e trava as demais.
+> **Nunca chame API externa, envie e-mail ou espere I/O de rede dentro de uma
+> transação** — o banco fica parado esperando um serviço que você não controla.
+> Isso vira job em fila (módulo 17).
+
 > [!IMPORTANT]
 > Repare no `AND disponivel = 1` dentro do `UPDATE`: é assim que se evita
 > corrida. Um `SELECT` antes do `UPDATE` deixaria uma janela entre os dois em que
 > outra requisição poderia emprestar o mesmo livro.
+>
+> **O princípio: deixe o banco decidir, não o seu `if`.** Entre o `SELECT` e o
+> `UPDATE` da sua aplicação existe tempo; dentro de um `UPDATE ... WHERE`, não —
+> ele é atômico. O `changes === 0` é a resposta do banco dizendo "outro chegou
+> antes".
+>
+> A mesma ideia aparece como constraint `UNIQUE` (unicidade que o `if` do service
+> não garante sob concorrência) e como `CHECK`. **Regra que o banco consegue
+> garantir, garanta no banco** — ele é o único ponto por onde toda escrita passa.
 
 ### Migrations à mão
 
@@ -373,6 +424,17 @@ db.prepare(sql).run(...p); // { changes, lastInsertRowid }
 db.exec(sql); // várias instruções, sem parâmetro
 db.close();
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                  | Onde reaparece |
+| -------------------------------------------------------------------------- | -------------- |
+| **Nunca misture instrução com dado** — vale para SQL, shell, HTML e log.   | 13, 14, 19     |
+| **Regra que o banco consegue garantir, garanta no banco.**                 | 10, 11         |
+| **Transação é a unidade de trabalho do negócio**, não do banco.            | 10, 11, 17     |
+| **Deixe o banco decidir a corrida**, não o seu `if` entre duas consultas.  | 11, 15         |
+| **Migration é imutável** — corrigir é escrever a próxima.                  | 10, 16         |
+| **Meça antes de otimizar** (`EXPLAIN QUERY PLAN`), não indexe por palpite. | 15             |
 
 ## Pratique
 

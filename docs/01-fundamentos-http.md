@@ -28,6 +28,21 @@ sequenceDiagram
 
 Uma requisição, uma resposta. Só isso.
 
+**O princípio:** HTTP é um **protocolo de texto, sem estado e iniciado pelo
+cliente**. As três palavras carregam consequências que atravessam o curso inteiro:
+
+| Propriedade         | Consequência que você vai sentir                                                        |
+| ------------------- | --------------------------------------------------------------------------------------- |
+| **Texto** (legível) | Dá para depurar com `curl` e ler no fio — e por isso HTTPS não é opcional               |
+| **Sem estado**      | Toda requisição carrega quem você é; daí token e cookie (módulo 11)                     |
+| **Cliente inicia**  | O servidor **não** consegue te avisar de nada; daí polling, SSE e WebSocket (módulo 18) |
+
+> [!NOTE]
+> "Uma requisição, uma resposta" é o modelo mental, não a implementação. Na
+> prática a conexão TCP é reaproveitada (keep-alive) e o HTTP/2 multiplexa várias
+> trocas na mesma conexão. Nada disso muda o seu código — muda o desempenho
+> (módulo 15).
+
 ### Anatomia de uma requisição
 
 ```http
@@ -64,6 +79,25 @@ Content-Type: application/json
 Por isso `POST` não é idempotente: mandar duas vezes cria dois recursos. É esse o
 motivo do navegador avisar "reenviar formulário?" ao dar F5.
 
+**Por que essas duas palavras importam de verdade:** elas não são taxonomia, são
+o contrato com toda a infraestrutura entre você e o cliente.
+
+| Quem depende          | Do quê                            | O que acontece se você mentir                                         |
+| --------------------- | --------------------------------- | --------------------------------------------------------------------- |
+| Navegador, CDN, proxy | `GET` ser **seguro**              | Eles fazem prefetch. Um `GET /livros/7/apagar` é executado sem clique |
+| Cliente com timeout   | `PUT`/`DELETE` serem idempotentes | Ele repete sozinho. Se não for, o efeito acontece duas vezes          |
+| Fila de jobs (17)     | O consumidor ser idempotente      | Todo job roda ao menos uma vez — às vezes duas                        |
+
+> [!CAUTION]
+> **A regra prática: se a ação muda estado, o método não pode ser `GET`.** Não
+> importa quão conveniente seja o link. Já derrubaram bancos de dados inteiros
+> porque um robô de indexação seguiu todos os `<a href="/apagar/1">` de um painel.
+
+E onde a idempotência não existe (`POST`), o jeito de recuperá-la é uma **chave de
+idempotência**: o cliente manda um identificador único da tentativa, o servidor
+guarda o resultado e, na repetição, devolve o mesmo resultado sem refazer nada.
+É como toda API de pagamento resolve isso.
+
 ### Status codes
 
 ```mermaid
@@ -90,6 +124,31 @@ flowchart TD
 >
 > `401` vs `403`: "não sei quem você é" vs "sei quem você é, e você não pode".
 
+**Por que o status code é decisão de arquitetura, não enfeite:** ele é a única
+parte da resposta que **máquina** entende sem ler o seu JSON. Quem age com base
+nele:
+
+| Quem          | Faz o quê                                               |
+| ------------- | ------------------------------------------------------- |
+| Cliente HTTP  | Repete em `5xx` e `429`; **não** repete em `4xx`        |
+| Seu alerta    | Mede taxa de `5xx`. `4xx` é rotina, `5xx` acorda alguém |
+| Cache/CDN     | Guarda `200`, respeita `304`, não guarda `5xx`          |
+| Load balancer | Tira a instância do ar se ela só devolve `503`          |
+
+Mandar `200 {"erro": "não encontrado"}` quebra os quatro de uma vez: o cliente não
+repete o que devia, o alerta nunca dispara, o CDN cacheia um erro, e a instância
+doente continua recebendo tráfego. O status code é a **interface com a
+infraestrutura**; o corpo é a interface com a pessoa.
+
+**Os dois pares que mais se confundem:**
+
+| Par            | A diferença                                                                     |
+| -------------- | ------------------------------------------------------------------------------- |
+| `400` vs `422` | `400`: não deu para entender (JSON quebrado). `422`: entendi, e a regra recusou |
+| `401` vs `403` | `401`: renove a credencial. `403`: insistir não adianta                         |
+| `404` vs `403` | `404` também serve para **esconder** que o recurso existe (ver módulo 11)       |
+| `409` vs `400` | `409`: o corpo está certo, o **estado** é que impede                            |
+
 ### Headers que aparecem sempre
 
 | Header          | Para quê                                     |
@@ -106,9 +165,35 @@ O servidor **não lembra** de você entre requisições. Cada uma chega sozinha 
 precisa carregar tudo que é necessário — inclusive quem você é (daí o
 `Authorization` em toda requisição).
 
+**O princípio:** statelessness **empurra o estado para as pontas**. Ele não some
+— vai para o cliente (token, cookie) ou para um armazenamento compartilhado
+(banco, Redis). O que ele nunca deve fazer é morar na memória de **uma** das suas
+instâncias.
+
+```mermaid
+flowchart LR
+    C([cliente]) --> LB[load balancer]
+    LB --> A[instância A]
+    LB --> B[instância B]
+    LB --> D[instância C]
+    A & B & D --> R[("estado compartilhado<br/>banco · Redis")]
+    style R fill:#dbeafe,stroke:#2563eb,color:#000
+```
+
+A conta que isso paga aparece em quase todo módulo seguinte:
+
+| Se o estado estivesse na memória de uma instância | O que quebra                        |
+| ------------------------------------------------- | ----------------------------------- |
+| Sessão do usuário                                 | Ele deslogaria a cada 2 requisições |
+| Contador de rate limit (05)                       | O limite triplicaria com 3 réplicas |
+| Lista de refresh revogados (11)                   | Logout não teria efeito nas outras  |
+| Cache (15)                                        | Cada instância cacheia sozinha      |
+
 > [!NOTE]
-> Parece limitação, mas é o que permite ter 10 servidores atrás de um load
-> balancer: qualquer um atende qualquer requisição. Volta no módulo 15.
+> O custo do modelo é repetição: reenviar o token a cada requisição, e o servidor
+> reconstruir contexto toda vez. Em troca, escalar horizontalmente é ligar mais
+> uma máquina. É a troca que sustenta a web inteira — e um dos poucos casos em
+> que "menos eficiente por requisição" ganha de longe.
 
 ## Na prática
 
@@ -181,6 +266,16 @@ DELETE /cursos/7      remove        → 204
 
 2xx ok · 3xx redireciona · 4xx culpa do cliente · 5xx culpa sua
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                             | Onde reaparece |
+| --------------------------------------------------------------------- | -------------- |
+| **HTTP é texto, sem estado, e sempre iniciado pelo cliente.**         | 11, 15, 18     |
+| **Statelessness empurra o estado para as pontas** — ele não some.     | 05, 11, 15     |
+| **O status code é a interface com a máquina; o corpo, com a pessoa.** | 06, 14         |
+| **Se a ação muda estado, o método não pode ser `GET`.**               | 03, 13         |
+| **Idempotência é o que torna repetir seguro.**                        | 03, 15, 17     |
 
 ## Pratique
 

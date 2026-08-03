@@ -40,5 +40,8 @@
   // O playground fica de fora do build e do typecheck principal: código seu
   // pela metade não pode quebrar o projeto. Para checá-lo, use
   // `npm run typecheck:play` (config em tsconfig.playground.json).
+  //
+  // Os testes (módulo 12) FICAM aqui: `npm run typecheck` checa os tipos deles
+  // também. Quem os tira do artefato de produção é o `tsconfig.build.json`.
   "exclude": ["node_modules", "dist", "src/playground"]
 }

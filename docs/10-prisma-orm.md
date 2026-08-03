@@ -48,6 +48,27 @@ Compare os dois repositórios do mesmo contrato:
 `WHERE` e `SET` montados à mão) e
 `src/exemplos/10-prisma/repositorio-prisma.ts` (~90, sem nenhuma delas).
 
+**O princípio: toda abstração vaza, e você paga pelo que ela esconde quando
+precisa do que ela escondeu.**
+
+Um ORM esconde o SQL. Enquanto você faz o que ele previu, o ganho é enorme.
+Quando você precisa de algo que ele não previu — uma CTE recursiva, um índice
+parcial, um `EXPLAIN` — a abstração não ajuda **e** atrapalha, porque agora
+existe uma camada entre você e a ferramenta.
+
+A consequência prática não é "não use ORM". É esta:
+
+> [!IMPORTANT]
+> **Você precisa saber o que a abstração está fazendo por baixo.** Não para
+> substituí-la, mas para reconhecer quando ela escolheu mal — e é exatamente por
+> isso que o [módulo 09](./09-sqlite-e-sql.md) veio primeiro. Quem aprende ORM
+> sem SQL não entende o N+1 quando ele aparece: vê um `for` inocente, não 501
+> idas ao banco.
+
+Vale para todo o curso: Express esconde o `node:http` (módulo 01), Zod esconde as
+checagens manuais (03 → 07), Prisma esconde o SQL (09 → 10). Sempre na mesma
+ordem — a dor primeiro, o remédio depois.
+
 ### O schema
 
 ```prisma
@@ -190,6 +211,25 @@ sequenceDiagram
 ```
 
 Com 3 autores, imperceptível. Com 500, são **501 queries** e a rota leva segundos.
+
+**O princípio: a diferença entre O(1) e O(N) idas ao banco é invisível no código
+e decisiva na produção.**
+
+O que torna o N+1 traiçoeiro é justamente não parecer um problema. O laço é
+legível, o teste passa, a resposta está correta. O que muda é o **número de
+viagens de rede**, e cada viagem custa latência que não aparece no seu localhost
+(onde o banco está a 0,1 ms) e aparece muito no servidor (onde está a 5 ms).
+
+| Onde               | 501 queries × latência | Percepção     |
+| ------------------ | ---------------------- | ------------- |
+| Localhost (0,1 ms) | ~50 ms                 | "está rápido" |
+| Mesma rede (2 ms)  | ~1 s                   | "estranho"    |
+| Outra zona (10 ms) | ~5 s                   | timeout       |
+
+Generalizando: **prefira trazer um conjunto a buscar item por item.** O mesmo
+raciocínio vale para chamada de API externa em laço, `readFile` em laço e
+publicação em fila item a item. Sempre que você ver um `await` dentro de um `for`
+que fala com fora do processo, pergunte se existe a versão em lote.
 
 **Como detectar:**
 
@@ -380,6 +420,16 @@ $transaction(async (tx) => {}) // interativa — use tx!
 $queryRaw`...`                 // parametrizado
 $disconnect()
 ```
+
+## Os princípios deste módulo
+
+| Princípio                                                                          | Onde reaparece |
+| ---------------------------------------------------------------------------------- | -------------- |
+| **Toda abstração vaza** — você paga pelo que ela esconde quando precisa disso.     | 12, 15, 20     |
+| **Saber o que está por baixo é o que permite reconhecer a escolha ruim.**          | 09, 15         |
+| **Prefira trazer um conjunto a buscar item por item** (N+1 não é só de ORM).       | 15, 17         |
+| **O schema no git é a verdade sobre o banco**, e a migration é como ele chega lá.  | 09, 16         |
+| **Ganho de produtividade não dispensa medir** — `log: ['query']` antes do palpite. | 14, 15         |
 
 ## Pratique
 

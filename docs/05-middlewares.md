@@ -40,6 +40,30 @@ flowchart LR
 > `express.json()` sempre foi isso. Não existe categoria especial: o parser de
 > body, o `cors`, sua rota — tudo é middleware.
 
+**O princípio:** middleware é **composição de funções sobre um valor mutável**. O
+Express não tem nada além disso — a "mágica" do framework é uma lista de funções
+e um índice que anda.
+
+O padrão tem nome fora do Express (chain of responsibility, pipeline, interceptor)
+e a mesma forma no `.NET`, no Rails e em qualquer proxy HTTP. O que ele resolve:
+
+**preocupação transversal** — algo que precisa acontecer em quase toda requisição
+(log, autenticação, CORS, medição, request id) e não pertence a nenhuma rota
+específica. Sem middleware, o jeito é chamar as mesmas 5 linhas no topo de cada
+handler — e o dia em que alguém esquecer uma, o buraco é silencioso.
+
+| Sem middleware                          | Com middleware                   |
+| --------------------------------------- | -------------------------------- |
+| Repetir a checagem em 40 handlers       | Declarar uma vez, no lugar certo |
+| Esquecer em um deles = falha silenciosa | Se está montado, vale para todos |
+| Ordem implícita, espalhada              | Ordem explícita, num arquivo     |
+
+> [!WARNING]
+> O custo vem junto: **o comportamento deixa de estar visível no handler.** Quem
+> abre a rota não vê que existe autenticação. É por isso que, a partir do
+> [módulo 08](./08-arquitetura-em-camadas.md), a autorização fica declarada **na
+> rota** e não num `app.use` distante — perto o suficiente para ser auditável.
+
 ### A ordem é a ordem do arquivo
 
 ```ts
@@ -93,6 +117,27 @@ function cronometro(_req, res, next) {
 
 Naquele momento o status já está definido e você **não pode mais** mexer na
 resposta — só observar.
+
+**Por que existe essa assimetria:** o `next()` empurra a requisição para frente,
+mas nada a traz de volta. Quando o handler chama `res.json()`, os bytes saem — não
+há "caminho de volta" pela pilha de middlewares.
+
+É a diferença entre este modelo e o de outros frameworks (Koa, ASP.NET), onde o
+middleware faz `await next()` e o código **depois** dessa linha roda na volta:
+
+```ts
+// Koa — o "depois" existe de verdade
+app.use(async (ctx, next) => {
+  const inicio = Date.now();
+  await next(); // desce toda a cadeia...
+  ctx.set('X-Tempo', `${Date.now() - inicio}`); // ...e volta aqui, ANTES de responder
+});
+```
+
+No Express, `res.on('finish')` é só observação: a resposta já foi. Consequência
+prática: **não dá para adicionar header depois do handler.** Se um header depende
+do resultado, ele tem que ser posto pelo próprio handler ou por um middleware que
+envolva `res.json` (o que o `compression` faz).
 
 ### Três escopos
 
@@ -153,6 +198,23 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 | ---------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | **cors**   | Manda os headers que o navegador exige para outra origem chamar sua API | CORS é regra **do navegador**, não proteção do servidor: `curl` ignora. Detalhes no [13](./13-seguranca.md) |
 | **morgan** | Log de requisição HTTP pronto (`GET /x 200 3ms`)                        | Bom para humano no terminal, ruim para máquina filtrar. Trocado por Pino no [14](./14-observabilidade.md)   |
+
+> [!CAUTION]
+> **CORS não é segurança do servidor, e confundir isso é caro.**
+>
+> O que acontece de verdade: o navegador faz a requisição, sua API responde, e
+> **então** o navegador decide se entrega o resultado ao JavaScript da página. Se
+> os headers não permitirem, ele esconde a resposta — que já chegou, e cujo efeito
+> colateral (aquele `DELETE`) já aconteceu.
+>
+> Ou seja: `cors()` liberal não "abre" sua API; sua API já estava aberta para
+> `curl`, para Postman e para qualquer script. Quem protege é autenticação
+> (módulo 11), não CORS.
+
+**O princípio geral, que vale para toda lib de middleware:** antes de instalar,
+pergunte **de quem é a regra que ela implementa**. `cors` implementa uma regra do
+navegador; `helmet` manda instruções para o navegador; `express-rate-limit`
+implementa uma regra sua. Só a terceira categoria protege o servidor.
 
 ## Na prática
 
@@ -231,6 +293,27 @@ flowchart TD
     style G fill:#fecaca,stroke:#dc2626,color:#000
     style E fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
+
+A ordem acima não é convenção arbitrária — cada posição tem um porquê:
+
+| Posição | Por que ali                                                                    |
+| ------- | ------------------------------------------------------------------------------ |
+| Log 1º  | Para registrar **inclusive** o que vai ser rejeitado depois                    |
+| CORS 2º | O `OPTIONS` de preflight precisa ser respondido antes de qualquer autenticação |
+| Body 3º | Autenticação e rotas leem `req.body`                                           |
+| Auth 4º | Depois do body (pode ler credencial dele), antes das rotas                     |
+| 404 6º  | Só é 404 depois que **nenhuma** rota casou                                     |
+| Erro 7º | Recebe o que qualquer um dos anteriores jogou                                  |
+
+## Os princípios deste módulo
+
+| Princípio                                                                         | Onde reaparece |
+| --------------------------------------------------------------------------------- | -------------- |
+| **Middleware resolve preocupação transversal** — o que vale para quase toda rota. | 06, 07, 11, 13 |
+| **O custo é invisibilidade:** o handler não mostra o que roda antes dele.         | 08, 11         |
+| **A cadeia só desce.** O "depois" é observação, não interferência.                | 14, 15         |
+| **Antes de instalar, pergunte de quem é a regra** que a lib implementa.           | 13             |
+| **Decida no middleware o que não depende dos dados; o resto é regra de negócio.** | 08, 11         |
 
 ## Pratique
 

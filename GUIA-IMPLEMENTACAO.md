@@ -4,7 +4,7 @@
 > currículo e para **sessões futuras do Claude Code** entenderem o projeto sem
 > precisar redescobrir tudo.
 >
-> Última atualização: 2026-07-30
+> Última atualização: 2026-08-03
 
 ---
 
@@ -23,9 +23,11 @@ Público-alvo: você, estudando do zero até conseguir projetar uma API de produ
 
 Idioma: **português** em toda documentação e comentários.
 
-**Estilo: completo em cobertura, enxuto em texto.** Todos os 20 módulos existem,
-mas cada um é direto ao ponto — código e tabela no lugar de parágrafo. O padrão
-obrigatório está na seção 7.
+**Estilo: completo em cobertura, denso em conteúdo, enxuto em texto.** Todos os
+20 módulos existem, cada um vai ao fundo do assunto, e o corte é de redundância —
+nunca de profundidade. Código e tabela no lugar de parágrafo. O padrão
+obrigatório está na seção 7, e a régua de qualidade de ensino é a subseção
+"Qualidade de ensino" — ela vale acima das outras regras de estilo.
 
 ---
 
@@ -100,10 +102,54 @@ ainda. Opções: (a) esperar o suporte, (b) baixar para TypeScript 5.9. Por ora 
   - `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10
     poder importar o Prisma Client gerado em `src/`.
 
+### Fase 3 concluída (2026-08-03)
+
+- **Solução do exercício 11** criada sobre a base do 08 (repositórios em
+  memória). Os **18 critérios de aceite** foram verificados com `curl`, um por
+  um: 30 checagens, todas passando.
+- **Módulo 12 (testes)** com doc, exemplo executável, enunciado e solução.
+- Dependências novas: `vitest`, `supertest`, `@types/supertest`,
+  `@vitest/coverage-v8`.
+- Arquivos novos na raiz: `vitest.config.ts`, `vitest.setup.ts` e
+  `tsconfig.build.json`.
+- Scripts novos: `test`, `test:watch`, `test:cov`.
+- Suíte atual: **113 testes em 10 arquivos**, verde e idempotente (roda duas
+  vezes seguidas com o mesmo resultado). Cobertura ~80%.
+
+Achados desta fase, todos verificados rodando:
+
+- `criarApp()` **precisou ser extraído**: os módulos 01–11 chamam `listen` no
+  topo, e importar isso num teste sobe servidor de verdade (`EADDRINUSE`, o
+  processo não encerra). Os módulos anteriores **não** foram reescritos —
+  regra 7 da seção 10 — e o contraste virou conteúdo do 12.
+- O `JWT_SECRET` do `.env`/`.env.example` tinha 23 caracteres e reprovava no
+  próprio critério de aceite do módulo 11 (mínimo 32). Corrigido.
+- **Rate limit versus suíte de teste**: 10 tentativas/min por IP num balde
+  compartilhado entre `registrar`/`login`/`trocar-senha` estourava. Duas
+  correções: baldes separados por rota (cada `limitar()` tem o próprio Map) e
+  `criarApp(deps, { rateLimit: false })` para o teste — nunca afrouxar o limite
+  de produção para o teste caber.
+- `tsconfig.build.json` foi necessário para os testes serem **checados** por
+  `npm run typecheck` e ao mesmo tempo ficarem **fora** de `dist/`.
+- `process.loadEnvFile()` (nativo, Node 22+) no `vitest.setup.ts` — é o que faz
+  `npm test` funcionar sem `--env-file` na linha de comando, sem `dotenv`.
+- No `app.ts` da solução 12, `NODE_ENV=test` desliga o middleware de log: 200
+  linhas de `GET /livros 200 em 1.2ms` afogam a falha que importa.
+
+### Revisão de profundidade dos docs 01–11 (2026-08-03)
+
+A régua de "Qualidade de ensino" da seção 7 nasceu nesta sessão, depois dos
+módulos 01–10. Todos foram passados por ela — **acrescentando o que faltava, sem
+reescrever o que já existia** (regra 7 da seção 10):
+
+- Bloco de **princípio nomeado** em cada conceito central.
+- Seção **"Os princípios deste módulo"** no fim dos docs 01 a 11, ligando cada
+  princípio aos módulos onde ele reaparece.
+- **Custos declarados** onde havia só elogio: o que o Express cobra (03), o que
+  camadas custam (08), o que o ORM esconde (10), o que o JWT troca por escala (11).
+
 ### Ainda pendente
 
-- Solução do exercício 11 (o enunciado está pronto, com 7 dicas).
-- Módulo 12 (testes: `vitest` + `supertest`) — fecha a Fase 3.
 - Fases 4, 5 e 6 da tabela da seção 9.
 
 ### Ponto de partida histórico
@@ -415,14 +461,16 @@ justifica a ferramenta.
 
 ### Nível 4 — Auth e testes
 
-| Ferramenta        | Para que serve                                                                     | Entra em  |
-| ----------------- | ---------------------------------------------------------------------------------- | --------- |
-| **argon2**        | Hash de senha. Vencedor da Password Hashing Competition; hoje preferido ao bcrypt. | 11        |
-| **bcrypt**        | O padrão anterior, ainda onipresente. Você vai encontrar em código legado.         | 11 (nota) |
-| **jsonwebtoken**  | Assina e verifica JWT.                                                             | 11        |
-| **cookie-parser** | Lê cookies do request — necessário para refresh token em cookie `httpOnly`.        | 11        |
-| **vitest**        | Test runner rápido, com TypeScript e watch nativos.                                | 12        |
-| **supertest**     | Dispara requisições HTTP contra o `app` Express sem abrir porta.                   | 12        |
+| Ferramenta              | Para que serve                                                                     | Entra em  |
+| ----------------------- | ---------------------------------------------------------------------------------- | --------- |
+| **argon2**              | Hash de senha. Vencedor da Password Hashing Competition; hoje preferido ao bcrypt. | 11        |
+| **bcrypt**              | O padrão anterior, ainda onipresente. Você vai encontrar em código legado.         | 11 (nota) |
+| **jsonwebtoken**        | Assina e verifica JWT.                                                             | 11        |
+| **cookie-parser**       | Lê cookies do request — necessário para refresh token em cookie `httpOnly`.        | 11        |
+| **vitest**              | Test runner rápido, com TypeScript e ESM nativos — sem transformador.              | 12        |
+| **supertest**           | Dispara requisições HTTP contra o `app` Express sem abrir porta.                   | 12        |
+| **@vitest/coverage-v8** | Relatório de cobertura pelo V8, sem instrumentar o código.                         | 12        |
+| **node:test**           | Runner embutido no Node. Citado como alternativa mínima ao Vitest.                 | 12 (nota) |
 
 ### Nível 5 — Produção
 
@@ -509,19 +557,77 @@ Link para `exercicios/NN-*/` + 1 desafio extra opcional.
 | Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora. |
 | Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.    |
 
+### Qualidade de ensino — o padrão que vale acima de tudo
+
+"Enxuto" nunca é desculpa para raso. **Corte redundância, não profundidade.** Um
+módulo que cabe em 100 linhas mas deixa o leitor sem entender _por que_ a coisa
+funciona assim falhou — e precisa crescer.
+
+O teste de cada módulo: depois de lê-lo, o leitor consegue **decidir sozinho**
+num caso que o módulo não mostrou?
+
+#### As cinco camadas obrigatórias de todo conceito
+
+Todo conceito que entra num módulo passa pelas cinco. Faltou uma, o conceito
+está pela metade:
+
+| #   | Camada           | Pergunta que responde                        | Como cortar se ficar longo        |
+| --- | ---------------- | -------------------------------------------- | --------------------------------- |
+| 1   | **Problema**     | Que dor existia antes disto?                 | Vira uma frase, nunca some        |
+| 2   | **Princípio**    | Qual é a ideia geral, além desta ferramenta? | **Não corte. É o conteúdo.**      |
+| 3   | **Mecânica**     | Como funciona por baixo?                     | Vira diagrama ou código comentado |
+| 4   | **Trade-off**    | O que isto custa e quando **não** usar?      | Vira linha de tabela              |
+| 5   | **Consequência** | O que muda no código de quem usa?            | Vira o exemplo executável         |
+
+> [!IMPORTANT]
+> A camada 2 é a razão de o repositório existir. Express, Zod e Prisma mudam;
+> "não confie no cliente", "estado compartilhado precisa de coordenação" e
+> "custo assimétrico" não. **Sempre nomeie o princípio**, em negrito, com uma
+> frase que faça sentido fora do contexto da ferramenta.
+
+#### Regras de material e exemplo
+
+| Regra                          | Detalhe                                                                                                  |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| **Princípio nomeado**          | Em negrito e numa frase transferível: "**a senha nunca é armazenada**", não "usamos hash".               |
+| **Mostre a dor primeiro**      | O jeito ruim (comentado como ruim) antes do bom. Ferramenta sem dor prévia vira ritual.                  |
+| **Toda decisão tem um porquê** | Nenhum número, flag ou opção entra sem a frase que explica a escolha. `memoryCost: 19456` — por quê?     |
+| **Diga o custo**               | Toda técnica tem contrapartida. Módulo que só elogia a ferramenta não ensina a escolher.                 |
+| **Exemplo é progressivo**      | Começa mínimo e cresce. Um arquivo de 200 linhas despejado de uma vez não ensina, só impressiona.        |
+| **Exemplo é real**             | Reusa o domínio da biblioteca. Nada de `foo`/`bar` — o leitor tem que reconhecer o problema.             |
+| **Erro comum é reproduzível**  | A tabela "Erros comuns" descreve o sintoma exato (mensagem, status, comportamento), não "pode dar erro". |
+| **Falso amigo explicitado**    | O que "parece certo e está errado" (`.partial()` no PATCH, `decode` no lugar de `verify`) vira destaque. |
+| **Fecha o ciclo**              | O módulo lembra o que veio antes e diz qual módulo resolve o que ficou em aberto (`// TODO`).            |
+
+#### O mesmo padrão no código
+
+Comentário de exemplo é material didático, não anotação. Ele explica o
+**princípio e a armadilha**, não a sintaxe:
+
+```ts
+// ❌ Descreve o óbvio — sai
+const hash = await argon2.hash(senha); // faz o hash da senha
+
+// ✅ Explica a decisão — fica
+// O salt não é passado: o argon2 gera um por senha e o embute no resultado. É o
+// que faz duas senhas iguais terem hashes diferentes — e o que impede uma
+// rainbow table de servir para todos os usuários de uma vez.
+const hash = await argon2.hash(senha, CUSTO);
+```
+
 ### Recursos de Markdown (Markdown Preview Enhanced)
 
 Os `.md` são escritos para o preview do MPE sem quebrar a renderização do GitHub.
 As extensões recomendadas estão em `.vscode/extensions.json`.
 
-| Recurso                                     | Onde                                              |
-| ------------------------------------------- | ------------------------------------------------- |
-| `<!-- @import "[TOC]" {cmd="toc" ...} -->`  | Topo de todo `docs/NN-*.md` e enunciado           |
-| ` ```mermaid `                              | Fluxo, sequência, camadas, ER, estado, gantt      |
-| `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]`     | Contexto, atalho, regra que decide                |
-| `> [!WARNING]` / `[!CAUTION]`               | Armadilha e erro caro                             |
-| ` ```bash {cmd=true} `                      | Blocos `curl`/script que terminam sozinhos        |
-| `- [ ]`                                     | Critérios de aceite                               |
+| Recurso                                    | Onde                                         |
+| ------------------------------------------ | -------------------------------------------- |
+| `<!-- @import "[TOC]" {cmd="toc" ...} -->` | Topo de todo `docs/NN-*.md` e enunciado      |
+| ` ```mermaid `                             | Fluxo, sequência, camadas, ER, estado, gantt |
+| `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]`    | Contexto, atalho, regra que decide           |
+| `> [!WARNING]` / `[!CAUTION]`              | Armadilha e erro caro                        |
+| ` ```bash {cmd=true} `                     | Blocos `curl`/script que terminam sozinhos   |
+| `- [ ]`                                    | Critérios de aceite                          |
 
 **Diagrama substitui prosa, não soma** — ao inserir um, corte o parágrafo que
 ficou redundante. Nunca `{cmd=true}` num comando que sobe servidor. E
@@ -673,15 +779,15 @@ remover `pnpm-lock.yaml` do git.
 
 Cada fase é entregável sozinha. Dá pra parar entre fases.
 
-| Fase                        | O que entra                                                                                                                                  | Status                                                          |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint)                                               |
-| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                                                              |
-| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                                                              |
-| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | 🔶 08–11 feitos (falta a solução do exercício 11 e o módulo 12) |
-| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                                                              |
-| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                                                              |
-| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                                                              |
+| Fase                        | O que entra                                                                                                                                  | Status            |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint) |
+| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                |
+| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                |
+| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ✅                |
+| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                |
+| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                |
+| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                |
 
 Marque `✅` conforme concluir. Sessões futuras leem esta tabela para saber onde
 retomar.
@@ -698,11 +804,14 @@ retomar.
 5. **Uma dependência nova só entra no módulo que a justifica** (seção 6) — e a
    doc precisa explicar qual problema ela resolve e o que ela custa.
 6. **Explique o porquê, não só o como.** O objetivo é ensinar princípios de
-   backend; o Express é o veículo.
+   backend; o Express é o veículo. Todo conceito passa pelas cinco camadas da
+   seção 7 (problema → princípio → mecânica → trade-off → consequência), e o
+   princípio é sempre **nomeado** em uma frase que vale fora da ferramenta.
 7. **Não reescreva módulos já concluídos** por preferência de estilo. Corrija
-   erro, não gosto.
-8. **Siga o padrão de escrita da seção 7.** Enxuto e completo. Corte o que se
-   repete ou não muda uma decisão; nunca corte por causa da contagem de linhas.
+   erro e acrescente profundidade que falta — não troque redação por gosto.
+8. **Siga o padrão de escrita da seção 7.** Corte o que se repete ou não muda uma
+   decisão; nunca corte profundidade nem por contagem de linhas. Módulo raso é
+   defeito, módulo longo não é.
 9. Ao terminar uma fase, **atualize a tabela da seção 9** neste arquivo.
 
 ---

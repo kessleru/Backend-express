@@ -1,0 +1,18 @@
+// Config do BUILD de produção. Uso: npm run build
+//
+// A diferença para o `tsconfig.json` é uma só: os testes ficam de fora.
+//
+// Por que separar em vez de excluí-los do tsconfig principal: `npm run
+// typecheck` usa o principal, e teste sem checagem de tipo é onde `as any`
+// silencioso se acumula. Queremos os testes CHECADOS e fora do `dist/` — duas
+// coisas diferentes, dois arquivos.
+{
+  "extends": "./tsconfig.json",
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/playground",
+    "src/**/*.test.ts",
+    "src/**/testes/**"
+  ]
+}

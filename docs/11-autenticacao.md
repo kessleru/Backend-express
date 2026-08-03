@@ -111,6 +111,33 @@ Como o próprio tamanho vaza, compare o hash de cada um — hashes têm tamanho 
 > consultar um autenticador central. "É stateless" é a vantagem real; "é moderno"
 > não é argumento.
 
+**O princípio: você troca revogação por escala, e não dá para ter as duas.**
+
+A tabela acima é uma escolha só, vista de vários ângulos. Se a prova de identidade
+está **no token**, qualquer instância a verifica sozinha (escala) — e ninguém
+consegue cancelá-la (revogação). Se está **no servidor**, cancelar é apagar uma
+linha — e toda requisição paga uma consulta.
+
+O access + refresh deste módulo não é um terceiro caminho: é escolher os dois em
+momentos diferentes.
+
+| Token   | Onde está a verdade | Verificação   | Revogável? | Frequência de uso |
+| ------- | ------------------- | ------------- | ---------- | ----------------- |
+| Access  | no token            | só assinatura | não        | toda requisição   |
+| Refresh | no servidor         | consulta      | **sim**    | a cada 15 min     |
+
+O custo do estado é pago 1× a cada 15 minutos em vez de a cada requisição, e a
+janela de estrago de um token roubado fica limitada a 15 minutos. É engenharia,
+não mágica — e continua sendo verdade que **revogação instantânea exige estado
+consultado sempre**.
+
+> [!CAUTION]
+> O erro de julgamento mais comum aqui: adotar JWT para "escalar" um sistema que
+> tem um banco só e 200 usuários, e depois adicionar uma lista de revogação
+> consultada em toda requisição para conseguir deslogar alguém. Nesse ponto você
+> tem o custo da sessão **e** a complexidade do JWT. Se esse é o requisito,
+> sessão era a resposta desde o começo.
+
 ### Anatomia de um JWT
 
 ```
@@ -134,10 +161,10 @@ O que **não** colocar: senha, CPF, e-mail, endereço, saldo. O que colocar: `su
 
 ### Access + refresh
 
-| Token       | Vida    | Vai onde                | Guardado no banco?      |
-| ----------- | ------- | ----------------------- | ----------------------- |
-| **ACCESS**  | 15 min  | Toda requisição         | Não — só a assinatura   |
-| **REFRESH** | 7 dias  | Só na rota de refresh   | **Sim**, indexado por `jti` |
+| Token       | Vida   | Vai onde              | Guardado no banco?          |
+| ----------- | ------ | --------------------- | --------------------------- |
+| **ACCESS**  | 15 min | Toda requisição       | Não — só a assinatura       |
+| **REFRESH** | 7 dias | Só na rota de refresh | **Sim**, indexado por `jti` |
 
 ```mermaid
 sequenceDiagram
@@ -360,6 +387,19 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 | Token ok, papel insuficiente          | `403`                        |
 | Login com senha errada                | `401` (mensagem genérica)    |
 | E-mail já cadastrado                  | `409` (com a ressalva acima) |
+
+## Os princípios deste módulo
+
+| Princípio                                                                                     | Onde reaparece |
+| --------------------------------------------------------------------------------------------- | -------------- |
+| **A senha nunca é armazenada** — nem criptografada. Guarda-se um hash de via única.           | 13             |
+| **Defesa por custo assimétrico:** você paga uma vez, o atacante paga bilhões.                 | 13             |
+| **Um canal lateral vaza tanto quanto a mensagem** — tempo, tamanho e status contam história.  | 13, 14         |
+| **Nada que identifica o autor da ação vem do cliente.**                                       | 12, 13         |
+| **Autorização por papel cabe no middleware; por dono, não** — ela depende dos dados.          | 08, 12         |
+| **Na dúvida, feche a porta** (fail closed). Checagem que libera ao falhar é pior que nenhuma. | 13             |
+| **Operação que muda credencial pede a credencial de novo.**                                   | —              |
+| **Falhe ao subir sem segredo** em vez de usar um de exemplo.                                  | 06, 16         |
 
 ## Pratique
 
