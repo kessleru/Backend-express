@@ -313,6 +313,13 @@ A ordem acima não é convenção arbitrária — cada posição tem um porquê:
 | **Antes de instalar, pergunte de quem é a regra** que a lib implementa.           | 13             |
 | **Decida no middleware o que não depende dos dados; o resto é regra de negócio.** | 08, 11         |
 
+## Para ir além
+
+- **[Express — _Using middleware_ e _Writing middleware_](https://expressjs.com/en/guide/using-middleware.html)**
+  A ordem de execução e os cinco tipos de middleware, direto da fonte.
+- **[MDN — CORS](https://developer.mozilla.org/pt-BR/docs/Web/HTTP/CORS)**
+  O que o navegador realmente faz no preflight. Leia antes de "resolver" CORS com `origin: *`.
+
 ## Pratique
 
 👉 [`exercicios/05-middlewares/`](../exercicios/05-middlewares/)

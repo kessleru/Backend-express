@@ -297,6 +297,15 @@ Ordem de declaração = ordem de teste. Literal antes de parâmetro. 404 no fim.
 | **A ação com regra própria merece endpoint; escrever um campo é `PATCH`.**                 | 08, 11         |
 | **Versionar é o preço de não controlar os clientes** — cada versão viva é uma para manter. | 16             |
 
+## Para ir além
+
+- **[Express — _Router_](https://expressjs.com/en/5x/api.html#router)**
+  A API completa de `Router`, incluindo `router.param()` e roteadores aninhados.
+- **[Zalando — _RESTful API Guidelines_](https://opensource.zalando.com/restful-api-guidelines/)**
+  Guia de estilo de API usado em produção por uma empresa grande. Boa régua para nomear recurso, versionar e paginar sem inventar padrão próprio.
+- **[Microsoft — _API Design Best Practices_](https://learn.microsoft.com/en-us/azure/architecture/best-practices/api-design)**
+  Cobre versionamento e evolução de API com exemplos de trade-off.
+
 ## Pratique
 
 👉 [`exercicios/04-roteamento/`](../exercicios/04-roteamento/)

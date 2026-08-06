@@ -345,6 +345,15 @@ app.use(tratarErro); // ÚLTIMO, 4 argumentos
 | **Mensagem que você escreveu pode sair; mensagem do runtime, não.**                   | 11, 13         |
 | **Falhe rápido e alto em vez de continuar quebrado.**                                 | 11, 16         |
 
+## Para ir além
+
+- **[Express — _Error Handling_](https://expressjs.com/en/guide/error-handling.html)**
+  Inclui a mudança do Express 5: erro de rota `async` agora chega ao handler sozinho.
+- **[Node.js — _Error API_](https://nodejs.org/api/errors.html)**
+  A anatomia de um `Error` no Node, `cause` e os códigos padrão (`ERR_*`).
+- **[RFC 9457 — _Problem Details for HTTP APIs_](https://www.rfc-editor.org/rfc/rfc9457.html)**
+  Um formato **padrão** de corpo de erro (`application/problem+json`). Se você vai inventar um formato próprio, vale conhecer antes o que já existe.
+
 ## Pratique
 
 👉 [`exercicios/06-erros/`](../exercicios/06-erros/)

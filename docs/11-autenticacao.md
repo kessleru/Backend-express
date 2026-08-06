@@ -399,6 +399,21 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 | **Operação que muda credencial pede a credencial de novo.**                                   | —              |
 | **Falhe ao subir sem segredo** em vez de usar um de exemplo.                                  | 06, 16         |
 
+## Para ir além
+
+Área onde errar custa caro — aqui vale seguir fonte oficial, não tutorial.
+
+- **[OWASP — _Password Storage Cheat Sheet_](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html)**
+  A fonte dos parâmetros usados neste módulo: **Argon2id com 19 MiB, 2 iterações e paralelismo 1**. Se algum dia mudar, muda aqui primeiro.
+- **[OWASP — _JSON Web Token Cheat Sheet_](https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_Cheat_Sheet.html)**
+  Os erros clássicos de JWT, a começar pelo `alg: none` e pelo uso de `decode` no lugar de `verify`.
+- **[OWASP — _Authentication_ e _Session Management_](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html)**
+  Trata do que vem depois do login: expiração, rotação e revogação de sessão.
+- **[RFC 8725 — _JWT Best Current Practices_](https://www.rfc-editor.org/rfc/rfc8725.html)**
+  A norma sobre como não errar em JWT. Curta e específica.
+- **[Auth0 — _Refresh Token Rotation_](https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation)**
+  Explica a detecção de reuso de refresh token, o passo seguinte ao que este módulo implementa.
+
 ## Pratique
 
 👉 [`exercicios/11-auth/`](../exercicios/11-auth/)

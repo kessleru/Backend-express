@@ -366,6 +366,17 @@ const servico = criarServicoX(repo);
 | **Abstração é investimento — só compre a flexibilidade que vai usar.**            | 10, 20         |
 | **Não expor um campo na entrada É a regra de segurança**, não um detalhe de tipo. | 11             |
 
+## Para ir além
+
+Aqui é fácil cair em dogma. Estes três discordam entre si de propósito.
+
+- **[Martin — _The Clean Architecture_](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)**
+  O artigo original (gratuito) que deu origem ao livro e à regra da direção das dependências. Leia com filtro: o princípio é ótimo, a quantidade de camadas sugerida costuma ser exagero para projeto pequeno.
+- **[Fowler — _Patterns of Enterprise Application Architecture_](https://martinfowler.com/eaaCatalog/)**
+  O catálogo (gratuito) define Repository, Service Layer e DTO — os nomes que este módulo usa.
+- **[Fowler — _Presentation Domain Data Layering_](https://martinfowler.com/bliki/PresentationDomainDataLayering.html)**
+  O contraponto honesto: quando **não** vale a pena separar em camadas.
+
 ## Pratique
 
 👉 [`exercicios/08-camadas/`](../exercicios/08-camadas/)

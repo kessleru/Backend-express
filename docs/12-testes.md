@@ -365,6 +365,30 @@ npx vitest run caminho/arquivo.test.ts   # só um arquivo
 npx vitest run -t "nome do teste"        # só um teste
 ```
 
+## Os princípios deste módulo
+
+| Princípio                                                                                                       | Onde reaparece |
+| --------------------------------------------------------------------------------------------------------------- | -------------- |
+| **Teste testa comportamento, não implementação** — se refatorar quebra o teste, ele testava a coisa errada.     | 08             |
+| **Testabilidade é consequência de design**, não uma técnica: quem injeta dependência (08) não precisa de mock.  | 08, 10         |
+| **Código que sobe servidor ao ser importado não é testável** — daí `criarApp()` separar montagem de execução.   | 16             |
+| **O melhor dublê é o objeto real**; mock é o último recurso, não o primeiro.                                    | 08             |
+| **Isolamento vem de fábrica, não de constante compartilhada** — estado que sobrevive entre testes é bug futuro. | 09             |
+| **Cobertura é sintoma, não meta.** 100% com asserção fraca não protege nada.                                    | —              |
+| **Teste é a trava que registra a decisão** — ele documenta o porquê melhor que comentário.                      | 06, 11         |
+| **Nunca afrouxe produção para o teste passar**; injete a configuração de teste.                                 | 11, 13, 16     |
+
+## Para ir além
+
+- **[Vitest — documentação oficial](https://vitest.dev/)**
+  API, configuração e o modo de cobertura usados neste módulo.
+- **[Supertest](https://github.com/ladjs/supertest)**
+  Como bater no `app` sem abrir porta — o motivo de `criarApp()` existir.
+- **[Fowler — _Test Pyramid_ e _Test Double_](https://martinfowler.com/bliki/TestPyramid.html)**
+  A origem da pirâmide, e o vocabulário correto de mock, stub, spy e fake.
+- **[Khorikov — _Unit Testing: Principles, Practices, and Patterns_](https://www.manning.com/books/unit-testing)**
+  O melhor livro sobre **o que** testar. Defende que cobertura é sintoma, não meta — a mesma ideia deste módulo, com muito mais profundidade.
+
 ## Pratique
 
 [`exercicios/12-testes/`](../exercicios/12-testes/) — refatore a API de biblioteca

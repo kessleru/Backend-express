@@ -434,6 +434,17 @@ db.close();
 | **Migration é imutável** — corrigir é escrever a próxima.                  | 10, 16         |
 | **Meça antes de otimizar** (`EXPLAIN QUERY PLAN`), não indexe por palpite. | 15             |
 
+## Para ir além
+
+- **[SQLite — documentação oficial](https://www.sqlite.org/docs.html)**
+  _Quirks_, _When To Use_ e _Query Planner_ explicam onde o SQLite difere do Postgres — inclusive a tipagem flexível que surpreende quem vem de outro banco.
+- **[Winand — _Use The Index, Luke!_](https://use-the-index-luke.com/)**
+  A melhor explicação gratuita de índice que existe, escrita para quem programa (não para DBA). É a versão web do livro _SQL Performance Explained_.
+- **[Node.js — `node:sqlite`](https://nodejs.org/api/sqlite.html)**
+  A API do módulo embutido usado no exemplo deste módulo.
+- **[OWASP — _SQL Injection Prevention_](https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html)**
+  Por que query parametrizada resolve, e por que escapar string na mão não resolve.
+
 ## Pratique
 
 👉 [`exercicios/09-sqlite/`](../exercicios/09-sqlite/)

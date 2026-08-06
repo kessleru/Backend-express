@@ -371,6 +371,15 @@ flowchart LR
 | **Validação é função pura da entrada; regra de negócio depende do estado.**       | 08, 11         |
 | **Rejeite o que você não conhece** (`.strict()`) em vez de descartar em silêncio. | 13             |
 
+## Para ir além
+
+- **[Zod — documentação oficial](https://zod.dev/)**
+  A referência de schemas, `safeParse` e `z.infer`. Confira a v4: `z.string().email()` saiu em favor de `z.email()`.
+- **[OWASP — _Input Validation Cheat Sheet_](https://cheatsheetseries.owasp.org/cheatsheets/Input_Validation_Cheat_Sheet.html)**
+  Por que validar por **lista de permissão** e não por lista de bloqueio — o princípio que sustenta este módulo.
+- **[JSON Schema](https://json-schema.org/)**
+  O padrão independente de linguagem para descrever dados. É o que o OpenAPI usa no módulo 20.
+
 ## Pratique
 
 👉 [`exercicios/07-validacao/`](../exercicios/07-validacao/)

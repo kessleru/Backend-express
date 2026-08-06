@@ -281,6 +281,19 @@ DELETE /cursos/7      remove        → 204
 | **Se a ação muda estado, o método não pode ser `GET`.**               | 03, 13         |
 | **Idempotência é o que torna repetir seguro.**                        | 03, 15, 17     |
 
+## Para ir além
+
+A especificação é surpreendentemente legível — e é a autoridade quando alguém discute qual status usar.
+
+- **[RFC 9110 — HTTP Semantics](https://www.rfc-editor.org/rfc/rfc9110.html)**
+  A norma atual (STD 97, 2022), que substituiu as antigas RFC 7230-7235. As seções 9 (métodos) e 15 (status) respondem quase toda dúvida de design de API. Confirma o que este módulo diz: idempotência é sobre **estado do servidor**, não sobre a resposta.
+- **[MDN — HTTP](https://developer.mozilla.org/pt-BR/docs/Web/HTTP)**
+  A mesma informação em português e com exemplos. É onde consultar no dia a dia; a RFC é para quando a MDN não basta.
+- **[MDN — Referência de status HTTP](https://developer.mozilla.org/pt-BR/docs/Web/HTTP/Reference/Status)**
+  Um verbete por código, com o significado exato e quando usar. É a página para deixar aberta enquanto desenha uma API.
+- **[OWASP — _REST Security Cheat Sheet_](https://cheatsheetseries.owasp.org/cheatsheets/REST_Security_Cheat_Sheet.html)**
+  O que fazer e o que evitar numa API HTTP, do ponto de vista de segurança. Curto, e antecipa o módulo 13.
+
 ## Pratique
 
 👉 [`exercicios/01-fundamentos-http/`](../exercicios/01-fundamentos-http/)

@@ -324,6 +324,19 @@ npm ls pacote      # mostra a versão realmente instalada
 | **Toda Promise precisa de um dono do erro:** `await`, `.catch` ou `void`.          | 06             |
 | **O lockfile é o que garante build reproduzível**, não a faixa de versão.          | 16 (CI/CD)     |
 
+## Para ir além
+
+O guia oficial abaixo é curto e vale mais que qualquer vídeo sobre event loop.
+
+- **[Node.js — _Don't Block the Event Loop (or the Worker Pool)_](https://nodejs.org/learn/asynchronous-work/dont-block-the-event-loop)**
+  Fonte oficial do que este módulo mede: quais APIs usam o **worker pool** da libuv (arquivo, DNS, `crypto`, `zlib`) e quais usam o kernel. Confirma o pool de 4 threads (máximo 128) e mostra por que ele é fácil de esgotar.
+- **[Node.js — _The Node.js Event Loop_](https://nodejs.org/learn/asynchronous-work/event-loop-timers-and-nexttick)**
+  As fases do loop em ordem, com `process.nextTick` e `setImmediate` explicados lado a lado.
+- **[Casciaro & Mammino — _Node.js Design Patterns_, 4ª ed. (2025)](https://nodejsdesignpatterns.com/)**
+  O livro de referência de Node. Os capítulos de callbacks, streams e padrões assíncronos vão muito além do que cabe aqui.
+- **[Bevacqua — _Practical Modern JavaScript_](https://github.com/mjavascript/practical-modern-javascript)**
+  Gratuito e online. Para firmar ESM, iteradores e o JavaScript moderno que este repo usa.
+
 ## Pratique
 
 👉 [`exercicios/02-node-async/`](../exercicios/02-node-async/)

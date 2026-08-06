@@ -9,6 +9,18 @@ cp .env.example .env
 npm run dev          # http://localhost:5050
 ```
 
+Os módulos 01–09 rodam só com isso. **A partir do módulo 10** (Prisma) são
+necessários mais três passos, porque o client e o banco não vêm no git:
+
+```bash
+npm run db:generate  # gera o Prisma Client
+npm run db:migrate   # cria as tabelas
+npm run db:seed      # popula com dados de exemplo
+```
+
+Sem eles, `npm run typecheck` acusa erros no módulo 10 e o exemplo falha com
+`P2021 — table main.livros does not exist`.
+
 ## Leia no preview do VS Code
 
 Os `.md` deste repo são **Markdown puro**: não precisam de extensão nenhuma.

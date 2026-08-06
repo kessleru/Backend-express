@@ -148,9 +148,97 @@ reescrever o que já existia** (regra 7 da seção 10):
 - **Custos declarados** onde havia só elogio: o que o Express cobra (03), o que
   camadas custam (08), o que o ORM esconde (10), o que o JWT troca por escala (11).
 
+### Fase 4 em andamento (2026-08-05)
+
+- **Módulo 13 (segurança)** com doc, exemplo executável e enunciado. A
+  **solução do exercício 13 ainda não existe**.
+- Dependências novas: `helmet` (8.3) e `express-rate-limit` (8.6).
+- **Referências externas** adicionadas em todos os 12 módulos anteriores: seção
+  "Para ir além" entre "Os princípios" e "Pratique", com 3 a 6 fontes cada
+  (RFC 9110, OWASP, docs oficiais, Fowler, livros). **Os 45 links foram
+  verificados por HTTP** — 3 estavam quebrados na primeira tentativa e foram
+  corrigidos.
+- O exemplo do 13 tem cada rota em **par** (versão insegura e segura), e as 12
+  afirmações da doc foram verificadas rodando: headers, rate limit, injeção,
+  path traversal, IDOR e enumeração de usuário.
+
+Achados desta fase, todos verificados rodando:
+
+- `helmet()` liga **12 headers** e remove `x-powered-by`. O valor de
+  `x-xss-protection` é **`0`** — ele _desliga_ o filtro antigo do navegador de
+  propósito, porque o filtro tinha bugs que criavam vulnerabilidades. "Corrigir"
+  para `1; mode=block` piora a segurança: virou falso amigo no doc.
+- `express-rate-limit` 8 usa `standardHeaders: 'draft-8'`, e o header vem no
+  formato `ratelimit="2-in-1min"; r=0; t=60` — não é mais o `X-RateLimit-*`.
+- `req.params.nome` é `string | string[] | undefined` com
+  `noUncheckedIndexedAccess`: normalizar com `String(... ?? '')` antes de passar
+  para `resolve()`.
+- `npm audit` acusou um **high real** (`fast-uri`, dependência transitiva). Virou
+  o exemplo de auditoria do módulo, em vez de um caso inventado.
+- Exemplo do módulo 10 falha com **P2021** numa árvore recém-clonada: além do
+  `db:generate`, é preciso `db:migrate` (as tabelas não existem) e `db:seed`.
+  Documentado no README, no guia e no `ULTIMO.md`.
+- Exercício 01 tinha os critérios de aceite marcados (`- [x]`), aparecendo como
+  já concluídos. Corrigido para `- [ ]`.
+- Módulo 12 era o único sem a seção "Os princípios deste módulo". Acrescentada.
+
+Achados do **módulo 14**, todos verificados rodando:
+
+- **O `redact` do Pino vazou uma senha durante a escrita do exemplo.** A lista
+  tinha `senha` e `req.body.senha`, mas a rota logava `{ corpo: req.body }` — o
+  caminho real era `corpo.senha`. `redact` age nos **caminhos listados**, não no
+  nome do campo em qualquer profundidade. Corrigido com `'*.senha'`, e o episódio
+  virou conteúdo do doc: o que pegou o vazamento foi um teste que procura a senha
+  no log, não releitura de código.
+- `import pinoHttp from 'pino-http'` **não compila** com `verbatimModuleSyntax`
+  ("This expression is not callable"): o pacote é CommonJS. Use o export nomeado
+  `import { pinoHttp } from 'pino-http'`.
+- Os callbacks `genReqId`/`customLogLevel` recebem `IncomingMessage`/
+  `ServerResponse` do `node:http` (não os do Express) e **não são inferidos** —
+  anotar é obrigatório, senão o `tsc` acusa TS7006.
+- **Pino não é mais rápido que `JSON.stringify` na mão** (220ms × 156ms para 50
+  mil linhas em arquivo). O que ele compra é nível, redação, child logger e
+  serialização de `Error`. Isso está dito no doc, contra o discurso de marketing.
+- Um `info()` descartado por nível custa ~0: **50 mil chamadas em 1ms**. É o que
+  justifica instrumentar generosamente.
+- `JSON.stringify(new Error('x'))` devolve `{}` — as propriedades do `Error` são
+  não-enumeráveis, e a stack se perde justamente no log que mais importa.
+
 ### Ainda pendente
 
 - Fases 4, 5 e 6 da tabela da seção 9.
+
+**Nomes de arquivo já reservados.** Os docs 01–12 têm links apontando para
+módulos futuros. Eles só vão funcionar se os arquivos usarem **exatamente** estes
+nomes:
+
+| Arquivo                     | Citado em  |
+| --------------------------- | ---------- |
+| `13-seguranca.md`           | 05         |
+| `14-observabilidade.md`     | 03, 05, 10 |
+| `15-performance-e-cache.md` | 06, 09     |
+| `16-deploy-docker-ci.md`    | 06         |
+| `17-jobs-e-filas.md`        | 06         |
+
+**Setup numa árvore recém-clonada.** Duas coisas do módulo 10 não vêm no git, e
+cada uma quebra de um jeito diferente:
+
+| O que falta                     | Como se manifesta                                                      | Resolve com           |
+| ------------------------------- | ---------------------------------------------------------------------- | --------------------- |
+| Prisma Client (`gerado/`)       | `npm run typecheck` acusa 4 erros em `src/exemplos/10-prisma/`         | `npm run db:generate` |
+| Banco `data/*.sqlite` (migrado) | O exemplo roda e lança **P2021**: "table `main.livros` does not exist" | `npm run db:migrate`  |
+
+A sequência completa é:
+
+```bash
+npm install
+npm run db:generate   # gera o client em src/exemplos/10-prisma/gerado/
+npm run db:migrate    # cria as tabelas
+npm run db:seed       # popula (2 autores, 3 livros)
+```
+
+Sem o terceiro passo o exemplo roda, mas devolve listas vazias — o que confunde
+mais do que um erro.
 
 ### Ponto de partida histórico
 
@@ -799,15 +887,15 @@ remover `pnpm-lock.yaml` do git.
 
 Cada fase é entregável sozinha. Dá pra parar entre fases.
 
-| Fase                        | O que entra                                                                                                                                  | Status            |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint) |
-| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                |
-| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                |
-| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ✅                |
-| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | ⬜                |
-| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                |
-| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                |
+| Fase                        | O que entra                                                                                                                                  | Status                                               |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint)                                    |
+| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                                                   |
+| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                                                   |
+| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ✅                                                   |
+| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | 🔶 13 feito (falta a solução do 13; 14–16 pendentes) |
+| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                                                   |
+| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                                                   |
 
 Marque `✅` conforme concluir. Sessões futuras leem esta tabela para saber onde
 retomar.

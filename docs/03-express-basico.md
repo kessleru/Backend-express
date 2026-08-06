@@ -251,6 +251,17 @@ res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 | **Idempotência decide se repetir é seguro.**                                                                    | 17 (jobs), 15 (retry)        |
 | **`undefined` não é "apague isto".**                                                                            | 07, 08, 10                   |
 
+## Para ir além
+
+A documentação do Express é enxuta — leia a de rotas inteira, dá 15 minutos.
+
+- **[Express — _Routing_ e _API Reference_](https://expressjs.com/en/guide/routing.html)**
+  A referência de `req`/`res` responde o que este módulo resume. Confira sempre a versão **5**: `req.query` virou getter e `req.body` fica `undefined` sem `Content-Type`.
+- **[Express — _Migrating to Express 5_](https://expressjs.com/en/guide/migrating-5.html)**
+  A lista oficial do que mudou. Vale porque quase todo tutorial na internet ainda é Express 4 — este guia é o tradutor.
+- **[Fielding — _Architectural Styles_, cap. 5 (REST)](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)**
+  A tese que definiu REST. Leitura densa, mas o capítulo 5 mostra que REST é bem mais do que "URL bonita com JSON".
+
 ## Pratique
 
 👉 [`exercicios/03-express-basico/`](../exercicios/03-express-basico/) — aqui

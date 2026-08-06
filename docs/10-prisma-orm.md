@@ -429,6 +429,15 @@ $disconnect()
 | **O schema no git é a verdade sobre o banco**, e a migration é como ele chega lá.  | 09, 16         |
 | **Ganho de produtividade não dispensa medir** — `log: ['query']` antes do palpite. | 14, 15         |
 
+## Para ir além
+
+- **[Prisma — documentação oficial](https://www.prisma.io/docs)**
+  Referência do schema, das migrations e do client. Confira a versão **7**: o `url` saiu do `datasource` e o client recebe um adapter.
+- **[Fowler — _ORM Hate_](https://martinfowler.com/bliki/OrmHate.html)**
+  Uma defesa equilibrada do ORM contra as críticas comuns. Bom antídoto para os dois extremos.
+- **[Kleppmann & Riccomini — _Designing Data-Intensive Applications_, 2ª ed. (2026)](https://dataintensive.net/)**
+  O livro sobre sistemas de dados. Os capítulos 2 e 7 (modelos de dados e transações) são o passo natural depois deste módulo.
+
 ## Pratique
 
 👉 [`exercicios/10-prisma/`](../exercicios/10-prisma/)

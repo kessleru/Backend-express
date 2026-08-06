@@ -93,15 +93,15 @@ curl -i localhost:4010/qualquer
 
 ## Critérios de aceite
 
-- [x] `GET /contatos` → `200` com array
-- [x] `GET /contatos?nome=an` filtra
-- [x] `GET /contatos/999` → `404`
-- [x] `POST` válido → `201`, header `Location`, contato no body
-- [x] `POST` sem email → `400`
-- [x] `POST` com body inválido → `400`
-- [x] `DELETE` existente → `204` **sem corpo**
-- [x] `DELETE` de novo no mesmo id → `404`
-- [x] `GET /qualquer` → `404`
+- [ ] `GET /contatos` → `200` com array
+- [ ] `GET /contatos?nome=an` filtra
+- [ ] `GET /contatos/999` → `404`
+- [ ] `POST` válido → `201`, header `Location`, contato no body
+- [ ] `POST` sem email → `400`
+- [ ] `POST` com body inválido → `400`
+- [ ] `DELETE` existente → `204` **sem corpo**
+- [ ] `DELETE` de novo no mesmo id → `404`
+- [ ] `GET /qualquer` → `404`
 
 ## Dicas
 
