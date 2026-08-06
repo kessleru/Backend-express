@@ -83,6 +83,47 @@ console.log(
   `7. paralelo  → ${Date.now() - inicioParalelo}ms (${emParalelo.length} usuários)`,
 );
 
+// ---------------------------------------------------------------------
+// 4. Concorrência limitada: o meio-termo entre série e paralelo
+// ---------------------------------------------------------------------
+
+// `Promise.all` com uma lista grande dispara TUDO no mesmo instante. Com 5 mil
+// ids, são 5 mil chamadas competindo por ~10 conexões do pool do banco — as
+// outras esperam na fila até estourar o timeout. Ou a API externa devolve 429.
+//
+// A resposta não é voltar pra série (5 mil × 200ms = 16 minutos): é limitar
+// quantas correm ao mesmo tempo.
+const muitosIds = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+// O tamanho do lote é ditado pelo limite do OUTRO lado, não pelo seu código:
+// o `connection_limit` do pool, o rate limit documentado da API. Escolher no
+// chute troca um problema (fila no banco) por outro (lentidão sem motivo).
+const TAMANHO_LOTE = 4;
+
+const inicioLotes = Date.now();
+const emLotes: Usuario[] = [];
+for (let i = 0; i < muitosIds.length; i += TAMANHO_LOTE) {
+  const lote = muitosIds.slice(i, i + TAMANHO_LOTE);
+  // Dentro do lote é paralelo; entre lotes é série. Daí ~3 rodadas de 200ms
+  // em vez de 10 (série) ou 1 (paralelo total, com 10 chamadas simultâneas).
+  emLotes.push(...(await Promise.all(lote.map((id) => buscarUsuario(id)))));
+}
+console.log(`9. em lotes  → ${Date.now() - inicioLotes}ms (${emLotes.length} usuários)`);
+
+// ARMADILHA: `lote.map(buscarUsuario)` parece equivalente e compila, mas o
+// `map` passa três argumentos (valor, índice, array). Aqui não dói porque a
+// função ignora os extras — em `['1','2'].map(parseInt)` o índice vira a base
+// numérica e o resultado é [1, NaN]. Passe o argumento você mesmo.
+
+// Este laço tem lote fixo: a rodada seguinte só começa quando a MAIS LENTA da
+// anterior termina, deixando conexões ociosas no fim de cada rodada. Bibliotecas
+// de fila (p-limit) mantêm N sempre ocupados. O ganho raramente justifica a
+// dependência — mas saiba que o teto aqui não é o ideal.
+
+// ---------------------------------------------------------------------
+// 5. Quando uma falha
+// ---------------------------------------------------------------------
+
 // Promise.all falha inteiro se UMA falhar ("tudo ou nada").
 // Quando você quer o resultado de cada uma, com sucesso ou falha:
 const resultados = await Promise.allSettled([buscarUsuario(1), buscarUsuario(-1)]);
