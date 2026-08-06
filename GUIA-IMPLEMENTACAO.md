@@ -649,10 +649,41 @@ Código comentado. É aqui que mora a explicação de verdade.
 
 O resumo que você volta pra consultar depois.
 
+## Os princípios deste módulo
+
+Tabela: princípio nomeado + em que módulos ele reaparece.
+
+## Mini desafios
+
+Perguntas curtas que se respondem RODANDO. Formato na subseção abaixo.
+
+## Para ir além
+
+Referências externas comentadas — por que ler cada uma.
+
 ## Pratique
 
 Link para `exercicios/NN-*/` + 1 desafio extra opcional.
 ```
+
+### Mini desafios — o formato
+
+Servem para **fixar fazendo**, não para revisar lendo. Ficam no doc do módulo,
+depois dos princípios, e não substituem o exercício da pasta `exercicios/`.
+
+| Regra                       | Detalhe                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------- |
+| **Exige ação**              | Rodar, medir ou quebrar de propósito. Se dá para responder relendo, não é desafio.      |
+| **Peça a previsão antes**   | "Aposte o status antes de rodar." Errar a previsão é o que fixa o conceito.             |
+| **Resposta em `<details>`** | O leitor tenta primeiro. A resposta explica o **porquê**, não só o resultado.           |
+| **Prefira a surpresa**      | Os melhores nascem de comportamento inesperado do próprio exemplo do módulo.            |
+| **Verifique antes**         | **Todo resultado prometido tem que ser rodado antes de escrever.** Ver o alerta abaixo. |
+| Quantidade                  | Livre. O módulo 01 ficou com 10 — o critério é cobrir os conceitos que importam.        |
+
+> **Atenção:** ao escrever os desafios do módulo 01, um deles prometia `400` onde
+> o servidor devolve `201` — o exemplo ignora o `Content-Type` e tenta
+> `JSON.parse` em qualquer corpo. Um desafio com resultado errado ensina errado e
+> destrói a confiança no material. **Rode antes de prometer.**
 
 ### Regras
 

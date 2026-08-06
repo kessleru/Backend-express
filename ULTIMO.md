@@ -6,28 +6,59 @@
 
 ## Resumo em uma linha
 
-**Módulos 01 a 14 com doc e exemplo.** Faltam as **soluções dos exercícios 13 e
-14**, os módulos 15–20 e os apêndices.
+**Módulos 01 a 14 com doc e exemplo**, e o **01 já tem mini desafios**. Faltam os
+mini desafios do 02 ao 14, as soluções dos exercícios 13 e 14, os módulos 15–20 e
+os apêndices.
 
-## ▶ O PRÓXIMO PASSO (pedido do usuário, não começado)
+## ▶ MINI DESAFIOS — em andamento (01 feito, 02–14 pendentes)
 
-**Adicionar "mini desafios" aos módulos 01–14.** A intenção declarada: _"para
-martelar melhor na cabeça e fazer eu buscar solução"_ — perguntas curtas, que
-obrigam a investigar em vez de reler.
+**Pedido do usuário:** _"para martelar melhor na cabeça e fazer eu buscar
+solução"_. São perguntas curtas dentro do `docs/NN-*.md`, que obrigam a
+investigar em vez de reler.
 
-O que já foi decidido antes de parar:
+### O formato que se firmou no módulo 01
 
-- Eles entram nos `docs/NN-*.md`, e **não** substituem o exercício da pasta
-  `exercicios/` (que continua sendo o projeto contínuo da biblioteca).
-- Posição: entre "Os princípios deste módulo" e "Para ir além" — os módulos hoje
-  terminam em `## Os princípios` → `## Para ir além` → `## Pratique`.
-- Formato pretendido: pergunta curta + resposta escondida em `<details>`, para
-  o leitor tentar antes de ver. Nada de "leia de novo": cada desafio deve exigir
-  **rodar algo, medir ou quebrar de propósito**.
-- A regra do repo vale aqui: nada de `> [!NOTE]` e nada de sintaxe do Markdown
-  Preview Enhanced.
+Foram **10 desafios**, e o padrão a repetir nos próximos:
 
-Nenhum desafio foi escrito ainda — a tarefa está inteira.
+- Seção `## Mini desafios`, **entre** `## Cheatsheet`/`## Os princípios` e
+  `## Para ir além`.
+- Cada um: pergunta curta em **negrito** + `<details>` com a resposta. O leitor
+  tenta antes de abrir.
+- **Todo desafio exige rodar, medir ou quebrar de propósito.** Nenhum se resolve
+  relendo a seção — foi o critério explícito do pedido.
+- Vale pedir uma **previsão antes** de rodar ("aposte o status antes"): errar a
+  previsão é o que fixa.
+- Os melhores saíram de **comportamento surpreendente** do próprio exemplo do
+  módulo, não de teoria abstrata.
+- Não substituem o exercício de `exercicios/` (que segue sendo o projeto
+  contínuo da biblioteca).
+
+### Regra que eu segui e vale manter
+
+**Todo resultado prometido foi verificado rodando antes de escrever.** Isso pegou
+um erro meu: eu tinha escrito que `POST /eco` sem `Content-Type` devolve `400`,
+e na verdade devolve **201** — o exemplo ignora o header e tenta `JSON.parse` em
+qualquer corpo. O desafio foi reescrito em cima do comportamento real, que é mais
+interessante que a premissa errada.
+
+Ao fim, **7 checagens automáticas** confirmam os resultados prometidos no doc 01.
+
+### Achado que afeta o repo inteiro
+
+Os exemplos usam `curl -d '{"json":1}'` com **aspas simples** — funciona no Git
+Bash/Linux/macOS, mas o `cmd.exe` e o PowerShell **não removem aspas simples**: o
+corpo chega malformado e o leitor recebe um `400` que parece bug do servidor.
+
+São **17 ocorrências em 8 módulos**. Em vez de reescrever todas, entrou um aviso
+na seção de `curl` do módulo 01 (com a forma escapada para Windows) e a
+recomendação de usar o Git Bash. Se algum dia o repo virar multiplataforma de
+verdade, essa é a dívida a pagar.
+
+### Próximo
+
+Módulo **02** (event loop, ESM, semver, async) e seguir até o 14. Bons candidatos
+já visíveis para o 02: medir o bloqueio do event loop na prática, `Promise.all`
+vs série, o `try/catch` que não pega nada, e o thread pool de 4 threads.
 
 ## O que está pronto
 

@@ -219,6 +219,19 @@ headers, `-I` manda um `HEAD`), e as curtas podem ser juntadas (`-is` = `-i -s`)
 | `-s` | `--silent`   | Esconde a barra de progresso, para usar com pipe       |
 | `-L` | `--location` | Segue o `Location` de um `3xx`                         |
 
+> **Atenção — aspas no Windows:** os exemplos deste repo usam **aspas simples**
+> em volta do JSON (`-d '{"a":1}'`), que é o que funciona no **Git Bash**, no
+> Linux e no macOS. O `cmd.exe` e o PowerShell **não** removem aspas simples: o
+> corpo chega literalmente como `'{"a":1}'` e você recebe um `400` que parece bug
+> do servidor, mas é do shell. Nesses dois, escape as aspas duplas:
+>
+> ```
+> curl -X POST localhost:4001/eco -d "{\"a\":1}"
+> ```
+>
+> Recomendação: use o Git Bash para acompanhar o repo — os comandos funcionam
+> como estão escritos.
+
 ### Um servidor sem Express
 
 Para você ver o trabalho manual:
@@ -280,6 +293,289 @@ DELETE /cursos/7      remove        → 204
 | **O status code é a interface com a máquina; o corpo, com a pessoa.** | 06, 14         |
 | **Se a ação muda estado, o método não pode ser `GET`.**               | 03, 13         |
 | **Idempotência é o que torna repetir seguro.**                        | 03, 15, 17     |
+
+## Mini desafios
+
+Cada um leva de 2 a 10 minutos e se responde **rodando**, não relendo. Suba o
+servidor do módulo antes:
+
+```bash
+node src/exemplos/01-http-sem-express/servidor.ts
+```
+
+Tente antes de abrir a resposta — errar a previsão é o que fixa o conceito.
+
+---
+
+**1. Fale HTTP na unha.** Sem `curl` e sem navegador: abra um socket TCP e
+**digite** a requisição. Se HTTP é mesmo texto, isto tem que funcionar.
+
+<details><summary>Como fazer, e o que observar</summary>
+
+```bash
+node -e "
+const s = require('node:net').connect(4001, 'localhost', () => {
+  s.write('GET /ola?nome=telnet HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n');
+});
+s.on('data', d => process.stdout.write(d));
+"
+```
+
+Você vai ver a resposta crua, com a linha de status, os headers e o corpo
+separados por uma linha em branco:
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=utf-8
+Date: Thu, 06 Aug 2026 01:35:34 GMT
+Connection: close
+Transfer-Encoding: chunked
+
+1c
+{"mensagem":"Olá, telnet!"}
+0
+```
+
+Repare em três coisas: (a) o `\r\n` **não é decoração** — é o separador que o
+protocolo exige; (b) a **linha em branco** é o que marca o fim dos headers e o
+começo do corpo; (c) os números soltos (`1c`, `0`) são o `Transfer-Encoding:
+chunked` — o tamanho de cada pedaço em hexadecimal. `1c` = 28 bytes.
+
+**Por que isto importa:** todo framework que você vai usar monta exatamente esse
+texto. Depois de ver, `res.json()` deixa de ser mágica.
+
+</details>
+
+---
+
+**2. Onde estão os headers que ninguém escreveu?** O código do exemplo define um
+único header (`Content-Type`). Conte quantos chegam na resposta.
+
+<details><summary>Resposta</summary>
+
+```bash
+curl -i localhost:4001/
+```
+
+Chegam **cinco**: `content-type`, `date`, `connection`, `keep-alive` e
+`transfer-encoding`. Quatro deles o `node:http` acrescentou sozinho.
+
+Isso responde uma pergunta que costuma passar batido: o servidor HTTP não é só o
+seu handler. Há uma camada abaixo cuidando de formato da data, reuso de conexão e
+como o corpo é enviado — e ela toma decisões por você.
+
+</details>
+
+---
+
+**3. A conexão realmente fecha depois da resposta?** A doc diz que "uma
+requisição, uma resposta" é o modelo mental, não a implementação. Prove.
+
+<details><summary>Como provar</summary>
+
+Mande **duas** requisições no mesmo socket, sem fechar entre elas:
+
+```bash
+node -e "
+const s = require('node:net').connect(4001, 'localhost', () => {
+  s.write('GET / HTTP/1.1\r\nHost: x\r\n\r\n');
+  s.write('GET /ola?nome=segunda HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n');
+});
+s.on('data', d => process.stdout.write(d));
+"
+```
+
+Você recebe **duas respostas completas na mesma conexão TCP**, e a primeira vem
+com `Connection: keep-alive`.
+
+Este é o keep-alive do módulo 15 acontecendo hoje, sem você pedir. O modelo
+mental continua correto — cada requisição tem sua resposta e o servidor não
+lembra de você entre elas — mas a conexão é reaproveitada, porque abrir TCP custa
+caro.
+
+</details>
+
+---
+
+**4. O `Content-Type` está mentindo — alguém percebe?** Rode os dois e compare:
+
+```bash
+curl -i -X POST localhost:4001/eco -d '{"a":1}'                                   # sem header
+curl -i -X POST localhost:4001/eco -H 'Content-Type: application/json' -d '{"a":1}' # com header
+curl -i -X POST localhost:4001/eco -H 'Content-Type: application/json' -d '{"a":'  # header certo, JSON quebrado
+```
+
+Preveja os três status antes de rodar.
+
+<details><summary>Resposta — e ela contraria o que se espera</summary>
+
+`201`, `201` e `400`. O **header não fez diferença nenhuma**.
+
+O `curl -d` sem `-H` envia `Content-Type: application/x-www-form-urlencoded`,
+declarando que o corpo **não** é JSON. Mesmo assim o servidor responde `201`,
+porque o handler ignora o header e tenta `JSON.parse` em qualquer corpo — só o
+terceiro caso falha, e por o JSON estar realmente quebrado.
+
+Duas lições, e a segunda é a que fica:
+
+1. **O `Content-Type` é uma declaração do cliente, não uma verdade.** Ele pode
+   mentir, vir errado ou não vir. Quem decide o que fazer é o servidor.
+2. **Este exemplo é permissivo demais**, e isso tem consequência: ele aceita
+   corpo de um tipo que diz não suportar. O rigoroso seria responder `415
+Unsupported Media Type` quando o `Content-Type` não for JSON.
+
+O `express.json()` do módulo 03 faz o **oposto** deste exemplo: ele só age se o
+header disser `application/json`, e sem isso deixa `req.body` como `undefined` —
+o que produz um `TypeError` e um 500 se você não tratar. Dois extremos; nenhum
+dos dois é "o certo" por acaso, e você vai precisar escolher.
+
+</details>
+
+---
+
+**5. Duas vezes o mesmo parâmetro.** O que `?nome=ana&nome=bia` devolve? Aposte
+antes de rodar.
+
+<details><summary>Resposta</summary>
+
+```bash
+curl "localhost:4001/ola?nome=ana&nome=bia"   # → {"mensagem":"Olá, ana!"}
+```
+
+Fica com o **primeiro**, e o segundo é descartado **em silêncio** — nenhum erro,
+nenhum aviso. É `URLSearchParams.get()` devolvendo só a primeira ocorrência
+(`getAll()` devolveria as duas).
+
+O ponto não é decorar quem ganha: é que **a query string não tem esquema**.
+Repetição, tipo e obrigatoriedade não são verificados por ninguém até você
+verificar — que é exatamente o problema do módulo 07.
+
+</details>
+
+---
+
+**6. `HEAD` numa rota que existe.** `GET /` responde 200. E `HEAD /`?
+
+<details><summary>Resposta — esta surpreende</summary>
+
+```bash
+curl -i -X HEAD localhost:4001/     # → 404
+```
+
+Dá **404**, embora `GET /` funcione. O roteamento do exemplo compara
+`método + caminho` (`'GET /'`), e `HEAD /` não bate com nenhuma regra.
+
+Isso é um **bug real do exemplo**, deixado à mostra de propósito. Pela RFC 9110,
+`HEAD` é `GET` sem o corpo: onde `GET` responde 200, `HEAD` deveria responder 200
+com os mesmos headers e corpo vazio. Ferramentas de monitoramento usam `HEAD` o
+tempo todo para checar se um recurso existe sem baixá-lo.
+
+Como você corrigiria em duas linhas? (Dica: trate `HEAD` como `GET` no
+roteamento e não escreva o corpo. O Express faz isso sozinho — módulo 03.)
+
+</details>
+
+---
+
+**7. Escolha o status.** Sem consultar a tabela, decida o código para cada caso —
+e justifique em uma frase:
+
+1. `POST /pedidos` com `{"quantidade": -5}`
+2. `DELETE /livros/7` num livro que já foi apagado há 10 minutos
+3. `GET /relatorio` que falhou porque o banco caiu
+4. `POST /usuarios` com um e-mail que já existe
+5. `GET /admin` de um usuário logado, porém sem permissão
+
+<details><summary>Respostas e o raciocínio</summary>
+
+| Caso | Status                        | Por quê                                                                                        |
+| ---- | ----------------------------- | ---------------------------------------------------------------------------------------------- |
+| 1    | `422` (ou `400`)              | O JSON foi entendido; a **regra** recusou. `400` também é aceito, desde que seja consistente   |
+| 2    | `204` ou `404`                | Os dois se defendem: o estado final é o mesmo (idempotência). `404` informa que já não existia |
+| 3    | `500`                         | Culpa do servidor. Nunca `400` — o cliente não tem o que consertar                             |
+| 4    | `409`                         | O corpo está correto; o **estado** é que impede. Não é erro de formato                         |
+| 5    | `403` — ou `404` de propósito | `403` é honesto. Se a existência de `/admin` for informação sensível, `404` esconde            |
+
+Errou algum? O que vale não é o acerto, é conseguir **defender** a escolha. Em
+API real, consistência entre rotas importa mais que a precisão de cada caso
+isolado.
+
+</details>
+
+---
+
+**8. Cace um `GET` que muda estado.** Abra qualquer site ou API que você use e
+procure um link que dispara ação — algo como `/deletar?id=7` ou
+`/confirmar/abc`. Encontrando, responda: o que aconteceria se o navegador
+fizesse prefetch desse link?
+
+<details><summary>O que procurar, e por que importa</summary>
+
+Candidatos clássicos: links de "cancelar inscrição" em e-mail, botões de painel
+administrativo implementados como `<a href>`, webhooks com `GET`.
+
+O que aconteceria: **a ação seria executada sem clique**. Navegador, antivírus,
+verificador de link do WhatsApp e robô de indexação seguem URLs por conta
+própria — porque `GET` promete ser **seguro**.
+
+O caso mais famoso: um painel interno com links `GET /apagar/:id` foi indexado
+por um crawler, que "clicou" em todos. Não é lenda urbana; é a razão de a RFC
+definir método seguro.
+
+</details>
+
+---
+
+**9. Reescreva uma API mal desenhada.** Estas rotas existem por aí. Traduza cada
+uma para HTTP bem usado, e diga qual status ela deve devolver:
+
+```
+GET  /getUsuarios
+POST /usuario/atualizar?id=7
+GET  /apagarLivro/7
+POST /buscarLivros
+```
+
+<details><summary>Resposta</summary>
+
+| Antes                          | Depois                   | Status | O erro que havia                                                   |
+| ------------------------------ | ------------------------ | ------ | ------------------------------------------------------------------ |
+| `GET /getUsuarios`             | `GET /usuarios`          | `200`  | Verbo na URL — o método já é o verbo                               |
+| `POST /usuario/atualizar?id=7` | `PATCH /usuarios/7`      | `200`  | Ação na URL; id na query; substantivo no singular                  |
+| `GET /apagarLivro/7`           | `DELETE /livros/7`       | `204`  | **`GET` que muda estado** — o pior dos quatro                      |
+| `POST /buscarLivros`           | `GET /livros?titulo=...` | `200`  | Busca é leitura: com `POST` você perde cache e link compartilhável |
+
+O último tem exceção legítima: quando o filtro é grande demais para caber na URL
+(~2–8 KB), `POST /livros/busca` se justifica — trocando cache por espaço. É
+decisão consciente, não descuido.
+
+</details>
+
+---
+
+**10. Onde mora o estado?** Sua API roda em três instâncias atrás de um load
+balancer. Para cada item, diga onde ele precisa morar e o que quebra se ficar na
+memória de uma instância:
+
+1. A sessão do usuário logado
+2. O contador de "5 tentativas de login por minuto"
+3. O cache da listagem de livros
+4. O número da porta em que o servidor escuta
+
+<details><summary>Resposta</summary>
+
+| Item              | Onde                                           | Se ficar na memória de uma instância                      |
+| ----------------- | ---------------------------------------------- | --------------------------------------------------------- |
+| Sessão            | Token no cliente, ou Redis                     | O usuário desloga a cada duas requisições                 |
+| Contador de login | Redis (módulo 15)                              | O limite **triplica**: 5 por instância = 15 no total      |
+| Cache             | Redis, ou aceitar duplicação                   | Cada instância cacheia sozinha; invalidar fica impossível |
+| Porta             | **Memória mesmo** — é configuração, não estado | Nada. Não é estado de usuário                             |
+
+O item 4 é a pegadinha: nem tudo que é variável é estado compartilhado.
+Configuração é igual em todas as instâncias e não muda durante a execução — não
+tem por que sair dali.
+
+</details>
 
 ## Para ir além
 
