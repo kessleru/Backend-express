@@ -3,8 +3,6 @@
 **Em uma frase:** `express.Router()` transforma um servidor de 500 linhas em
 arquivos pequenos, cada um responsável por um recurso.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Um arquivo por recurso é a diferença entre achar e caçar código.
@@ -35,7 +33,7 @@ flowchart LR
     style N404 fill:#fed7aa,stroke:#ea580c,color:#000
 ```
 
-> [!TIP]
+> **Dica:**
 > O router não conhece o próprio prefixo. Isso é de propósito: dá para remontar o
 > mesmo router em `/api/v2/cursos` sem editar uma linha dele.
 
@@ -78,7 +76,7 @@ flowchart TD
     style T2 fill:#e5e7eb,stroke:#9ca3af,color:#000
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > **Caminho literal antes de caminho com parâmetro.** O sintoma é cruel: você
 > recebe 404 numa rota que existe e está certa.
 
@@ -96,7 +94,7 @@ A troca vale porque **middleware depende de ordem de qualquer jeito** (módulo
 05): autenticar tem que rodar antes do handler. Um sistema que reordena rotas mas
 não middlewares seria pior que qualquer um dos dois puros.
 
-> [!TIP]
+> **Dica:**
 > A regra vale para `app.use` também, e lá machuca mais: `app.use('/livros', x)`
 > casa por **prefixo**, então ele intercepta `/livros/1`, `/livros/qualquer-coisa`
 > e tudo abaixo. Sub-router montado antes das rotas irmãs come todas elas.
@@ -110,7 +108,7 @@ não middlewares seria pior que qualquer um dos dois puros.
 | Pegar o resto      | `/arq/*resto`      | `/arq/*` + `req.params[0]`    |
 | Regex              | use `pathToRegexp` | `/:id(\\d+)`                  |
 
-> [!WARNING]
+> **Atenção:**
 > Duas pegadinhas do 5: `*` **precisa** de nome, e `req.params.resto` vem como
 > **array** de segmentos (`['a','b','c.pdf']`), não string.
 
@@ -140,7 +138,7 @@ const rotasAulas = Router({ mergeParams: true }); // ← sem isto, req.params ve
 rotasCursos.use('/:id/aulas', rotasAulas);
 ```
 
-> [!NOTE]
+> **Nota:**
 > `mergeParams: true` é o que faz o `:id` do pai chegar no filho. E como o
 > TypeScript deduz `req.params` do caminho (`'/'`, sem parâmetro), o tipo precisa
 > de ajuda: `rotasAulas.get<{ id: string }>('/', ...)`.
@@ -175,7 +173,7 @@ documentação. Uma API de verbos (`/getCursos`, `/listarCursosAtivos`,
 `/buscarCursoPorId`) precisa de manual para cada endpoint, e cresce em número de
 endpoints em vez de crescer em parâmetros.
 
-> [!IMPORTANT]
+> **Importante:**
 > **Exceção honesta:** existem operações que não são CRUD. Emprestar um livro não
 > é "substituir o livro". A convenção prática é um sub-recurso em POST:
 > `POST /livros/7/emprestar`.
@@ -231,7 +229,7 @@ app.use((req, res) => {
 });
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > `app.use` sem caminho casa com tudo. **No topo do arquivo, tudo virava 404.**
 
 ## Na prática
@@ -240,7 +238,7 @@ app.use((req, res) => {
 node src/exemplos/04-roteamento/servidor.ts
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5052
 curl $B/api/v1                        # índice de recursos
 curl $B/api/v1/cursos

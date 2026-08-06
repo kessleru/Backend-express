@@ -3,8 +3,6 @@
 **Em uma frase:** teste é o código que afirma o que o seu código promete — e
 avisa, em segundos, quando alguém quebra a promessa sem perceber.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Sem teste, "não quebrei nada" é uma sensação; com teste, é uma verificação.
@@ -13,7 +11,7 @@ avisa, em segundos, quando alguém quebra a promessa sem perceber.
 - Ele documenta a decisão que o comentário esquece: o formato de erro, o achado
   do Express 5, a stack que não pode vazar.
 
-> [!IMPORTANT]
+> **Importante:**
 > O princípio que atravessa o módulo inteiro: **teste bom não é técnica de
 > teste, é consequência de acoplamento baixo.** Se você precisa de um mock
 > complicado, o problema quase nunca está no teste — está no código que importa
@@ -49,7 +47,7 @@ O E2E é caro em três moedas: tempo de execução, tempo de manutenção e
 suíte E2E que falha 1 em 20 vezes sem motivo é pior que nenhuma: a equipe aprende
 a reexecutar até passar, e aí ele não detecta mais nada.
 
-> [!TIP]
+> **Dica:**
 > A pergunta prática para escolher o nível: **qual é o menor teste que falharia
 > se eu quebrasse isto?** Escreva esse.
 
@@ -100,7 +98,7 @@ livre, dispara a requisição e fecha.
 | `await sleep(500)` esperando subir     | nada a esperar               |
 | um app global, com estado entre testes | um app novo por teste        |
 
-> [!NOTE]
+> **Nota:**
 > **Princípio:** separe a construção do objeto do seu ciclo de vida. É a mesma
 > ideia que permite rodar o app num serverless, num worker ou atrás de outro
 > processo sem tocar em nada. Testabilidade aqui é o sintoma, não o objetivo.
@@ -135,7 +133,7 @@ vi.mock('node:sqlite'); // intercepta o sistema de módulos
 import nomeado por default quebra o teste sem que nada tenha deixado de
 funcionar. Se ele aparece muito, o diagnóstico é acoplamento, não teste.
 
-> [!WARNING]
+> **Atenção:**
 > Spy tem um custo escondido: `expect(repo.remover).toHaveBeenCalled()` testa o
 > **caminho**, não o resultado. Trocar `remover` por um soft delete quebraria o
 > teste com o comportamento intacto. Só use quando "não fez nada" for a própria
@@ -153,7 +151,7 @@ export function livrosDeTeste(): Livro[] { return [{ id: 1, ... }]; }
 
 O mesmo vale para o app e o repositório: `beforeEach`, não `beforeAll`.
 
-> [!CAUTION]
+> **Cuidado:**
 > **Teste que depende de ordem não é teste, é sorte.** O sintoma é sempre o
 > mesmo: passa localmente, falha no CI (que paraleliza), volta a passar quando
 > você roda só aquele arquivo. Horas perdidas por um estado compartilhado.
@@ -175,7 +173,7 @@ O custo honesto: **SQLite não é Postgres.** Se produção é Postgres, testar 
 SQLite deixa passar diferença de dialeto (`ON CONFLICT`, tipos, checagem de
 constraint) — e aí a integração precisa rodar contra o banco real em container.
 
-> [!IMPORTANT]
+> **Importante:**
 > A migration do teste tem que ser a **mesma** de produção. Se o teste cria a
 > tabela com um `CREATE TABLE` próprio, ele valida um schema que não existe em
 > lugar nenhum — e passa enquanto produção quebra.
@@ -215,7 +213,7 @@ it('NÃO devolve stack, mensagem interna nem nome de arquivo', async () => {
 Ninguém reclama quando a stack passa a vazar: a API continua respondendo 500. Só
 que agora com o IP do banco e o caminho dos seus arquivos dentro.
 
-> [!NOTE]
+> **Nota:**
 > **Princípio:** o que não pode regredir em silêncio precisa de teste, mesmo que
 > já esteja certo. E para o que **não pode aparecer**, teste a ausência no corpo
 > inteiro serializado — `expect(body.stack).toBeUndefined()` deixaria passar um
@@ -236,7 +234,7 @@ O ganho mais citado (menos bugs) é o menos importante. Os dois reais:
    descobre em 2 minutos.
 2. **Define "pronto".** Sem teste escrito antes, "pronto" é sensação.
 
-> [!WARNING]
+> **Atenção:**
 > TDD é ruim quando você **ainda não sabe o que quer construir**: explorar uma
 > API desconhecida, prototipar, descobrir o formato de um dado externo. Nesses
 > casos escreva o código, entenda o problema, e **aí** os testes. TDD dogmático
@@ -262,7 +260,7 @@ it('funciona', () => {
 O uso certo é **diagnóstico**: abra o relatório HTML e olhe _quais_ linhas estão
 vermelhas. Um `catch` inteiro sem cobertura é informação; o número agregado não é.
 
-> [!CAUTION]
+> **Cuidado:**
 > Meta obrigatória de cobertura no CI produz o teste que sobe a métrica sem
 > verificar nada — e ainda dá a sensação de estar protegido. É por isso que o
 > `vitest.config.ts` deste repo **não** tem `thresholds`.

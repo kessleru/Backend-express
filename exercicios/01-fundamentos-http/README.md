@@ -2,8 +2,6 @@
 
 ⏱️ ~35 min · 🎯 Nível: iniciante
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
-
 <!-- code_chunk_output -->
 
 - [Objetivo](#objetivo)
@@ -54,7 +52,7 @@ você vê o body e não vê o status, que é metade do exercício. O significado
 cada flag está em
 [docs/01 → curl](../../docs/01-fundamentos-http.md#curl-o-cliente-http-do-terminal).
 
-```bash {cmd=true}
+```bash
 # lista tudo → 200 + array
 curl -i localhost:4010/contatos
 
@@ -89,7 +87,7 @@ curl -i -X DELETE localhost:4010/contatos/1
 curl -i localhost:4010/qualquer
 ```
 
-> [!TIP]
+> **Dica:**
 > Para ler o JSON confortavelmente: `curl -s localhost:4010/contatos | jq`. O
 > `-s` tira a barra de progresso, que suja a saída quando entra num pipe.
 

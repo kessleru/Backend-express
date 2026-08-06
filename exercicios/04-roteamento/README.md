@@ -2,11 +2,9 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
-> [!NOTE]
+> **Nota:**
 > 📚 Continua o projeto: você vai **refatorar** o que fez no exercício 03 e
 > adicionar um segundo recurso.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -62,7 +60,7 @@ flowchart LR
     style N fill:#fed7aa,stroke:#ea580c,color:#000
 ```
 
-> [!WARNING]
+> **Atenção:**
 > `/livros/disponiveis` precisa ser declarada **antes** de `/livros/:id`. Fora
 > dessa ordem você recebe 404 numa rota que existe.
 

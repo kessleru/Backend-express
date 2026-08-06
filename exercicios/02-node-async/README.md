@@ -2,8 +2,6 @@
 
 ⏱️ ~30 min · 🎯 Nível: iniciante
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
-
 ## Objetivo
 
 Sentir na prática a diferença entre série e paralelo, e escrever tratamento de

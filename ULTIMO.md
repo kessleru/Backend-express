@@ -39,6 +39,11 @@ npm test (2ª vez)      → mesmo resultado (isolamento ok)
 npm run test:cov       → ~80% statements
 ```
 
+> **Atenção:** numa árvore recém-clonada o `typecheck` **falha** com 4 erros em
+> `src/exemplos/10-prisma/`, porque o Prisma Client é gerado em `gerado/`, que é
+> git-ignored. A sequência que resolve é `npm install` → `npm run db:generate`.
+> Não é bug do código, mas é a primeira pedra no caminho de quem clona.
+
 Solução do exercício 11 conferida com `curl` contra os 18 critérios de aceite:
 **30 checagens, 0 falhas**. Mais: sem `JWT_SECRET` (ou com menos de 32
 caracteres) o servidor recusa subir, e `grep senhaHash controllers/` não acha

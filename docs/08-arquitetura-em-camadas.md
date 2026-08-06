@@ -3,8 +3,6 @@
 **Em uma frase:** separar "responder HTTP", "decidir a regra" e "guardar o dado"
 em arquivos diferentes, com as dependências apontando sempre para dentro.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Rota de 200 linhas fazendo tudo é impossível de testar e de reusar.
@@ -55,12 +53,12 @@ flowchart LR
     style IFACE fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > As flechas apontam para **dentro**. O service depende da _interface_, nunca do
 > arquivo concreto — e é isso que faz trocar array por SQLite (módulo 09) por
 > Prisma (10) não alterar uma linha do service.
 
-> [!TIP]
+> **Dica:**
 > Teste rápido do seu código: se `servicos/*.ts` importa `express`, alguma
 > responsabilidade escorregou de camada.
 
@@ -86,7 +84,7 @@ A interface do repositório é a costura: ela pertence ao **lado estável** (mor
 aponta ao contrário do fluxo de execução — o service **chama** o repositório, mas
 **depende** de um tipo que ele próprio define. Isso é a "inversão".
 
-> [!NOTE]
+> **Nota:**
 > A prova disso não é teórica neste repositório: rode
 > `diff -rq exercicios/08-camadas/solucao/servicos exercicios/10-prisma/solucao/servicos`.
 > Entre um array em memória e o Prisma, os services são **idênticos**.
@@ -127,7 +125,7 @@ export function criarServicoCursos(repositorio: RepositorioCursos) {
 }
 ```
 
-> [!NOTE]
+> **Nota:**
 > É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
 > decorator, sem container. No teste você passa um repositório falso; em
 > produção, o de verdade.
@@ -148,13 +146,13 @@ Quem tem contexto varia por execução, e é aí que o ganho aparece:
 | Um script de importação | um que grava em lote     |
 | Um worker de fila (17)  | o mesmo de produção      |
 
-> [!NOTE]
+> **Nota:**
 > É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
 > decorator, sem container. "Injeção de dependência" tem nome de coisa grande e é
 > um parâmetro de função — o que os frameworks adicionam é resolução automática
 > de quem passa o quê, útil quando há centenas de peças, e desnecessário aqui.
 
-> [!WARNING]
+> **Atenção:**
 > **O custo é real:** o `servidor.ts` cresce, e ler "o que este service usa?"
 > exige olhar quem o construiu, não o topo do arquivo. Em projeto pequeno isso é
 > burocracia. A linha divisória prática: injete o que **tem mais de uma
@@ -204,7 +202,7 @@ nunca exige subir a aplicação inteira.
 | "Como isso vira SQL?"               | Repositório |
 | "O formato do body é válido?"       | Schema (07) |
 
-> [!TIP]
+> **Dica:**
 > Um controller com mais de 10 linhas por método quase sempre está fazendo
 > trabalho de service. Um repositório com `if` de negócio, idem.
 
@@ -227,7 +225,7 @@ um curso pulando as pré-condições. Mesma ideia do `.strict()` do
 const atualizado = { ...atual, ...dados }; // ❌ não compila, e é bom que não
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > Se `dados` é `{ titulo: undefined }` — chave presente, valor ausente — o spread
 > grava `undefined` sobre o título salvo e **apaga** o dado. A flag do nosso
 > tsconfig recusa isso na compilação.
@@ -268,7 +266,7 @@ flexibilidade, comprou indireção e não levou nada.
 | **Controller**  | rota legível quando há muito mapeamento       | o handler cabe em 4 linhas              |
 | **DTO/Mapper**  | o formato externo variar sem mexer no interno | os dois são iguais e vão continuar      |
 
-> [!TIP]
+> **Dica:**
 > O sinal de que uma camada não está pagando: ela só **repassa**.
 > `controller.listar()` que chama `servico.listar()` que chama `repo.listar()`,
 > sem nenhum acrescentar nada, são três arquivos abertos para ler uma linha
@@ -303,7 +301,7 @@ regra é o produto. Para um CRUD com autenticação, o custo não retorna.
 node src/exemplos/08-camadas/servidor.ts
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5056/api/v1/cursos
 curl "$B?publicado=true"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"Camadas","horas":5}'

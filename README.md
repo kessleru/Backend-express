@@ -9,32 +9,21 @@ cp .env.example .env
 npm run dev          # http://localhost:5050
 ```
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
+## Leia no preview do VS Code
 
-## Leia com o preview certo
-
-Os `.md` deste repo usam recursos do **Markdown Preview Enhanced**, extensão
-recomendada em [`.vscode/extensions.json`](./.vscode/extensions.json) — o VS Code
-oferece instalar ao abrir o projeto.
-
-> [!TIP]
-> `Ctrl+K V` abre o preview lado a lado. Sem a extensão nada quebra: os
-> diagramas viram bloco de código, só isso.
+Os `.md` deste repo são **Markdown puro**: não precisam de extensão nenhuma.
+`Ctrl+K V` abre o preview lado a lado, e os diagramas já renderizam — o suporte a
+**mermaid** é embutido no VS Code desde a versão 1.121. No GitHub, idem.
 
 ### Recursos de Markdown usados nos docs
 
-| Recurso               | Onde aparece                                  |
-| --------------------- | --------------------------------------------- |
-| Diagramas **mermaid** | Fluxos, camadas, sequências, modelo de dados  |
-| Alertas `> [!NOTE]`   | Avisos, armadilhas e decisões                 |
-| Sumário automático    | `<!-- @import "[TOC]" ... -->` no topo do doc |
-| Blocos executáveis    | ` ```bash {cmd=true} ` nos comandos `curl`    |
-| Listas de tarefas     | Critérios de aceite dos exercícios            |
-
-> [!CAUTION]
-> Os blocos `{cmd=true}` só rodam se você ligar
-> `markdown-preview-enhanced.enableScriptExecution`. O repo deixa a opção
-> **desligada** — ligue apenas depois de ler o comando que vai executar.
+| Recurso                 | Onde aparece                                 |
+| ----------------------- | -------------------------------------------- |
+| Diagramas **mermaid**   | Fluxos, camadas, sequências, modelo de dados |
+| `> **Atenção:** …`      | Avisos, armadilhas e decisões                |
+| `<details>`             | Aprofundamento opcional, recolhido           |
+| Linguagem em todo bloco | Destaque de sintaxe (`ts`, `sql`, `http`)    |
+| Listas de tarefas       | Critérios de aceite dos exercícios           |
 
 ## Como estudar
 
@@ -49,7 +38,7 @@ flowchart LR
 O passo 3 é o que fixa. Ler código pronto dá sensação de aprendizado; escrever
 do zero mostra o que você realmente sabe.
 
-> [!IMPORTANT]
+> **Importante:**
 > Resolva em `src/playground/`. É a única pasta que é sua — nada mais no repo
 > escreve lá.
 

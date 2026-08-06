@@ -2,12 +2,10 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
-> [!IMPORTANT]
+> **Importante:**
 > 📚 **Aqui começa o projeto contínuo.** Tudo que você escrever daqui até o
 > módulo 20 é a mesma API de biblioteca, crescendo. Guarde em
 > `src/playground/biblioteca/`.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 

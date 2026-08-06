@@ -3,8 +3,6 @@
 **Em uma frase:** um middleware é uma função `(req, res, next)` numa fila; cada
 uma pode inspecionar, modificar, passar adiante ou encerrar a requisição.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - É **o** conceito central do Express. Rota é só o último middleware da fila.
@@ -36,7 +34,7 @@ flowchart LR
     style TRAVA fill:#fecaca,stroke:#dc2626,color:#000
 ```
 
-> [!NOTE]
+> **Nota:**
 > `express.json()` sempre foi isso. Não existe categoria especial: o parser de
 > body, o `cors`, sua rota — tudo é middleware.
 
@@ -58,7 +56,7 @@ handler — e o dia em que alguém esquecer uma, o buraco é silencioso.
 | Esquecer em um deles = falha silenciosa | Se está montado, vale para todos |
 | Ordem implícita, espalhada              | Ordem explícita, num arquivo     |
 
-> [!WARNING]
+> **Atenção:**
 > O custo vem junto: **o comportamento deixa de estar visível no handler.** Quem
 > abre a rota não vê que existe autenticação. É por isso que, a partir do
 > [módulo 08](./08-arquitetura-em-camadas.md), a autorização fica declarada **na
@@ -164,7 +162,7 @@ function exigirPapel(papel: string) {
 app.delete('/tudo', exigirPapel('admin'), handler); // note o () — chamada, não referência
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > Esquecer o `()` passa a fábrica como se fosse o middleware. Ela roda, devolve
 > uma função que ninguém chama, e a requisição trava.
 
@@ -186,7 +184,7 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > O que faz o Express reconhecer isto é a **aridade**: exatamente 4 parâmetros.
 > Remover o `_next` — mesmo sem usar — transforma o tratador num middleware
 > normal que nunca recebe erro. É o [módulo 06](./06-tratamento-de-erros.md)
@@ -199,7 +197,7 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 | **cors**   | Manda os headers que o navegador exige para outra origem chamar sua API | CORS é regra **do navegador**, não proteção do servidor: `curl` ignora. Detalhes no [13](./13-seguranca.md) |
 | **morgan** | Log de requisição HTTP pronto (`GET /x 200 3ms`)                        | Bom para humano no terminal, ruim para máquina filtrar. Trocado por Pino no [14](./14-observabilidade.md)   |
 
-> [!CAUTION]
+> **Cuidado:**
 > **CORS não é segurança do servidor, e confundir isso é caro.**
 >
 > O que acontece de verdade: o navegador faz a requisição, sua API responde, e
@@ -234,7 +232,7 @@ GET /privado 200 38 - 0.352 ms        ← morgan
   ← 2 cronometro: 200 em 0.7ms        ← a subida, no evento finish
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5053
 curl $B/publico                                  # passa por 3 middlewares
 curl -i $B/publico | grep -i x-servidor          # header posto por middleware
@@ -247,7 +245,7 @@ curl $B/quebra                                   # 500 pelo middleware de erro
 curl -m 2 $B/travado                             # trava: faltou next()
 ```
 
-> [!TIP]
+> **Dica:**
 > A rota `/travado` é o experimento mais útil do módulo — rode e veja o `curl`
 > estourar sem nenhum erro no servidor.
 

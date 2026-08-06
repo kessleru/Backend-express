@@ -2,12 +2,10 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
-> [!IMPORTANT]
+> **Importante:**
 > 📚 Nenhuma feature nova. Você vai provar que tudo que construiu do módulo 03
 > ao 11 faz o que promete — e a primeira coisa a fazer é uma refatoração
 > estrutural: extrair `criarApp()`.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -42,7 +40,7 @@ export function criarApp(deps: { repoLivros: RepositorioLivros /* ... */ }) {
 }
 ```
 
-> [!WARNING]
+> **Atenção:**
 > Se `servidor.ts` continuar chamando `listen` no topo, importá-lo num teste
 > sobe um servidor de verdade: `EADDRINUSE` entre arquivos e processo de teste
 > que não encerra.
@@ -89,7 +87,7 @@ sequenceDiagram
     A-->>T: 201
 ```
 
-> [!TIP]
+> **Dica:**
 > Extraia um helper `async function logar(app, email, senha): Promise<string>`
 > que devolve o access token. Sem ele, cada teste repete 4 linhas de setup e a
 > asserção some no meio.

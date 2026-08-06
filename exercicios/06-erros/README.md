@@ -2,11 +2,9 @@
 
 ⏱️ ~35 min · 🎯 Nível: intermediário
 
-> [!NOTE]
+> **Nota:**
 > 📚 Continua o projeto. Você vai **remover** todos os
 > `res.status(4xx).json(...)` das rotas — e a API vai ficar mais curta.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -64,7 +62,7 @@ flowchart TD
     style C fill:#fecaca,stroke:#dc2626,color:#000
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > O tratador precisa dos **4 argumentos**. Com 3, o Express o trata como
 > middleware comum, e o cliente recebe HTML com a stack trace inteira.
 

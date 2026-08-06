@@ -3,8 +3,6 @@
 **Em uma frase:** um schema Zod descreve o que a entrada pode ser — e o
 TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - **Nunca confie no cliente.** `req.body` é `any`: um objeto que chegou pela rede.
@@ -16,7 +14,7 @@ TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
 ### A regra de ouro
 
-> [!IMPORTANT]
+> **Importante:**
 > Todo dado que vem de fora é suspeito: body, query, params, headers, arquivo,
 > resposta de API de terceiro. Não porque o usuário é malicioso — mas porque ele
 > é **um cliente que você não controla**, e um dia vai mandar `horas: "8"`.
@@ -44,7 +42,7 @@ Por que **antes** de tudo, e não "quando precisar":
 | Erro chega junto e completo     | Uma mensagem por vez, o usuário corrige em loop |
 | O tipo depois dela é verdadeiro | `any` viajando três camadas adiante             |
 
-> [!IMPORTANT]
+> **Importante:**
 > **`limites` é o item que mais se esquece, e o que mais custa.** `?porPagina=999999`
 > não é dado inválido — é um pedido perfeitamente formado que derruba o servidor.
 > Todo campo aberto (string, array, número, upload) precisa de um teto: é
@@ -102,7 +100,7 @@ ideia que aparece em:
 | Prisma (10)                      | o client tipado vem do schema    |
 | OpenAPI (20)                     | a documentação vem do schema Zod |
 
-> [!TIP]
+> **Dica:**
 > **O custo:** o tipo passa a depender da biblioteca de validação. É aceitável no
 > contrato HTTP, e é justamente por isso que o [módulo 08](./08-arquitetura-em-camadas.md)
 > escreve os tipos de **domínio** à mão: o negócio não deve depender do Zod. O
@@ -122,7 +120,7 @@ type Saida = z.output<typeof criarCursoSchema>; // publicado: boolean (garantido
 
 ### `.strict()` — rejeite o que você não conhece
 
-> [!WARNING]
+> **Atenção:**
 > Sem ele, o Zod **descarta em silêncio** campo desconhecido. O cliente que
 > digitou `hora` em vez de `horas` recebe "campo obrigatório" sem entender por
 > quê. Com `.strict()`, ele recebe `Unrecognized key: "hora"`.
@@ -136,7 +134,7 @@ escrever campos que você nunca quis expor (`admin: true`).
 maxHoras: z.coerce.number().int().positive().optional(), // "5" → 5
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > **Nunca `z.coerce.boolean()` em query:** `Boolean("false") === true`, então
 > `?publicado=false` filtraria os publicados.
 
@@ -152,7 +150,7 @@ publicado: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
 const atualizar = criarCursoSchema.partial(); // ❌ parece certo, não é
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > `.partial()` torna o campo opcional, **mas o `.default()` continua valendo**.
 > Um `PATCH { "horas": 6 }` sai da validação com `publicado: false` e
 > `nivel: 'iniciante'` — e sobrescreve o que estava salvo. PATCH que apaga campo
@@ -189,7 +187,7 @@ Dois detalhes fáceis de errar:
 cliente não descobre qual campo falta. Com `{}`, ele recebe a lista de campos
 obrigatórios.
 
-> [!CAUTION]
+> **Cuidado:**
 > **Não faça `req[fonte] = resultado.data`** — e é o que quase todo tutorial faz.
 > No Express 5 isso explode para query:
 >
@@ -267,7 +265,7 @@ checa "e-mail já existe" está fazendo uma sugestão de UX; a verdade é a chec
 do servidor, sempre, porque entre a pergunta e a gravação alguém pode ter
 cadastrado.
 
-> [!WARNING]
+> **Atenção:**
 > O Zod não tem como saber que o título já existe. Não tente forçá-lo com
 > `.refine()` assíncrono acessando o banco: isso mistura camadas, torna o schema
 > impossível de reusar em teste e no front, e **ainda não resolve** — entre o
@@ -292,7 +290,7 @@ marcar.
 node src/exemplos/07-validacao/servidor.ts
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5055
 curl "$B/cursos?maxHoras=5"          # coerce: "5" → 5
 curl "$B/cursos?publicado=false"     # o boolean feito à mão

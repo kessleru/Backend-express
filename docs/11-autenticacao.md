@@ -3,8 +3,6 @@
 **Em uma frase:** autenticação responde **quem você é** (401); autorização
 responde **o que você pode** (403). São duas perguntas e dois middlewares.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - É o ponto onde um erro custa caro — vazamento de senha não tem rollback.
@@ -34,7 +32,7 @@ flowchart TD
     style OK fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-> [!NOTE]
+> **Nota:**
 > O nome `401 Unauthorized` no padrão HTTP é infeliz: ele é sobre
 > **autenticação**.
 
@@ -58,7 +56,7 @@ Argon2:  199.6ms   (307× mais lento — de propósito)
 | **bcrypt**      | Padrão anterior, ainda onipresente. Você vai achar em legado. |
 | **SHA-\*, MD5** | **Nunca** para senha.                                         |
 
-> [!CAUTION]
+> **Cuidado:**
 > `SHA-256`, `MD5` e qualquer hash rápido para senha significam que um vazamento
 > do seu banco é quebrado em horas numa GPU alugada por hora.
 
@@ -105,7 +103,7 @@ Como o próprio tamanho vaza, compare o hash de cada um — hashes têm tamanho 
 | Escala horizontal   | Precisa de estado compartilhado | Nenhuma coordenação        |
 | Tamanho por request | Um id                           | O payload inteiro          |
 
-> [!IMPORTANT]
+> **Importante:**
 > **A escolha honesta:** para um monolito com um banco, **sessão é mais simples e
 > mais segura**. JWT ganha quando há vários serviços que precisam validar sem
 > consultar um autenticador central. "É stateless" é a vantagem real; "é moderno"
@@ -131,7 +129,7 @@ janela de estrago de um token roubado fica limitada a 15 minutos. É engenharia,
 não mágica — e continua sendo verdade que **revogação instantânea exige estado
 consultado sempre**.
 
-> [!CAUTION]
+> **Cuidado:**
 > O erro de julgamento mais comum aqui: adotar JWT para "escalar" um sistema que
 > tem um banco só e 200 usuários, e depois adicionar uma lista de revogação
 > consultada em toda requisição para conseguir deslogar alguém. Nesse ponto você
@@ -145,7 +143,7 @@ eyJhbGciOiJIUzI1NiJ9 . eyJzdWIiOiI0MiIsInBhcGVsIjoiYWRtaW4ifQ . -5YlZAEc-wLwLhNJ
       header                        payload                        signature
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > **O payload não é criptografado — é base64.** Qualquer um com o token lê tudo
 > (cole em jwt.io). A assinatura garante que não foi **alterado**, não que seja
 > **secreto**.
@@ -155,7 +153,7 @@ O que **não** colocar: senha, CPF, e-mail, endereço, saldo. O que colocar: `su
 
 `verify` confere assinatura **e** expiração.
 
-> [!CAUTION]
+> **Cuidado:**
 > **`decode` não verifica nada** — usar `decode` no lugar de `verify` é a falha
 > mais grave que se comete com JWT: aceita qualquer token que qualquer um montou.
 
@@ -186,7 +184,7 @@ sequenceDiagram
     Note over C,D: 🔒 agora o refresh copiado não vale mais
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > O refresh estar no banco é o que **torna o logout possível**. Sem essa tabela,
 > "logout" é só o front esquecer o token — e quem tivesse copiado continuaria
 > dentro.
@@ -214,14 +212,14 @@ res.cookie('refreshToken', refresh, {
 });
 ```
 
-> [!WARNING]
+> **Atenção:**
 > `secure: true` em `http://localhost` faz o cookie **não ser enviado** e você
 > perde uma tarde. Daí o condicional.
 
 `sameSite`: `strict` (nunca de outro site), `lax` (só GET de navegação — padrão
 razoável), `none` (sempre; exige `secure`, para front em outro domínio).
 
-> [!TIP]
+> **Dica:**
 > Para limpar, repita o `path` — sem ele o navegador não acha o cookie e ele fica
 > lá.
 
@@ -236,7 +234,7 @@ if (!usuario || !(await conferirSenha(usuario.senhaHash, senha))) {
 "E-mail não encontrado" vs "senha incorreta" entrega quais e-mails existem, e o
 atacante passa a mirar só nas contas reais.
 
-> [!NOTE]
+> **Nota:**
 > **Nota honesta:** como o `verify` do Argon2 leva ~200 ms e o "usuário não
 > existe" responde na hora, o **tempo** ainda vaza. A defesa completa é rodar um
 > hash falso quando o usuário não existe.
@@ -266,7 +264,7 @@ contrapartida: rebaixar alguém só tem efeito quando o access dele expirar (15 
 Se isso é inaceitável, o papel vem do banco — e você troca latência por revogação
 imediata. Decisão de produto.
 
-> [!IMPORTANT]
+> **Importante:**
 > Além de papel, existe autorização **por dono do recurso** ("só o autor edita
 > seu post"), que precisa buscar o recurso — e portanto mora no service
 > ([módulo 08](./08-arquitetura-em-camadas.md)), não num middleware.
@@ -291,7 +289,7 @@ sequenceDiagram
     A-->>U: emite o SEU JWT
 ```
 
-> [!WARNING]
+> **Atenção:**
 > O fluxo é o **Authorization Code + PKCE**. Nunca use o "implicit flow", que
 > está depreciado. A troca do code acontece no servidor porque envolve o
 > `client_secret`.
@@ -301,7 +299,7 @@ O ponto que costuma passar batido: o token do Google serve para provar identidad
 
 ## Na prática
 
-```bash {cmd=true}
+```bash
 node src/exemplos/11-auth/senhas.ts   # SHA vs Argon2 medido, salt, timing-safe
 node src/exemplos/11-auth/tokens.ts   # anatomia do JWT, forjar, expirar
 ```
@@ -330,7 +328,7 @@ curl -b cookies.txt -X POST $B/auth/logout                   # 204
 curl -b cookies.txt -X POST $B/auth/refresh                  # 401 revogado
 ```
 
-> [!TIP]
+> **Dica:**
 > Repare em `tokens.ts`: o payload é decodificado **sem o segredo**, e o token
 > forjado é recusado pela assinatura. As duas coisas juntas explicam o que um JWT
 > garante e o que não garante.

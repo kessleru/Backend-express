@@ -3,8 +3,6 @@
 **Em uma frase:** trocar o array em memória por um banco de verdade — e descobrir
 que só a camada de repositório muda.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Array em memória some no restart. Toda API real tem um banco.
@@ -48,7 +46,7 @@ CREATE TABLE livros (
 | `CHECK`       | Faixa de valores                                          |
 | `FOREIGN KEY` | A referência existe                                       |
 
-> [!CAUTION]
+> **Cuidado:**
 > **O SQLite ignora `FOREIGN KEY` por padrão.** Sem `PRAGMA foreign_keys = ON` em
 > **cada conexão**, suas chaves estrangeiras são comentário.
 
@@ -113,7 +111,7 @@ db.exec(`SELECT * FROM livros WHERE titulo = '${malicioso}'`);
 db.prepare('SELECT * FROM livros WHERE titulo = ?').get(malicioso); // 0 resultados
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > Parametrizar **não é escapar aspas**. O valor viaja separado do SQL — o banco
 > recebe a query já compilada e os dados à parte. Por isso não existe caractere
 > que "escape" da parametrização.
@@ -134,7 +132,7 @@ confiável com texto de fora, e entregou a um interpretador. Escapar é tentar
 adivinhar todos os caracteres perigosos daquele interpretador — e você vai
 esquecer um. Separar os canais **elimina a pergunta**.
 
-> [!CAUTION]
+> **Cuidado:**
 > Validar (módulo 07) **não** substitui parametrizar. Um título legítimo pode
 > conter apóstrofo — `O'Brien` é nome de gente, não ataque. Validação decide o que
 > é um valor aceitável; parametrização decide que ele **é um valor**. As duas
@@ -205,7 +203,7 @@ SELECT a.nome, COUNT(l.id) AS livros
  GROUP BY a.id;
 ```
 
-> [!WARNING]
+> **Atenção:**
 > O `LEFT` aqui é a diferença entre um relatório certo e um relatório que **omite
 > silenciosamente** os autores com zero livros.
 
@@ -239,7 +237,7 @@ CREATE INDEX idx_livros_ano ON livros(ano);
 -- SEARCH livros USING INDEX idx_livros_ano      ← vai direto
 ```
 
-> [!TIP]
+> **Dica:**
 > `SCAN` com 5 linhas é instantâneo; com 5 milhões é a diferença entre 1 ms e 4
 > segundos. **`EXPLAIN QUERY PLAN` responde "por que minha query está lenta"** —
 > use antes de otimizar por palpite.
@@ -299,13 +297,13 @@ transação.
 | Sem transação                  | livro indisponível, sem empréstimo registrado | **não** — ninguém consegue devolvê-lo |
 | Com transação                  | nada aconteceu                                | sim                                   |
 
-> [!WARNING]
+> **Atenção:**
 > Transação longa é o erro do outro lado: ela segura locks e trava as demais.
 > **Nunca chame API externa, envie e-mail ou espere I/O de rede dentro de uma
 > transação** — o banco fica parado esperando um serviço que você não controla.
 > Isso vira job em fila (módulo 17).
 
-> [!IMPORTANT]
+> **Importante:**
 > Repare no `AND disponivel = 1` dentro do `UPDATE`: é assim que se evita
 > corrida. Um `SELECT` antes do `UPDATE` deixaria uma janela entre os dois em que
 > outra requisição poderia emprestar o mesmo livro.
@@ -368,7 +366,7 @@ node src/exemplos/09-sqlite/servidor.ts        # a API do módulo 08 sobre SQLit
 O primeiro imprime nove seções, incluindo o `EXPLAIN QUERY PLAN` antes e depois do
 índice, e a transação sendo desfeita.
 
-```bash {cmd=true}
+```bash
 B=localhost:5057/api/v1/cursos
 curl "$B?publicado=true"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"SQL na mão","horas":6}'
@@ -376,7 +374,7 @@ curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"sql NA mão",
 curl -X POST $B/2/publicar
 ```
 
-> [!TIP]
+> **Dica:**
 > Depois **derrube o servidor com Ctrl+C e suba de novo**: os dados continuam lá.
 > É a diferença que o módulo inteiro existe para mostrar.
 

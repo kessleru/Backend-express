@@ -3,8 +3,6 @@
 **Em uma frase:** HTTP é o combinado de como um cliente pede algo a um servidor e
 como o servidor responde.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Todo framework web — Express incluso — é uma casca fina sobre isto.
@@ -37,8 +35,7 @@ cliente**. As três palavras carregam consequências que atravessam o curso inte
 | **Sem estado**      | Toda requisição carrega quem você é; daí token e cookie (módulo 11)                     |
 | **Cliente inicia**  | O servidor **não** consegue te avisar de nada; daí polling, SSE e WebSocket (módulo 18) |
 
-> [!NOTE]
-> "Uma requisição, uma resposta" é o modelo mental, não a implementação. Na
+> **Nota:** "Uma requisição, uma resposta" é o modelo mental, não a implementação. Na
 > prática a conexão TCP é reaproveitada (keep-alive) e o HTTP/2 multiplexa várias
 > trocas na mesma conexão. Nada disso muda o seu código — muda o desempenho
 > (módulo 15).
@@ -88,8 +85,7 @@ o contrato com toda a infraestrutura entre você e o cliente.
 | Cliente com timeout   | `PUT`/`DELETE` serem idempotentes | Ele repete sozinho. Se não for, o efeito acontece duas vezes          |
 | Fila de jobs (17)     | O consumidor ser idempotente      | Todo job roda ao menos uma vez — às vezes duas                        |
 
-> [!CAUTION]
-> **A regra prática: se a ação muda estado, o método não pode ser `GET`.** Não
+> **Cuidado:** **A regra prática: se a ação muda estado, o método não pode ser `GET`.** Não
 > importa quão conveniente seja o link. Já derrubaram bancos de dados inteiros
 > porque um robô de indexação seguiu todos os `<a href="/apagar/1">` de um painel.
 
@@ -118,8 +114,7 @@ flowchart TD
 | 4xx     | **Cliente errou**  | `400` inválido · `401` não autenticado · `403` sem permissão · `404` não existe · `409` conflito · `422` semântica inválida · `429` rápido demais |
 | 5xx     | **Servidor errou** | `500` erro interno · `503` indisponível                                                                                                           |
 
-> [!IMPORTANT]
-> A distinção 4xx vs 5xx é a mais importante: **de quem é a culpa?** Bug seu nunca
+> **Importante:** A distinção 4xx vs 5xx é a mais importante: **de quem é a culpa?** Bug seu nunca
 > deve virar 400, e entrada ruim do cliente nunca deve virar 500.
 >
 > `401` vs `403`: "não sei quem você é" vs "sei quem você é, e você não pode".
@@ -148,6 +143,16 @@ infraestrutura**; o corpo é a interface com a pessoa.
 | `401` vs `403` | `401`: renove a credencial. `403`: insistir não adianta                         |
 | `404` vs `403` | `404` também serve para **esconder** que o recurso existe (ver módulo 11)       |
 | `409` vs `400` | `409`: o corpo está certo, o **estado** é que impede                            |
+
+O par `404`/`403` é o único que é decisão de **segurança**, não de precisão.
+Responder `403` em `GET /usuarios/42` é dizer a um estranho "esse usuário
+existe, você é que não pode ver" — a resposta em si já vazou o fato. Quando a
+existência do recurso é informação sensível, devolver `404` para o que a pessoa
+não pode ver é proposital, e a imprecisão é o preço.
+
+Vale para dados de outra pessoa, repositório privado, documento por link. Não
+vale para recurso público que só exige papel de admin: ali o `403` é honesto e
+poupa o cliente de caçar um bug que não existe.
 
 ### Headers que aparecem sempre
 
@@ -189,8 +194,7 @@ A conta que isso paga aparece em quase todo módulo seguinte:
 | Lista de refresh revogados (11)                   | Logout não teria efeito nas outras  |
 | Cache (15)                                        | Cada instância cacheia sozinha      |
 
-> [!NOTE]
-> O custo do modelo é repetição: reenviar o token a cada requisição, e o servidor
+> **Nota:** O custo do modelo é repetição: reenviar o token a cada requisição, e o servidor
 > reconstruir contexto toda vez. Em troca, escalar horizontalmente é ligar mais
 > uma máquina. É a troca que sustenta a web inteira — e um dos poucos casos em
 > que "menos eficiente por requisição" ganha de longe.
@@ -225,7 +229,7 @@ node src/exemplos/01-http-sem-express/servidor.ts
 
 Em outro terminal:
 
-```bash {cmd=true}
+```bash
 curl localhost:4001/
 curl "localhost:4001/ola?nome=ana"
 curl -X POST localhost:4001/eco -H "Content-Type: application/json" -d '{"a":1}'

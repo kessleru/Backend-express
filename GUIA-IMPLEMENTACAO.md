@@ -175,6 +175,26 @@ agora em TypeScript e com as explicações movidas para a documentação.
 | **Banco: SQLite**                           | Zero instalação, banco é um arquivo, e é **SQL de verdade** — o que você aprende transfere para Postgres. Ainda por cima o Node 24 tem `node:sqlite` embutido, então dá pra começar sem dependência nenhuma. |
 | **Progressão de acesso a dados**            | `node:sqlite` (SQL na mão) → Prisma (ORM). Nessa ordem, de propósito: quem aprende ORM antes de SQL não entende o que o ORM está fazendo — nem por que ele às vezes gera uma query horrível.                 |
 | **Uma dependência por vez, quando dói**     | Cada lib entra no módulo que a justifica, depois de você sentir o problema sem ela. Ver a dor antes do remédio é o que faz a ferramenta fazer sentido.                                                       |
+| **Documentação em Markdown puro**           | Sem MDX, AsciiDoc ou Notion — e sem depender de extensão do editor. Detalhe abaixo.                                                                                                                          |
+
+### Por que Markdown puro, e não um formato "mais bonito"
+
+O ganho visual que se quer — diagrama colorido, fórmula, destaque — **já existe
+no Markdown**: o VS Code renderiza **mermaid** e KaTeX no preview nativo
+(`Ctrl+K V`) desde a versão **1.121**, sem instalar nada, e o GitHub faz o mesmo.
+
+Os formatos descartados, e o motivo:
+
+| Formato               | O que ganharia          | Por que **não** aqui                                                                              |
+| --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| **MDX**               | Componente React na doc | Precisa de build, dependência e um site para renderizar. Você aprenderia Docusaurus, não backend. |
+| **AsciiDoc**          | Include, PDF, cross-ref | Sintaxe que só ele usa, e o GitHub renderiza pior. Some a portabilidade que o `.md` dá de graça.  |
+| **Notion / Obsidian** | Editor bonito           | Sai do git. Doc que não vive ao lado do código apodrece — é o argumento do próprio módulo 20.     |
+
+Pela mesma razão, nada de sintaxe que **só uma extensão entende**: `{cmd=true}`
+e `@import "[TOC]"` (Markdown Preview Enhanced) viram lixo visual para quem não a
+tem instalada. O `.md` daqui abre igual no VS Code, no GitHub e em qualquer
+editor de texto — que é exatamente o ponto.
 
 ---
 
@@ -579,8 +599,7 @@ está pela metade:
 | 4   | **Trade-off**    | O que isto custa e quando **não** usar?      | Vira linha de tabela              |
 | 5   | **Consequência** | O que muda no código de quem usa?            | Vira o exemplo executável         |
 
-> [!IMPORTANT]
-> A camada 2 é a razão de o repositório existir. Express, Zod e Prisma mudam;
+> **Importante:** A camada 2 é a razão de o repositório existir. Express, Zod e Prisma mudam;
 > "não confie no cliente", "estado compartilhado precisa de coordenação" e
 > "custo assimétrico" não. **Sempre nomeie o princípio**, em negrito, com uma
 > frase que faça sentido fora do contexto da ferramenta.
@@ -615,24 +634,25 @@ const hash = await argon2.hash(senha); // faz o hash da senha
 const hash = await argon2.hash(senha, CUSTO);
 ```
 
-### Recursos de Markdown (Markdown Preview Enhanced)
+### Recursos de Markdown (só o padrão)
 
-Os `.md` são escritos para o preview do MPE sem quebrar a renderização do GitHub.
-As extensões recomendadas estão em `.vscode/extensions.json`.
+Os `.md` usam **Markdown puro** — nada que dependa de extensão. Tudo abaixo
+renderiza igual no preview do VS Code (`Ctrl+K V`) e no GitHub.
 
-| Recurso                                    | Onde                                         |
-| ------------------------------------------ | -------------------------------------------- |
-| `<!-- @import "[TOC]" {cmd="toc" ...} -->` | Topo de todo `docs/NN-*.md` e enunciado      |
-| ` ```mermaid `                             | Fluxo, sequência, camadas, ER, estado, gantt |
-| `> [!NOTE]` / `[!TIP]` / `[!IMPORTANT]`    | Contexto, atalho, regra que decide           |
-| `> [!WARNING]` / `[!CAUTION]`              | Armadilha e erro caro                        |
-| ` ```bash {cmd=true} `                     | Blocos `curl`/script que terminam sozinhos   |
-| `- [ ]`                                    | Critérios de aceite                          |
+| Recurso                 | Onde                                                  |
+| ----------------------- | ----------------------------------------------------- |
+| ` ```mermaid `          | Fluxo, sequência, camadas, ER, estado                 |
+| `> **Atenção:** …`      | Armadilha e erro caro (citação com rótulo em negrito) |
+| `<details>`             | Aprofundamento opcional — nunca o conteúdo principal  |
+| Linguagem em todo bloco | ` ```ts `, ` ```sql `, ` ```http `, ` ```bash `       |
+| `- [ ]`                 | Critérios de aceite                                   |
 
 **Diagrama substitui prosa, não soma** — ao inserir um, corte o parágrafo que
-ficou redundante. Nunca `{cmd=true}` num comando que sobe servidor. E
-`enableScriptExecution` permanece **desligado** em `.vscode/settings.json`, por
-segurança.
+ficou redundante.
+
+**Não use** `> [!NOTE]`/`[!WARNING]`/`[!CAUTION]` nem sintaxe do Markdown
+Preview Enhanced (`{cmd=true}`, `@import "[TOC]"`): a primeira é ruído visual
+fora do GitHub, e a segunda não renderiza sem aquela extensão instalada.
 
 ### Comentários no código
 

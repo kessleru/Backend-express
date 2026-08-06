@@ -42,28 +42,27 @@ armazenada", não "usamos hash"). É a camada que não se corta.
 Todo módulo segue o template de `docs/` e tem um exercício correspondente em
 `exercicios/NN-*/` (formato na seção 7 do guia).
 
-## Markdown: recursos do Markdown Preview Enhanced
+## Markdown: só o padrão
 
-Os `.md` são escritos para o preview do **MPE** (extensão recomendada em
-`.vscode/extensions.json`), sem quebrar no GitHub.
+Os `.md` usam **Markdown puro**, sem depender de extensão nenhuma. O que
+renderiza igual no VS Code e no GitHub:
 
-| Recurso                                    | Quando usar                                       |
-| ------------------------------------------ | ------------------------------------------------- |
-| `<!-- @import "[TOC]" {cmd="toc" ...} -->` | Topo de todo doc e enunciado                      |
-| ` ```mermaid `                             | Fluxo, sequência, camadas, ER, estado             |
-| `> [!NOTE]` `[!TIP]` `[!IMPORTANT]`        | Contexto e atalho                                 |
-| `> [!WARNING]` `[!CAUTION]`                | Armadilha e erro que custa caro                   |
-| ` ```bash {cmd=true} `                     | Só em bloco `curl`/script que **termina** sozinho |
-| `- [ ]`                                    | Critérios de aceite dos exercícios                |
+| Recurso                 | Quando usar                                          |
+| ----------------------- | ---------------------------------------------------- |
+| ` ```mermaid `          | Fluxo, sequência, camadas, ER, estado                |
+| `**Atenção:**` numa `>` | Armadilha e erro que custa caro                      |
+| `<details>`             | Aprofundamento opcional — nunca o conteúdo principal |
+| `- [ ]`                 | Critérios de aceite dos exercícios                   |
+| Linguagem no bloco      | ` ```ts `, ` ```sql `, ` ```http `, ` ```bash `      |
 
 Regras:
 
+- **Nada de `> [!NOTE]`/`[!WARNING]`/`[!CAUTION]`.** Aviso é `>` com o rótulo em
+  negrito: `> **Atenção:** ...`.
+- **Nada de sintaxe de Markdown Preview Enhanced** — sem `{cmd=true}` e sem
+  `@import "[TOC]"`. Não renderizam fora daquela extensão.
 - **Diagrama substitui prosa, não soma.** Ao inserir um mermaid, corte o
   parágrafo que ele tornou redundante — o problema é a repetição, não o tamanho.
-- **Nunca `{cmd=true}` em algo que sobe servidor** ou fica rodando. O comando
-  `node ...servidor.ts` fica em bloco normal.
-- `enableScriptExecution` fica **desligado** em `.vscode/settings.json`. É
-  decisão de segurança: não ligue no repo.
 - ASCII art só sobrevive onde é mais claro que um diagrama (árvore de pastas,
   anatomia de string, cheatsheet).
 
