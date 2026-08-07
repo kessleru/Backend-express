@@ -2,11 +2,9 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
-> [!IMPORTANT]
+> **Importante:**
 > 📚 Terceira troca de banco. Se o módulo 08 foi bem feito, `servicos/`,
 > `controllers/`, `rotas/` e `dominio/` continuam intocados.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -93,7 +91,7 @@ Implementam as mesmas interfaces de `dominio/`. Exigências:
 
 `servidor.ts` muda **duas linhas**.
 
-> [!CAUTION]
+> **Cuidado:**
 > Dentro de `$transaction(async (tx) => ...)` use **`tx`**, nunca `prisma`. Com
 > `prisma` você sai da transação e o rollback não desfaz nada — silenciosamente.
 

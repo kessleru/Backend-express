@@ -4,8 +4,6 @@
 roteamento, leitura de body e escrita de resposta — o trabalho manual do
 [módulo 01](./01-fundamentos-http.md).
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - É o framework mais usado do ecossistema Node; entender ele é entender os outros.
@@ -25,8 +23,7 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 | `writeHead` + `JSON.stringify` + `end`     | `res.json(...)`                |
 | 404 escrito à mão no fim                   | automático                     |
 
-> [!NOTE]
-> O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
+> **Nota:** O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
 > `node:http`, só com métodos a mais. `res.json(x)` termina em `res.end(...)`.
 
 **O princípio:** um framework web não inventa capacidade nova — ele **remove
@@ -105,9 +102,12 @@ Duas consequências que não são estéticas:
   Identificador no corpo torna a resposta incachável.
 - **Log e métrica.** `/livros/:id` agrupa 10 mil requisições numa linha de
   métrica; `?id=7` explode em 10 mil rótulos distintos.
+- **Segredo nunca vai na URL.** A query entra no log de acesso, no histórico do
+  navegador e no header `Referer` enviado a terceiros. Senha e token vão no corpo
+  ou no header `Authorization` — que não é logado. Volta no
+  [módulo 14](./14-observabilidade.md).
 
-> [!IMPORTANT]
-> Tudo que vem da URL é **string**. `?horas=5` chega como `"5"`, e `?horas=5&horas=9`
+> **Importante:** Tudo que vem da URL é **string**. `?horas=5` chega como `"5"`, e `?horas=5&horas=9`
 > chega como `["5","9"]` — um array onde seu código espera texto. Converter e
 > validar é sua responsabilidade, sempre. É a primeira aparição da regra que o
 > [módulo 07](./07-validacao-zod.md) transforma em disciplina: **nunca confie na
@@ -119,8 +119,7 @@ Duas consequências que não são estéticas:
 app.use(express.json()); // sem isto, req.body é undefined em TODA rota
 ```
 
-> [!WARNING]
-> Ele só age quando o cliente manda `Content-Type: application/json`. Sem esse
+> **Atenção:** Ele só age quando o cliente manda `Content-Type: application/json`. Sem esse
 > header, o Express 5 deixa `req.body` como **`undefined`** (o Express 4 deixava
 > `{}`) — daí `const { x } = req.body` explodir com `TypeError` e virar um 500
 > num erro que era do cliente.
@@ -135,8 +134,7 @@ res.status(201).location('/cursos/4').json(x); // header extra
 res.send('texto'); // Content-Type deduzido (text/html aqui)
 ```
 
-> [!CAUTION]
-> Cada requisição recebe **uma** resposta. Responder duas vezes dá
+> **Cuidado:** Cada requisição recebe **uma** resposta. Responder duas vezes dá
 > `ERR_HTTP_HEADERS_SENT` — daí o `return` antes de todo `res.status(4xx)`.
 
 **Por que é assim:** headers vão na frente do corpo, no fio. Depois que o
@@ -168,8 +166,7 @@ Isso importa em produção: cliente com timeout **repete** a requisição. Se o
 método é idempotente, repetir é seguro; se não é, você precisa de chave de
 idempotência para não criar o pedido duas vezes.
 
-> [!WARNING]
-> O erro clássico do PATCH é aplicar um objeto com `undefined` dentro:
+> **Atenção:** O erro clássico do PATCH é aplicar um objeto com `undefined` dentro:
 > `{ ...atual, ...enviado }` **apaga** o campo salvo quando `enviado.titulo` é
 > `undefined`. É o mesmo bug que reaparece no
 > [módulo 08](./08-arquitetura-em-camadas.md) com `exactOptionalPropertyTypes` e
@@ -182,7 +179,7 @@ idempotência para não criar o pedido duas vezes.
 node src/exemplos/03-express-basico/crud-cursos.ts
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5051
 curl $B/cursos                          # lista
 curl "$B/cursos?titulo=http&maxHoras=5" # query params combinados
@@ -253,6 +250,17 @@ res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 | **Nunca confie na forma do que chega de fora.**                                                                 | 07 (Zod), 09 (SQL injection) |
 | **Idempotência decide se repetir é seguro.**                                                                    | 17 (jobs), 15 (retry)        |
 | **`undefined` não é "apague isto".**                                                                            | 07, 08, 10                   |
+
+## Para ir além
+
+A documentação do Express é enxuta — leia a de rotas inteira, dá 15 minutos.
+
+- **[Express — _Routing_ e _API Reference_](https://expressjs.com/en/guide/routing.html)**
+  A referência de `req`/`res` responde o que este módulo resume. Confira sempre a versão **5**: `req.query` virou getter e `req.body` fica `undefined` sem `Content-Type`.
+- **[Express — _Migrating to Express 5_](https://expressjs.com/en/guide/migrating-5.html)**
+  A lista oficial do que mudou. Vale porque quase todo tutorial na internet ainda é Express 4 — este guia é o tradutor.
+- **[Fielding — _Architectural Styles_, cap. 5 (REST)](https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)**
+  A tese que definiu REST. Leitura densa, mas o capítulo 5 mostra que REST é bem mais do que "URL bonita com JSON".
 
 ## Pratique
 

@@ -2,11 +2,9 @@
 
 ⏱️ ~40 min · 🎯 Nível: iniciante
 
-> [!NOTE]
+> **Nota:**
 > 📚 Continua o projeto. Você vai adicionar uma pasta `middlewares/` à
 > `src/playground/biblioteca/`.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 

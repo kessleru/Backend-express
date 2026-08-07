@@ -3,8 +3,6 @@
 **Em uma frase:** o Node roda JavaScript fora do navegador com **uma thread só**,
 e é a assincronia que faz isso bastar para atender milhares de clientes.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Entender o event loop é o que separa "funciona" de "aguenta carga".
@@ -53,12 +51,44 @@ ou o Java servlet antigo):
 | Uma thread por requisição | 10 mil threads, ~1 MB de pilha cada = ~10 GB de RAM parada |
 | Event loop (Node)         | 1 thread, 10 mil callbacks registrados = alguns MB         |
 
-> [!TIP]
-> **Espera é grátis, cálculo é caro.** Backend passa a vida esperando banco e
+> **Dica:** **Espera é grátis, cálculo é caro.** Backend passa a vida esperando banco e
 > rede — daí o modelo funcionar tão bem.
 
 E é por isso que a fraqueza é exatamente a imagem espelhada: qualquer trabalho de
 **CPU** trava tudo, porque não há outra thread para atender ninguém.
+
+#### Quem espera, se a sua thread não espera
+
+"Delega ao sistema operacional" esconde uma distinção que muda decisão de projeto:
+nem todo I/O é delegado do mesmo jeito.
+
+| O trabalho é…                        | Quem faz de fato                            | Sua thread… |
+| ------------------------------------ | ------------------------------------------- | ----------- |
+| Rede (socket, HTTP, banco)           | O **kernel**, avisando via `epoll`/`kqueue` | segue livre |
+| Arquivo, DNS, `zlib`, `crypto`       | O **thread pool** da libuv (4 threads)      | segue livre |
+| `for`, `JSON.parse`, laço de cálculo | A **sua** thread, a única que roda JS       | **travada** |
+
+Rede escala aos milhares porque o kernel avisa sozinho — é o caso da tabela
+acima. Já leitura de arquivo não tem versão assíncrona de verdade em todo sistema,
+então a libuv usa um pool de **4 threads** (`UV_THREADPOOL_SIZE`). Consequência
+prática: 10 mil conexões esperando é barato, mas **a quinta leitura de arquivo
+simultânea espera a primeira terminar**.
+
+#### O número que separa os dois casos
+
+Dois handlers que levam ~1,5s cada — um esperando, outro calculando. A pergunta
+que importa não é quanto cada um demora, e sim **quanto um segundo cliente espera
+para ser atendido**:
+
+```text
+/io    1530ms  →  outro cliente esperou    13ms
+/cpu   1364ms  →  outro cliente esperou  1364ms   ← esperou o trabalho INTEIRO
+```
+
+Mesma duração, impacto oposto no resto do sistema. E o efeito colateral que
+costuma passar batido: enquanto `/cpu` calcula, o `/health` também não responde —
+o orquestrador conclui que a aplicação morreu e reinicia o processo, derrubando
+junto todas as requisições que estavam em andamento.
 
 | Sintoma em produção                         | Causa quase certa                                     |
 | ------------------------------------------- | ----------------------------------------------------- |
@@ -103,8 +133,7 @@ ESM é o padrão do ecossistema hoje, permite `await` no topo do arquivo e é
 exigido pelo `verbatimModuleSyntax` do nosso `tsconfig.json`. CommonJS você ainda
 vai encontrar em todo tutorial de 2019 — reconheça e traduza.
 
-> [!NOTE]
-> **Detalhe deste repo:** import relativo leva a extensão real (`./foo.ts`),
+> **Nota:** **Detalhe deste repo:** import relativo leva a extensão real (`./foo.ts`),
 > porque o Node exige extensão em ESM. O `rewriteRelativeImportExtensions` troca
 > por `.js` no `npm run build`.
 
@@ -119,8 +148,7 @@ vai encontrar em todo tutorial de 2019 — reconheça e traduza.
 | `dependencies`    | Precisa **em produção** (`express`).                      |
 | `devDependencies` | Só para desenvolver (`typescript`, `prettier`, `vitest`). |
 
-> [!WARNING]
-> Errar a coluna `dependencies`/`devDependencies` não dá erro local — dá erro no
+> **Atenção:** Errar a coluna `dependencies`/`devDependencies` não dá erro local — dá erro no
 > deploy, onde `npm ci --omit=dev` não instala o que você pôs no lugar errado.
 
 ### Semver
@@ -196,8 +224,7 @@ Só serialize quando o segundo passo **precisa** do resultado do primeiro. É a
 mesma ideia que reaparece no [módulo 10](./10-prisma-orm.md) como problema N+1 —
 lá o laço serializa 100 consultas que caberiam em uma.
 
-> [!WARNING]
-> `Promise.all` é **tudo ou nada**: a primeira rejeição descarta o resto (que
+> **Atenção:** `Promise.all` é **tudo ou nada**: a primeira rejeição descarta o resto (que
 > continua rodando, sem ninguém escutando). Quando você quer o resultado parcial,
 > é `Promise.allSettled`.
 
@@ -219,8 +246,7 @@ try {
 }
 ```
 
-> [!CAUTION]
-> Sem o `await`, a rejeição vira **unhandled rejection** e o Node derruba o
+> **Cuidado:** Sem o `await`, a rejeição vira **unhandled rejection** e o Node derruba o
 > processo. Este é o bug número um de backend Node.
 
 **A raiz do problema:** `try/catch` captura por **pilha de chamadas**, e uma
@@ -241,15 +267,14 @@ for (const l of livros) await salvar(l);
 await Promise.all(livros.map((l) => salvar(l)));
 ```
 
-> [!TIP]
-> A regra que evita a família inteira desses bugs: **toda função que devolve
+> **Dica:** A regra que evita a família inteira desses bugs: **toda função que devolve
 > Promise ou é `await`ada, ou tem `.catch`, ou leva `void` na frente** para dizer
 > "eu sei, é intencional". Se você não consegue escolher qual dos três, o código
 > tem um dono de erro indefinido.
 
 ## Na prática
 
-```bash {cmd=true}
+```bash
 node src/exemplos/02-node-async/event-loop.ts   # I/O não bloqueia, CPU bloqueia
 node src/exemplos/02-node-async/promises.ts     # as 3 gerações + armadilhas
 ```
@@ -298,6 +323,19 @@ npm ls pacote      # mostra a versão realmente instalada
 | **Serialize só o que depende do anterior.**                                        | 10 (N+1), 15   |
 | **Toda Promise precisa de um dono do erro:** `await`, `.catch` ou `void`.          | 06             |
 | **O lockfile é o que garante build reproduzível**, não a faixa de versão.          | 16 (CI/CD)     |
+
+## Para ir além
+
+O guia oficial abaixo é curto e vale mais que qualquer vídeo sobre event loop.
+
+- **[Node.js — _Don't Block the Event Loop (or the Worker Pool)_](https://nodejs.org/learn/asynchronous-work/dont-block-the-event-loop)**
+  Fonte oficial do que este módulo mede: quais APIs usam o **worker pool** da libuv (arquivo, DNS, `crypto`, `zlib`) e quais usam o kernel. Confirma o pool de 4 threads (máximo 128) e mostra por que ele é fácil de esgotar.
+- **[Node.js — _The Node.js Event Loop_](https://nodejs.org/learn/asynchronous-work/event-loop-timers-and-nexttick)**
+  As fases do loop em ordem, com `process.nextTick` e `setImmediate` explicados lado a lado.
+- **[Casciaro & Mammino — _Node.js Design Patterns_, 4ª ed. (2025)](https://nodejsdesignpatterns.com/)**
+  O livro de referência de Node. Os capítulos de callbacks, streams e padrões assíncronos vão muito além do que cabe aqui.
+- **[Bevacqua — _Practical Modern JavaScript_](https://github.com/mjavascript/practical-modern-javascript)**
+  Gratuito e online. Para firmar ESM, iteradores e o JavaScript moderno que este repo usa.
 
 ## Pratique
 

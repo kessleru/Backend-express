@@ -3,8 +3,6 @@
 **Em uma frase:** o Prisma gera um client tipado a partir de um schema
 declarativo — você para de escrever SQL e passa a escrever objetos.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Tipagem de ponta a ponta: `titulu` no `where` é erro de compilação, não uma
@@ -58,7 +56,7 @@ existe uma camada entre você e a ferramenta.
 
 A consequência prática não é "não use ORM". É esta:
 
-> [!IMPORTANT]
+> **Importante:**
 > **Você precisa saber o que a abstração está fazendo por baixo.** Não para
 > substituí-la, mas para reconhecer quando ela escolheu mal — e é exatamente por
 > isso que o [módulo 09](./09-sqlite-e-sql.md) veio primeiro. Quem aprende ORM
@@ -90,7 +88,7 @@ model Livro {
 **tabela** (SQL, snake_case). Sem eles, sua convenção de TypeScript acaba ditando
 a do banco.
 
-> [!NOTE]
+> **Nota:**
 > O campo `autor Autor` **não é coluna** — é o Prisma permitindo navegar. Quem
 > tem a coluna é `autorId`.
 
@@ -124,7 +122,7 @@ export const prisma = new PrismaClient({
 A separação faz sentido: o schema descreve a **forma** dos dados; conexão é
 configuração de runtime. Antes, gerar o client exigia o `.env` presente.
 
-> [!CAUTION]
+> **Cuidado:**
 > O export é `PrismaBetterSqlite3` — **s** minúsculo em "Sqlite", ao contrário do
 > que a documentação de várias versões sugere.
 
@@ -154,7 +152,7 @@ flowchart LR
     style S fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > **Depois de toda migration, rode `prisma generate`.** O `migrate dev` faz isso;
 > se você aplicar de outra forma, o client fica desatualizado e o TypeScript
 > reclama de um campo que já existe no banco.
@@ -264,7 +262,7 @@ await prisma.livro.delete({ where: { id } }); // LANÇA se não existe (P2025)
 
 `undefined` = "não mexe neste campo"; `null` = "grave NULL".
 
-> [!CAUTION]
+> **Cuidado:**
 > **Atrito com `exactOptionalPropertyTypes: true`** (ligado neste repo):
 > `data: { titulo: dados.titulo }` com `titulo?: string | undefined` **não
 > compila**. Os tipos gerados declaram `titulo?: string` sem `| undefined`, e a
@@ -285,7 +283,7 @@ await prisma.$transaction(async (tx) => {
 });
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > **Use `tx`, não `prisma`, dentro da transação interativa.** Usar `prisma` sai
 > da transação, e o rollback não desfaz nada — bug silencioso e caro.
 
@@ -300,7 +298,7 @@ const r = await prisma.$queryRaw<{ decada: number; quantos: bigint }[]>`
 O template literal transforma os `${}` em parâmetros, então continua imune a
 injeção.
 
-> [!CAUTION]
+> **Cuidado:**
 > **Nunca use `$queryRawUnsafe` com entrada do usuário.**
 
 Vale quando: agregação/janela complexa (CTE, window function), a query gerada está
@@ -308,7 +306,7 @@ lenta e você já viu o `EXPLAIN`, ou recurso específico do banco (full-text, J
 operators). Você perde a tipagem — o generic é uma **promessa sua**, não uma
 garantia.
 
-> [!CAUTION]
+> **Cuidado:**
 > **`COUNT`, `SUM` e `MIN` voltam como `bigint`** no SQLite via `$queryRaw`, e
 > `JSON.stringify` de um bigint **lança**
 > `TypeError: Do not know how to serialize a BigInt`. Funciona no `console.log` e
@@ -322,7 +320,7 @@ Duas que aparecem no exemplo deste módulo:
 - `createMany({ skipDuplicates: true })` — o Prisma **recusa** no SQLite.
 - `mode: 'insensitive'` no `where` — só Postgres.
 
-> [!WARNING]
+> **Atenção:**
 > As duas falham em runtime ou compilação, não na documentação. É o custo real da
 > abstração: a API parece uniforme e não é.
 
@@ -356,19 +354,19 @@ PRISMA_LOG=1 node src/exemplos/10-prisma/01-queries.ts   # ← com o SQL no term
 node src/exemplos/10-prisma/servidor.ts
 ```
 
-> [!TIP]
+> **Dica:**
 > No `01-queries.ts`, **conte as linhas `prisma:query`** na seção 3: são 3 no
 > jeito errado (1 + 2 autores) contra 2 no `include`. Acrescente autores no seed
 > e conte de novo — a diferença cresce sozinha.
 
-```bash {cmd=true}
+```bash
 B=localhost:5058/api/v1/cursos
 curl "$B?publicado=true" ; curl "$B?titulo=express"
 curl -X POST $B -H 'Content-Type: application/json' -d '{"titulo":"Prisma","horas":7}'
 curl -X POST $B/2/publicar ; curl -X DELETE $B/2   # 409: publicado não se apaga
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > **O ponto do módulo:** compare as respostas com as dos módulos 08 e 09. São as
 > mesmas, porque o service é o mesmo arquivo importado. A terceira troca de banco
 > não custou nada.
@@ -430,6 +428,15 @@ $disconnect()
 | **Prefira trazer um conjunto a buscar item por item** (N+1 não é só de ORM).       | 15, 17         |
 | **O schema no git é a verdade sobre o banco**, e a migration é como ele chega lá.  | 09, 16         |
 | **Ganho de produtividade não dispensa medir** — `log: ['query']` antes do palpite. | 14, 15         |
+
+## Para ir além
+
+- **[Prisma — documentação oficial](https://www.prisma.io/docs)**
+  Referência do schema, das migrations e do client. Confira a versão **7**: o `url` saiu do `datasource` e o client recebe um adapter.
+- **[Fowler — _ORM Hate_](https://martinfowler.com/bliki/OrmHate.html)**
+  Uma defesa equilibrada do ORM contra as críticas comuns. Bom antídoto para os dois extremos.
+- **[Kleppmann & Riccomini — _Designing Data-Intensive Applications_, 2ª ed. (2026)](https://dataintensive.net/)**
+  O livro sobre sistemas de dados. Os capítulos 2 e 7 (modelos de dados e transações) são o passo natural depois deste módulo.
 
 ## Pratique
 

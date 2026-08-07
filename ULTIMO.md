@@ -1,4 +1,4 @@
-# Onde a sessão parou — 2026-08-03
+# Onde a sessão parou — 2026-08-05
 
 > Este arquivo é o bilhete para a próxima sessão. O planejamento completo continua
 > em `GUIA-IMPLEMENTACAO.md` (a seção 2 tem os achados técnicos, a 7 tem a régua
@@ -6,27 +6,96 @@
 
 ## Resumo em uma linha
 
-**Fase 3 fechada: módulos 01 a 12 completos**, com doc, exemplo, enunciado e
-solução — e os docs 01–11 revisados sob a régua nova de profundidade. Faltam as
-fases 4, 5 e 6.
+**Módulos 01 a 14 com doc e exemplo**, e o **01 já tem mini desafios**. Faltam os
+mini desafios do 02 ao 14, as soluções dos exercícios 13 e 14, os módulos 15–20 e
+os apêndices.
+
+## ▶ MINI DESAFIOS — em andamento (01 feito, 02–14 pendentes)
+
+**Pedido do usuário:** _"para martelar melhor na cabeça e fazer eu buscar
+solução"_. São perguntas curtas dentro do `docs/NN-*.md`, que obrigam a
+investigar em vez de reler.
+
+### O formato que se firmou no módulo 01
+
+Foram **10 desafios**, e o padrão a repetir nos próximos:
+
+- Seção `## Mini desafios`, **entre** `## Cheatsheet`/`## Os princípios` e
+  `## Para ir além`.
+- Cada um: pergunta curta em **negrito** + `<details>` com a resposta. O leitor
+  tenta antes de abrir.
+- **Todo desafio exige rodar, medir ou quebrar de propósito.** Nenhum se resolve
+  relendo a seção — foi o critério explícito do pedido.
+- Vale pedir uma **previsão antes** de rodar ("aposte o status antes"): errar a
+  previsão é o que fixa.
+- Os melhores saíram de **comportamento surpreendente** do próprio exemplo do
+  módulo, não de teoria abstrata.
+- Não substituem o exercício de `exercicios/` (que segue sendo o projeto
+  contínuo da biblioteca).
+
+### Regra que eu segui e vale manter
+
+**Todo resultado prometido foi verificado rodando antes de escrever.** Isso pegou
+um erro meu: eu tinha escrito que `POST /eco` sem `Content-Type` devolve `400`,
+e na verdade devolve **201** — o exemplo ignora o header e tenta `JSON.parse` em
+qualquer corpo. O desafio foi reescrito em cima do comportamento real, que é mais
+interessante que a premissa errada.
+
+Ao fim, **7 checagens automáticas** confirmam os resultados prometidos no doc 01.
+
+### Achado que afeta o repo inteiro
+
+Os exemplos usam `curl -d '{"json":1}'` com **aspas simples** — funciona no Git
+Bash/Linux/macOS, mas o `cmd.exe` e o PowerShell **não removem aspas simples**: o
+corpo chega malformado e o leitor recebe um `400` que parece bug do servidor.
+
+São **17 ocorrências em 8 módulos**. Em vez de reescrever todas, entrou um aviso
+na seção de `curl` do módulo 01 (com a forma escapada para Windows) e a
+recomendação de usar o Git Bash. Se algum dia o repo virar multiplataforma de
+verdade, essa é a dívida a pagar.
+
+### Próximo
+
+Módulo **02** (event loop, ESM, semver, async) e seguir até o 14. Bons candidatos
+já visíveis para o 02: medir o bloqueio do event loop na prática, `Promise.all`
+vs série, o `try/catch` que não pega nada, e o thread pool de 4 threads.
 
 ## O que está pronto
 
-| Módulo                    | Doc | Exemplo | Enunciado | Solução |
-| ------------------------- | --- | ------- | --------- | ------- |
-| 01 Fundamentos de HTTP    | ✅  | ✅      | ✅        | ✅      |
-| 02 Node, módulos e async  | ✅  | ✅      | ✅        | ✅      |
-| 03 Express básico         | ✅  | ✅      | ✅        | ✅      |
-| 04 Roteamento             | ✅  | ✅      | ✅        | ✅      |
-| 05 Middlewares            | ✅  | ✅      | ✅        | ✅      |
-| 06 Tratamento de erros    | ✅  | ✅      | ✅        | ✅      |
-| 07 Validação (Zod)        | ✅  | ✅      | ✅        | ✅      |
-| 08 Arquitetura em camadas | ✅  | ✅      | ✅        | ✅      |
-| 09 SQLite e SQL           | ✅  | ✅      | ✅        | ✅      |
-| 10 Prisma (ORM)           | ✅  | ✅      | ✅        | ✅      |
-| 11 Autenticação           | ✅  | ✅      | ✅        | ✅      |
-| 12 Testes                 | ✅  | ✅      | ✅        | ✅      |
-| 13–20                     | ❌  | ❌      | ❌        | ❌      |
+| Módulo                    | Doc | Exemplo | Enunciado | Solução      |
+| ------------------------- | --- | ------- | --------- | ------------ |
+| 01 Fundamentos de HTTP    | ✅  | ✅      | ✅        | ✅           |
+| 02 Node, módulos e async  | ✅  | ✅      | ✅        | ✅           |
+| 03 Express básico         | ✅  | ✅      | ✅        | ✅           |
+| 04 Roteamento             | ✅  | ✅      | ✅        | ✅           |
+| 05 Middlewares            | ✅  | ✅      | ✅        | ✅           |
+| 06 Tratamento de erros    | ✅  | ✅      | ✅        | ✅           |
+| 07 Validação (Zod)        | ✅  | ✅      | ✅        | ✅           |
+| 08 Arquitetura em camadas | ✅  | ✅      | ✅        | ✅           |
+| 09 SQLite e SQL           | ✅  | ✅      | ✅        | ✅           |
+| 10 Prisma (ORM)           | ✅  | ✅      | ✅        | ✅           |
+| 11 Autenticação           | ✅  | ✅      | ✅        | ✅           |
+| 12 Testes                 | ✅  | ✅      | ✅        | ✅           |
+| **13 Segurança**          | ✅  | ✅      | ✅        | ❌ **falta** |
+| **14 Observabilidade**    | ✅  | ✅      | ✅        | ❌ **falta** |
+| 15–20                     | ❌  | ❌      | ❌        | ❌           |
+
+## Feito na sessão de 2026-08-05
+
+- **Referências externas em todos os 12 módulos anteriores**: seção "Para ir
+  além" com 3 a 6 fontes cada (RFC 9110, OWASP, docs oficiais, Fowler, Kleppmann,
+  Khorikov). **Os 45 links foram verificados por HTTP**; 3 estavam quebrados e
+  foram trocados.
+- **Módulo 13 (segurança)** — doc, exemplo e enunciado. O exemplo tem cada rota
+  em **par** (insegura × segura); **12 checagens funcionais passaram**.
+- **Módulo 14 (observabilidade)** — doc, exemplo e enunciado. **9 checagens
+  funcionais passaram.**
+- Callouts `> [!NOTE]` removidos do repo inteiro (**121 em 26 arquivos**), junto
+  com a sintaxe do Markdown Preview Enhanced (26 `@import "[TOC]"` e 12
+  `{cmd=true}`). As regras no `CLAUDE.md`, no guia e no README foram invertidas:
+  agora **proíbem** o que antes recomendavam.
+- Correções de conteúdo: exercício 01 tinha os critérios já marcados (`- [x]`);
+  módulo 12 era o único sem "Os princípios deste módulo".
 
 ## Verificado nesta sessão
 
@@ -38,6 +107,13 @@ npm test               → 113 testes, 10 arquivos, verde
 npm test (2ª vez)      → mesmo resultado (isolamento ok)
 npm run test:cov       → ~80% statements
 ```
+
+> **Atenção:** numa árvore recém-clonada, o módulo 10 quebra de **duas** formas
+> antes do setup completo: o `typecheck` acusa 4 erros (falta o Prisma Client, que
+> mora em `gerado/`, git-ignored) e o exemplo lança **P2021 — "table `main.livros`
+> does not exist"** (falta migrar o banco). A sequência é
+> `npm install` → `db:generate` → `db:migrate` → `db:seed`. Nenhum dos dois é bug
+> do código, mas são as primeiras pedras no caminho de quem clona.
 
 Solução do exercício 11 conferida com `curl` contra os 18 critérios de aceite:
 **30 checagens, 0 falhas**. Mais: sem `JWT_SECRET` (ou com menos de 32
@@ -88,24 +164,16 @@ Adições de conteúdo que valem citar, porque não estavam em lugar nenhum:
 | 10  | Toda abstração vaza; N+1 com a conta de latência por ambiente                        |
 | 11  | Revogação × escala como a MESMA escolha vista de ângulos                             |
 
-## O PRÓXIMO PASSO exato
+## Depois dos mini desafios
 
-### 1. Fase 4 — módulos 13 a 16
+1. **Soluções dos exercícios 13 e 14** (os enunciados estão prontos).
+2. **Resto da Fase 4:** 15 Performance e cache (`redis`/`ioredis`,
+   `compression`, `autocannon`) e 16 Deploy (Docker, GitHub Actions).
+3. Fases 5 (17–20) e 6 (apêndices A–E).
 
-Na ordem: 13 Segurança (`helmet`, `express-rate-limit`), 14 Observabilidade
-(`pino`, `pino-http`), 15 Performance e cache (`redis`/`ioredis`,
-`compression`, `autocannon`), 16 Deploy (Docker, GitHub Actions).
-
-Duas coisas que o módulo 12 preparou para o 13:
-
-- O `limitar()` escrito à mão (módulo 05) agora tem testes — dá para trocá-lo
-  por `express-rate-limit` e provar que o comportamento não mudou.
-- A suíte de `seguranca.test.ts` é a base natural do 13: testes de ausência já
-  cobrem stack e hash; faltam os headers do `helmet`.
-
-### 2. Depois
-
-Fases 5 (17–20) e 6 (apêndices A–E).
+Uma coisa que o módulo 12 preparou e ainda não foi usada: o `limitar()` escrito à
+mão (módulo 05) tem testes — dá para trocá-lo por `express-rate-limit` na
+solução do 13 e provar que o comportamento não mudou.
 
 ## Convenções que se firmaram e valem manter
 
@@ -124,7 +192,9 @@ Fases 5 (17–20) e 6 (apêndices A–E).
 - Teste que trava um achado vale mais que teste de caminho feliz. Exemplo vivo:
   o `POST` sem `Content-Type` → 400, que protege o `?? {}` do módulo 07.
 
-## Nada foi commitado
+## Estado do git
 
-Todo o trabalho está no working tree. `git status` mostra tudo como
-novo/modificado.
+O trabalho desta sessão **foi commitado e enviado** para `origin/main`. Antes
+disso houve um merge com 3 commits que já estavam no remoto (solução do 11 e
+módulo 12 inteiro): os 6 conflitos foram resolvidos **adotando a versão do
+remoto**, que estava mais completa, e reenxertando só o que faltava nela.

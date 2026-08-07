@@ -2,11 +2,9 @@
 
 ⏱️ ~50 min · 🎯 Nível: intermediário
 
-> [!NOTE]
+> **Nota:**
 > 📚 A biblioteca ganha gente. Empréstimo passa a ter um responsável, e cada
 > usuário só vê e devolve o que é dele.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -60,7 +58,7 @@ type Emprestimo = {
   `{ sub, jti }`. `issuer` e `audience` nos dois.
 - `JWT_SECRET` vem do `.env` e o processo **não sobe** sem ele.
 
-> [!WARNING]
+> **Atenção:**
 > O fallback `?? 'segredo-de-dev'` é pior que um crash: você faz deploy com o
 > segredo de exemplo e descobre quando alguém forja um token de admin.
 
@@ -99,11 +97,11 @@ flowchart TD
     style OK fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-> [!CAUTION]
+> **Cuidado:**
 > O `usuarioId` vem **do token**, nunca do body. Aceitá-lo do body deixaria
 > qualquer um pegar livro no nome de outro. Vale igual para `papel` e `criadoPor`.
 
-> [!IMPORTANT]
+> **Importante:**
 > Repare no diagrama: **papel** é decidido no middleware (não precisa dos dados);
 > **dono** é decidido no service (precisa buscar o recurso). Essa separação é o
 > conteúdo do módulo.

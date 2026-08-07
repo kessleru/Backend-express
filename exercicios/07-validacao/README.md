@@ -2,11 +2,9 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
-> [!NOTE]
+> **Nota:**
 > 📚 Continua o projeto. Ao terminar, sua API não tem mais nenhuma linha de
 > `typeof x !== 'string'`.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -83,7 +81,7 @@ flowchart LR
     style E fill:#fed7aa,stroke:#ea580c,color:#000
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > As três regras de negócio da direita **não** cabem no schema: elas precisam
 > consultar os dados. Schema responde "está bem formado?"; o handler responde "é
 > permitido agora?".

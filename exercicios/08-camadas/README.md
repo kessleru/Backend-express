@@ -2,11 +2,9 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
-> [!NOTE]
+> **Nota:**
 > 📚 Refatoração grande, sem nenhuma rota nova. No fim, a API responde
 > exatamente igual — e é isso que prova que a refatoração deu certo.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -72,7 +70,7 @@ flowchart LR
     style S fill:#dbeafe,stroke:#2563eb,color:#000
 ```
 
-> [!IMPORTANT]
+> **Importante:**
 > Um service pode depender de **vários repositórios**. O que ele não deve fazer é
 > depender de outro service — aí a mesma regra ganha dois pontos de entrada.
 

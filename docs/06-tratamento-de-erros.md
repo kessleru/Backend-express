@@ -3,8 +3,6 @@
 **Em uma frase:** as rotas dizem **o que** deu errado; um tratador central decide
 **como** isso vira resposta HTTP.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=3 orderedList=false} -->
-
 ## Por que importa
 
 - Sem um lugar central, cada rota inventa seu formato de erro e o cliente precisa
@@ -24,7 +22,7 @@
 | Mensagem ao cliente | A real, útil                      | Genérica                      |
 | Log                 | Não precisa (é rotina)            | Completo, com stack           |
 
-> [!IMPORTANT]
+> **Importante:**
 > **Mensagem de erro que você escreveu pode ir ao cliente; mensagem que o runtime
 > escreveu, não.** `connect ECONNREFUSED 10.0.0.5:5432` é um mapa da sua rede.
 
@@ -43,7 +41,7 @@ Errar essa classificação custa nas duas direções, e as duas doem em produç�
 - **Erro do cliente virando 5xx** — polui o alerta com ruído, e a equipe aprende a
   ignorar a métrica que deveria acordá-la. Você caça um bug que não existe.
 
-> [!TIP]
+> **Dica:**
 > O teste para classificar: **"o cliente consegue fazer alguma coisa diferente
 > para isso funcionar?"** Se sim, 4xx. Se ele já fez tudo certo, 5xx.
 
@@ -132,7 +130,7 @@ app.get('/x', async (req, res) => {
 | `throw` síncrono   | vai pro tratador                        | vai pro tratador |
 | `throw` em `async` | **`unhandledRejection` → processo cai** | vai pro tratador |
 
-> [!NOTE]
+> **Nota:**
 > No Express 4, um id inexistente numa rota async derrubava a API inteira. Era
 > por isso que existia `express-async-errors` e aquele `asyncHandler(fn)` que
 > você vai encontrar em todo tutorial. **No Express 5, nada disso é necessário.**
@@ -182,7 +180,7 @@ Centralizar dá três coisas que rota-a-rota não dá:
 | Nada vaza por omissão         | O caminho do bug é sempre o genérico, mesmo para erro novo |
 | Dá para **testar de uma vez** | Um teste cobre o formato de toda a API (módulo 12)         |
 
-> [!CAUTION]
+> **Cuidado:**
 > O terceiro é o que sustenta os outros dois ao longo do tempo. A decisão "a stack
 > nunca sai na resposta" não se defende sozinha: basta alguém adicionar
 > `erro.message` durante uma investigação e esquecer de tirar. **Nada quebra** —
@@ -212,7 +210,7 @@ sequenceDiagram
     T-->>C: 404 { erro, status, requestId }
 ```
 
-> [!TIP]
+> **Dica:**
 > O 404 genérico jogar um `AppError` (em vez de responder) faz ele sair no
 > **mesmo formato** dos outros erros. Detalhe pequeno, cliente agradecido.
 
@@ -245,7 +243,7 @@ process.on('uncaughtException', (e) => {
 O tratador do Express só pega o que passou por uma requisição. Erro em timer ou
 callback solto não passa.
 
-> [!WARNING]
+> **Atenção:**
 > A recomendação oficial do Node é **logar e sair**: um processo que continua
 > depois de uma exceção não capturada está em estado desconhecido e pode
 > corromper dados silenciosamente.
@@ -266,7 +264,7 @@ sem `JWT_SECRET` em vez de usar um segredo de exemplo. E é o oposto do
 `try/catch` vazio, que é a forma mais eficiente de esconder um problema de si
 mesmo.
 
-> [!TIP]
+> **Dica:**
 > "Falhar rápido" vale para **inicialização e estado**, não para requisição. Um
 > `400` não derruba nada — quem falha alto é o processo, não a resposta.
 
@@ -280,7 +278,7 @@ andamento é _graceful shutdown_, no [15](./15-performance-e-cache.md).
 node src/exemplos/06-erros/servidor.ts
 ```
 
-```bash {cmd=true}
+```bash
 B=localhost:5054
 curl -i $B/cursos/99            # 404 com requestId
 curl -i $B/cursos/2/detalhes    # 409 lançado de rota ASYNC (Express 4 caía aqui)
@@ -346,6 +344,15 @@ app.use(tratarErro); // ÚLTIMO, 4 argumentos
 | **Formato de erro é contrato público:** um lugar decide, e dá para testar de uma vez. | 07, 12         |
 | **Mensagem que você escreveu pode sair; mensagem do runtime, não.**                   | 11, 13         |
 | **Falhe rápido e alto em vez de continuar quebrado.**                                 | 11, 16         |
+
+## Para ir além
+
+- **[Express — _Error Handling_](https://expressjs.com/en/guide/error-handling.html)**
+  Inclui a mudança do Express 5: erro de rota `async` agora chega ao handler sozinho.
+- **[Node.js — _Error API_](https://nodejs.org/api/errors.html)**
+  A anatomia de um `Error` no Node, `cause` e os códigos padrão (`ERR_*`).
+- **[RFC 9457 — _Problem Details for HTTP APIs_](https://www.rfc-editor.org/rfc/rfc9457.html)**
+  Um formato **padrão** de corpo de erro (`application/problem+json`). Se você vai inventar um formato próprio, vale conhecer antes o que já existe.
 
 ## Pratique
 

@@ -2,11 +2,9 @@
 
 ⏱️ ~45 min · 🎯 Nível: intermediário
 
-> [!IMPORTANT]
+> **Importante:**
 > 📚 O teste do módulo 08: você vai trocar o banco **sem tocar** em service,
 > controller ou rota.
-
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
 
 ## Objetivo
 
@@ -80,7 +78,7 @@ erDiagram
 
 `servidor.ts` muda **duas linhas**: as que criam os repositórios.
 
-> [!CAUTION]
+> **Cuidado:**
 > `PRAGMA foreign_keys = ON` é **por conexão**. Sem ele o SQLite aceita
 > `autor_id = 999` alegremente e você descobre meses depois, com o banco cheio de
 > órfãos.

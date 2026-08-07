@@ -2,8 +2,6 @@
 
 Um exercício por módulo. É a parte que fixa o conteúdo.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=2 orderedList=false} -->
-
 ## Como funciona
 
 ```mermaid
@@ -14,7 +12,7 @@ flowchart LR
     style S fill:#e5e7eb,stroke:#9ca3af,color:#000
 ```
 
-> [!TIP]
+> **Dica:**
 > Travou? Cada enunciado tem dicas progressivas escondidas em blocos `<details>`
 > — abra **uma de cada vez**. Elas estão ordenadas do empurrãozinho ao quase
 > código pronto.
@@ -56,6 +54,6 @@ flowchart LR
 
 No fim você não tem 20 exercícios avulsos — tem uma API completa, feita por você.
 
-> [!IMPORTANT]
+> **Importante:**
 > Mantenha tudo em `src/playground/biblioteca/`. Cada exercício continua o
 > anterior — se você espalhar em pastas soltas, o módulo seguinte não encaixa.
