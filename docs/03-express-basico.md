@@ -21,7 +21,7 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 | Parsear a query string                     | `req.query`                    |
 | Juntar os chunks do body + `JSON.parse`    | `app.use(express.json())`      |
 | `writeHead` + `JSON.stringify` + `end`     | `res.json(...)`                |
-| 404 escrito à mão no fim                   | automático                     |
+| 404 escrito à mão no fim                   | automático — **mas em HTML**   |
 
 > **Nota:** O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
 > `node:http`, só com métodos a mais. `res.json(x)` termina em `res.end(...)`.
@@ -60,9 +60,37 @@ flowchart LR
     REQ([requisição]) --> J["express.json()<br/>preenche req.body"]
     J --> ROTA{"casa com<br/>algum app.get/post?"}
     ROTA -- sim --> H["handler<br/>(req, res)"] --> RES([res.json])
-    ROTA -- não --> E404["404 automático"]
+    ROTA -- não --> E404["app.use final<br/>404 em JSON"]
     style E404 fill:#fed7aa,stroke:#ea580c,color:#000
 ```
+
+### Os dois 404
+
+Eles têm o mesmo número e causas diferentes — confundir os dois é o que faz uma
+API responder HTML no meio de um cliente que só sabe ler JSON.
+
+| Requisição         | O que falhou                       | Quem responde        |
+| ------------------ | ---------------------------------- | -------------------- |
+| `GET /cursos/99`   | a rota existe, o **recurso** não   | seu handler          |
+| `GET /disciplinas` | nenhuma **rota** casou             | o `app.use` do final |
+| `POST /cursos/1`   | o caminho existe, o **método** não | o `app.use` do final |
+
+```ts
+// SEMPRE por último: middleware sem caminho roda para toda requisição, então
+// só é "404" porque nada acima já respondeu. No topo, derrubaria a API inteira.
+app.use((req, res) => {
+  res.status(404).json({ erro: `Rota ${req.method} ${req.originalUrl} não existe` });
+});
+```
+
+**O princípio:** **uma API responde no formato que promete, inclusive no erro.**
+Sem esse handler o Express devolve um 404 em HTML; o cliente que faz
+`await res.json()` estoura num erro de parse, e o erro de verdade some.
+
+> **Atenção:** O terceiro caso mereceria `405 Method Not Allowed` — o recurso existe, o verbo
+> é que não. O Express não faz essa distinção sozinho, e o catch-all cobre os
+> dois como 404. Resolver de verdade exige `app.all()` por rota, ou o
+> `router` do [módulo 04](./04-roteamento.md).
 
 ### Os três tipos de parâmetro — a decisão central
 
@@ -112,6 +140,48 @@ Duas consequências que não são estéticas:
 > validar é sua responsabilidade, sempre. É a primeira aparição da regra que o
 > [módulo 07](./07-validacao-zod.md) transforma em disciplina: **nunca confie na
 > forma do que chega de fora.**
+
+E `Number()` **não** é validador — ele é bem mais permissivo do que parece:
+
+| Entrada          | `Number(x)` | Consequência se você confiar             |
+| ---------------- | ----------- | ---------------------------------------- |
+| `'abc'`          | `NaN`       | ok, dá pra detectar                      |
+| `''` (`?horas=`) | **`0`**     | filtra por `<= 0` e devolve lista vazia  |
+| `' 10 '`         | `10`        | espaço em branco passa despercebido      |
+| `'1e3'`          | `1000`      | notação científica aceita                |
+| `'Infinity'`     | `Infinity`  | passa em `!isNaN`, quebra a conta depois |
+| `['5','9']`      | `NaN`       | query repetida vira array                |
+
+Por isso o exemplo usa `Number.isFinite` (barra `NaN` **e** `Infinity`) depois de
+checar que a string não está vazia. `isNaN` sozinho deixa `Infinity` entrar.
+
+**Ausente e inválido são coisas diferentes.** Query param é opcional: não veio =
+sem filtro. Mas veio errado é **erro do cliente** — ignorar em silêncio devolve
+200 com a lista inteira, e quem pediu o filtro acha que ele funcionou. O bug pior
+não é o que estoura; é o que parece resposta legítima.
+
+### 400 ou 409? O erro do cliente tem dois sabores
+
+O exemplo recusa curso com título repetido. A escolha do status não é detalhe: é
+o que diz ao cliente **se vale a pena tentar de novo**.
+
+| Status              | Significa                                               | Reenviar igual resolve?            |
+| ------------------- | ------------------------------------------------------- | ---------------------------------- |
+| **400** Bad Request | o pedido está malformado (falta campo, tipo errado)     | Não — o pedido é que está errado   |
+| **409** Conflict    | o pedido está correto, mas **briga com o estado atual** | Sim, se o estado mudar             |
+| **404** Not Found   | o alvo não existe                                       | Sim, se o recurso passar a existir |
+
+**O princípio:** **o status descreve o que houve, não o que você quer que o
+usuário veja.** Devolver 400 num conflito manda o cliente caçar um erro de
+digitação que não existe — o body dele estava perfeito.
+
+```ts
+// o pedido está errado → 400
+if (typeof titulo !== 'string') return res.status(400).json({ erro: '...' });
+
+// o pedido está certo, o mundo é que atrapalha → 409
+if (cursos.some((c) => c.titulo === titulo)) return res.status(409).json({ erro: '...' });
+```
 
 ### `express.json()`
 
@@ -193,8 +263,21 @@ curl -X POST $B/cursos -H 'Content-Type: application/json' -d '{"horas":5}'
                                         # 400: titulo obrigatório
 curl -i -X POST $B/cursos -d 'titulo=x' # 400: faltou o Content-Type
 
+curl -i -X POST $B/cursos -H 'Content-Type: application/json' \
+  -d '{"titulo":"Prisma","horas":9}'    # 409: título repetido (rode 2x)
+
 curl -X PATCH $B/cursos/1 -H 'Content-Type: application/json' -d '{"horas":3}'
 curl -i -X DELETE $B/cursos/1           # 204, sem corpo
+```
+
+Os casos que separam uma API honesta de uma que mente:
+
+```bash
+curl -i "$B/cursos?maxHoras=abc"  # 400 — e não a lista inteira em silêncio
+curl -i "$B/cursos?maxHoras="     # 400 — Number('') é 0, viraria lista vazia
+curl -i "$B/cursos?maxHoras=0"    # 200 [] — zero é filtro legítimo, não erro
+curl -i $B/disciplinas            # 404 em JSON (rota não existe)
+curl -i -X POST $B/cursos/1       # 404 em JSON (método sem handler)
 ```
 
 Repare em [`crud-cursos.ts`](../src/exemplos/03-express-basico/crud-cursos.ts)
@@ -204,16 +287,22 @@ Do mesmo jeito, o arquivo único vira vários no [módulo 04](./04-roteamento.md
 
 ## Erros comuns
 
-| Erro                              | O que acontece                      | Correção                      |
-| --------------------------------- | ----------------------------------- | ----------------------------- |
-| Esquecer `express.json()`         | `req.body` é `undefined`            | `app.use(express.json())`     |
-| Cliente sem `Content-Type`        | Body ignorado → `TypeError` → 500   | Exigir o header; usar `?? {}` |
-| `req.params.id === 1`             | Nunca é true: `"1" !== 1`           | `Number(req.params.id)`       |
-| Sem `return` antes do 404         | Responde duas vezes                 | `return res.status(404)...`   |
-| Usar body em `GET`                | Vários clientes e proxies descartam | Query param                   |
-| `res.json()` em `204`             | Contradiz o próprio status          | `res.status(204).send()`      |
-| Verbo na URL (`POST /criarCurso`) | O método já é o verbo               | `POST /cursos`                |
-| Confiar no `req.body`             | É `any`: aceita qualquer coisa      | Validar (módulo 07)           |
+| Erro                              | O que acontece                         | Correção                       |
+| --------------------------------- | -------------------------------------- | ------------------------------ |
+| Esquecer `express.json()`         | `req.body` é `undefined`               | `app.use(express.json())`      |
+| Cliente sem `Content-Type`        | Body ignorado → `TypeError` → 500      | Exigir o header; usar `?? {}`  |
+| `req.params.id === 1`             | Nunca é true: `"1" !== 1`              | `Number(req.params.id)`        |
+| Sem `return` antes do 404         | Responde duas vezes                    | `return res.status(404)...`    |
+| Usar body em `GET`                | Vários clientes e proxies descartam    | Query param                    |
+| `res.json()` em `204`             | Contradiz o próprio status             | `res.status(204).send()`       |
+| Verbo na URL (`POST /criarCurso`) | O método já é o verbo                  | `POST /cursos`                 |
+| Confiar no `req.body`             | É `any`: aceita qualquer coisa         | Validar (módulo 07)            |
+| Query inválida ignorada           | 200 com a lista toda; filtro "sumiu"   | `400` quando veio e é inválido |
+| `Number('')` achando que dá `NaN` | É `0` → filtra por `<= 0`, lista vazia | Checar string vazia antes      |
+| `isNaN` como validação            | `Infinity` passa                       | `Number.isFinite`              |
+| Conflito devolvendo `400`         | Cliente procura erro que não existe    | `409` (estado, não sintaxe)    |
+| Sem `app.use` 404 no fim          | Express responde 404 em **HTML**       | Catch-all JSON por último      |
+| Catch-all 404 antes das rotas     | **Toda** requisição vira 404           | Registrar por último           |
 
 ## Cheatsheet
 
@@ -232,14 +321,14 @@ res.json(x)            res.status(n)         res.send(x)
 res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 ```
 
-| Operação         | Rota                 | Sucesso          |
-| ---------------- | -------------------- | ---------------- |
-| Listar           | `GET /cursos`        | `200` + array    |
-| Buscar um        | `GET /cursos/:id`    | `200` / `404`    |
-| Criar            | `POST /cursos`       | `201` + Location |
-| Substituir       | `PUT /cursos/:id`    | `200`            |
-| Alterar em parte | `PATCH /cursos/:id`  | `200`            |
-| Remover          | `DELETE /cursos/:id` | `204`            |
+| Operação         | Rota                 | Sucesso                               |
+| ---------------- | -------------------- | ------------------------------------- |
+| Listar           | `GET /cursos`        | `200` + array                         |
+| Buscar um        | `GET /cursos/:id`    | `200` / `404`                         |
+| Criar            | `POST /cursos`       | `201` + Location · `409` se duplicado |
+| Substituir       | `PUT /cursos/:id`    | `200`                                 |
+| Alterar em parte | `PATCH /cursos/:id`  | `200`                                 |
+| Remover          | `DELETE /cursos/:id` | `204`                                 |
 
 ## Os princípios deste módulo
 
@@ -248,6 +337,9 @@ res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 | **Framework não dá capacidade nova; ele padroniza a decisão.**                                                  | 05 (middlewares), 10 (ORM)   |
 | **A posição do dado é parte do contrato** — caminho identifica, query modifica a visão, corpo carrega conteúdo. | 04 (design de URL)           |
 | **Nunca confie na forma do que chega de fora.**                                                                 | 07 (Zod), 09 (SQL injection) |
+| **Uma API responde no formato que promete, inclusive no erro.**                                                 | 06 (tratador global)         |
+| **O status descreve o que houve** — 400 é sintaxe, 409 é estado, 404 é ausência.                                | 06, 11 (401 × 403)           |
+| **Ausente e inválido são coisas diferentes.**                                                                   | 07 (`.optional()`)           |
 | **Idempotência decide se repetir é seguro.**                                                                    | 17 (jobs), 15 (retry)        |
 | **`undefined` não é "apague isto".**                                                                            | 07, 08, 10                   |
 
