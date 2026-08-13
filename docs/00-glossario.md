@@ -35,10 +35,11 @@ ganha o problema que resolve, o custo e o exemplo rodando.
 
 ## E
 
-| Termo                | O que é                                                                                                                                                                                   | Onde                                                        |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| **efeito colateral** | Qualquer coisa que uma função faz além de devolver um valor: gravar no banco, mandar e-mail, escrever num log, apagar um arquivo. É o que não pode ser desfeito só por ignorar o retorno. | [02](./02-node-modulos-e-async.md), [13](./13-seguranca.md) |
-| **event loop**       | O laço que fica rodando dentro do Node pegando a próxima tarefa pronta e executando. É **um só**, e é por isso que uma função sua que demora trava o servidor inteiro.                    | [02](./02-node-modulos-e-async.md)                          |
+| Termo                | O que é                                                                                                                                                                                   | Onde                                                              |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| **efeito colateral** | Qualquer coisa que uma função faz além de devolver um valor: gravar no banco, mandar e-mail, escrever num log, apagar um arquivo. É o que não pode ser desfeito só por ignorar o retorno. | [02](./02-node-modulos-e-async.md), [13](./13-seguranca.md)       |
+| **event loop**       | O laço que fica rodando dentro do Node pegando a próxima tarefa pronta e executando. É **um só**, e é por isso que uma função sua que demora trava o servidor inteiro.                    | [02](./02-node-modulos-e-async.md)                                |
+| **event loop delay** | O tempo que o event loop leva para voltar a atender quando já deveria ter voltado. É a medida de o quanto alguém está travando o servidor.                                                | [02](./02-node-modulos-e-async.md), [14](./14-observabilidade.md) |
 
 ## F
 

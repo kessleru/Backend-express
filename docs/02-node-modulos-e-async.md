@@ -11,17 +11,52 @@ e é a assincronia que faz isso bastar para atender milhares de clientes.
 
 ## Conceitos
 
-### O que o Node é
+### O que é uma thread, e por que "uma só" é a notícia
 
-| Peça      | Papel                                                             |
-| --------- | ----------------------------------------------------------------- |
-| **V8**    | Motor que executa o JavaScript (o mesmo do Chrome).               |
-| **libuv** | Faz o I/O (arquivo, rede) e mantém o event loop.                  |
-| **APIs**  | `node:http`, `node:fs`, `node:sqlite`… o que o navegador não tem. |
+Este módulo inteiro gira em torno da palavra **thread**, então vale gastar um
+parágrafo nela.
 
-### Event loop, sem mistificação
+Uma thread é uma **linha de execução**: um lugar onde instruções são executadas,
+uma depois da outra. Um programa com uma thread faz uma coisa por vez. Um
+programa com quatro threads faz quatro coisas ao mesmo tempo — de verdade, em
+núcleos diferentes do processador.
 
-Existe **uma** fila de trabalho e **uma** thread rodando seu código.
+O seu código JavaScript roda em **uma thread só**. Isso significa, literalmente,
+que duas linhas suas nunca executam ao mesmo tempo. Enquanto uma função sua está
+rodando, nenhuma outra está.
+
+À primeira vista isso parece uma limitação séria para um servidor. Se o
+atendimento de um cliente ocupa a única linha de execução, como o segundo cliente
+é atendido? A resposta é o assunto da próxima seção, e ela depende de uma
+observação: **um servidor passa a maior parte do tempo não fazendo nada** — está
+esperando o banco responder, esperando o disco, esperando a rede. Esperar não
+ocupa processador.
+
+### As três peças
+
+| Peça      | Papel                                                                                                                   |
+| --------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **V8**    | O motor que executa o JavaScript (o mesmo do Chrome). É ele que roda a sua única thread.                                |
+| **libuv** | Uma biblioteca escrita em C. É ela que conversa com o sistema operacional para fazer I/O e que mantém o event loop.     |
+| **APIs**  | `node:http`, `node:fs`, `node:sqlite`… o que o navegador não tem, porque no navegador você não abre arquivo nem socket. |
+
+Duas palavras dessa tabela, se forem novas:
+
+- **I/O** é _input/output_: tudo que envolve sair do processo para buscar ou
+  mandar dados — ler arquivo, consultar banco, chamar outra API. É o oposto de
+  "calcular", que acontece dentro do processador.
+- **Event loop** é o laço que veremos agora.
+
+### Event loop: como uma thread atende mil clientes
+
+O truque é que a thread **não espera junto**. Quando o seu código pede uma
+leitura de banco, o Node não fica parado: ele entrega o pedido para quem sabe
+esperar, anota "quando terminar, me chame de volta", e **devolve a thread** para
+atender outra requisição.
+
+Quando o resultado chega, a resposta entra numa fila. O **event loop** é o laço
+que fica dando a volta pegando o próximo item pronto dessa fila e executando o
+código que estava esperando por ele.
 
 ```mermaid
 flowchart LR
@@ -35,60 +70,106 @@ flowchart LR
     style JS fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-- **I/O não bloqueia:** ler um arquivo é delegado ao sistema operacional. O Node
-  registra "me avise quando terminar" e vai atender outra requisição.
-- **CPU bloqueia:** um `for` de 200 milhões de voltas é o _seu_ código. Enquanto
-  ele roda, nenhum timer dispara e nenhum cliente é atendido.
+O diagrama tem duas rotas, e a diferença entre elas é a coisa mais importante
+deste módulo:
 
-**O princípio:** o Node não é rápido porque é paralelo — ele é **eficiente porque
-não desperdiça thread esperando**.
+- **I/O não bloqueia.** Ler um arquivo é delegado para fora. O Node registra "me
+  avise quando terminar" e sai para atender outra requisição. A caixa verde fica
+  livre.
+- **CPU bloqueia.** Um `for` de 200 milhões de voltas é o _seu_ código, e código
+  seu só roda na sua thread. Enquanto ele gira, nenhum timer dispara, nenhuma
+  resposta é enviada e nenhum cliente é atendido. É a seta vermelha.
 
-Compare com o modelo clássico (uma thread por requisição, como o PHP tradicional
-ou o Java servlet antigo):
+Vale ver o que isso economiza. O modelo clássico — usado pelo PHP tradicional e
+pelo Java servlet antigo — é dar **uma thread para cada requisição**. Ela fica
+com a thread desde que chega até responder, incluindo o tempo em que está
+parada esperando o banco:
 
-| Modelo                    | 10 mil conexões esperando o banco                          |
-| ------------------------- | ---------------------------------------------------------- |
-| Uma thread por requisição | 10 mil threads, ~1 MB de pilha cada = ~10 GB de RAM parada |
-| Event loop (Node)         | 1 thread, 10 mil callbacks registrados = alguns MB         |
+| Modelo                    | 10 mil clientes esperando o banco ao mesmo tempo                                |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| Uma thread por requisição | 10 mil threads. Cada uma reserva ~1 MB de pilha: **~10 GB de RAM parada**       |
+| Event loop (Node)         | 1 thread e 10 mil anotações de "me avise quando terminar": **alguns megabytes** |
 
-> **Dica:** **Espera é grátis, cálculo é caro.** Backend passa a vida esperando banco e
-> rede — daí o modelo funcionar tão bem.
+**O que isso mostra:** o Node não atende mais gente por ser mais rápido, nem por
+fazer várias coisas ao mesmo tempo — ele não faz. Ele atende mais gente porque
+**não deixa uma linha de execução parada esperando**. É economia de espera, não
+de cálculo.
 
-E é por isso que a fraqueza é exatamente a imagem espelhada: qualquer trabalho de
-**CPU** trava tudo, porque não há outra thread para atender ninguém.
+E é por isso que a fraqueza é a imagem espelhada exata da força. Se o ganho vem
+de nunca ficar parado, então qualquer coisa que **prenda** a thread derruba tudo
+— e trabalho de CPU prende, porque não existe uma segunda thread para atender
+ninguém enquanto isso.
+
+> **Dica:**
+> Uma frase para levar: **espera é de graça, cálculo é caro.** Backend passa a
+> vida esperando banco e rede, e é por isso que o modelo funciona tão bem para
+> esse trabalho — e tão mal para processar imagem ou vídeo.
 
 #### Quem espera, se a sua thread não espera
 
-"Delega ao sistema operacional" esconde uma distinção que muda decisão de projeto:
-nem todo I/O é delegado do mesmo jeito.
+Eu disse "delega para fora" como se fosse uma coisa só. Não é, e a diferença muda
+decisão de projeto.
 
-| O trabalho é…                        | Quem faz de fato                            | Sua thread… |
-| ------------------------------------ | ------------------------------------------- | ----------- |
-| Rede (socket, HTTP, banco)           | O **kernel**, avisando via `epoll`/`kqueue` | segue livre |
-| Arquivo, DNS, `zlib`, `crypto`       | O **thread pool** da libuv (4 threads)      | segue livre |
-| `for`, `JSON.parse`, laço de cálculo | A **sua** thread, a única que roda JS       | **travada** |
+Existem **dois lugares diferentes** para onde o trabalho pode ir, e um deles é
+bem menor do que parece:
 
-Rede escala aos milhares porque o kernel avisa sozinho — é o caso da tabela
-acima. Já leitura de arquivo não tem versão assíncrona de verdade em todo sistema,
-então a libuv usa um pool de **4 threads** (`UV_THREADPOOL_SIZE`). Consequência
-prática: 10 mil conexões esperando é barato, mas **a quinta leitura de arquivo
-simultânea espera a primeira terminar**.
+| O trabalho é…                        | Quem faz de fato                       | Sua thread… |
+| ------------------------------------ | -------------------------------------- | ----------- |
+| Rede (socket, HTTP, banco)           | O **kernel**                           | segue livre |
+| Arquivo, DNS, `zlib`, `crypto`       | O **thread pool** da libuv — 4 threads | segue livre |
+| `for`, `JSON.parse`, laço de cálculo | A **sua** thread, a única que roda JS  | **travada** |
+
+O **kernel** é o núcleo do sistema operacional — a parte que fala com o hardware
+e com a rede. Ele já sabe vigiar milhares de conexões de uma vez e avisar quais
+tiveram novidade; é para isso que existem mecanismos como o `epoll` (no Linux) e
+o `kqueue` (no macOS). Você nunca chama esses nomes, mas eles são a razão de a
+primeira linha da tabela escalar aos milhares sem custo.
+
+A segunda linha é a que surpreende. Leitura de arquivo **não tem versão
+assíncrona de verdade** em todo sistema operacional. Então a libuv mantém um
+**thread pool** — um grupinho de threads reservadas, **4 por padrão** — e manda
+esse trabalho para lá.
+
+Quatro é pouco, e a consequência é concreta: dez mil conexões de rede esperando é
+barato, mas **a quinta leitura de arquivo simultânea fica na fila até uma das
+quatro primeiras terminar**. O mesmo vale para `crypto` — e é por isso que fazer
+hash de senha (módulo 11) é mais caro do que parece.
+
+> **Dica:**
+> Dá para aumentar o pool com a variável de ambiente `UV_THREADPOOL_SIZE` (máximo
+> 1024). Só que threads a mais competem pelos mesmos núcleos, então isso ajuda
+> quando elas ficam **esperando** disco, e não quando estão calculando. Meça
+> antes de mexer.
 
 #### O número que separa os dois casos
 
-Dois handlers que levam ~1,5s cada — um esperando, outro calculando. A pergunta
-que importa não é quanto cada um demora, e sim **quanto um segundo cliente espera
-para ser atendido**:
+Até aqui é argumento. Dá para medir.
 
-```text
-/io    1530ms  →  outro cliente esperou    13ms
-/cpu   1364ms  →  outro cliente esperou  1364ms   ← esperou o trabalho INTEIRO
+A medida que interessa não é quanto um trabalho demora — é **quanto ele atrasa
+todo o resto**. Isso tem nome: _event loop delay_, o tempo que o loop leva para
+voltar a atender quando deveria. Um `setInterval` de 10 em 10ms que chega
+atrasado está te contando exatamente isso.
+
+O exemplo do módulo mede os dois casos:
+
+```bash
+node src/exemplos/02-node-async/medindo-tempo.ts
 ```
 
-Mesma duração, impacto oposto no resto do sistema. E o efeito colateral que
-costuma passar batido: enquanto `/cpu` calcula, o `/health` também não responde —
-o orquestrador conclui que a aplicação morreu e reinicia o processo, derrubando
-junto todas as requisições que estavam em andamento.
+```text
+5. só I/O    → atraso máx  10.1ms
+6. com CPU   → atraso máx 370.4ms
+```
+
+Nos dois casos há trabalho acontecendo. A diferença é que no primeiro a thread
+estava livre — o atraso de 10ms é só o intervalo natural do timer. No segundo,
+todo mundo ficou na fila atrás do cálculo.
+
+O valor exato varia com a sua máquina; a ordem de grandeza, não. E o efeito
+colateral que costuma passar batido é este: enquanto o cálculo roda, o
+`/health` **também** não responde. O orquestrador conclui que a aplicação morreu,
+reinicia o processo, e derruba junto todas as requisições que estavam em
+andamento — inclusive as que estavam saudáveis.
 
 | Sintoma em produção                         | Causa quase certa                                     |
 | ------------------------------------------- | ----------------------------------------------------- |
@@ -100,24 +181,56 @@ As saídas, em ordem de preferência: não fazer o trabalho no request (fila, m�
 17), quebrá-lo em pedaços que devolvem o loop, ou mandá-lo para outra thread
 (`worker_threads`). "Otimizar o laço" quase nunca é a resposta.
 
-### Ordem de execução
+### Ordem de execução: nem toda fila é a mesma fila
+
+Antes de ler a explicação, aposte. Em que ordem estes quatro números aparecem?
 
 ```ts
-console.log('1');
-setTimeout(() => console.log('4'), 0); // macrotask: vai pro fim da fila
-void Promise.resolve().then(() => console.log('3')); // microtask: fura a fila
-console.log('2');
+console.log('a');
+setTimeout(() => console.log('b'), 0);
+void Promise.resolve().then(() => console.log('c'));
+console.log('d');
 ```
+
+O `setTimeout` é de **zero** milissegundos, então é tentador responder
+`a, b, c, d`. A saída real é:
+
+```text
+a
+d
+c
+b
+```
+
+Duas coisas surpreendem aí. A primeira é que `b` sai por último, apesar do zero —
+"zero" não significa "agora", significa "na primeira oportunidade **depois** que
+o código atual terminar". A segunda é que `c` fura a frente de `b`, mesmo tendo
+sido agendado depois.
+
+O motivo é que existem **duas filas**, não uma, e elas têm prioridades
+diferentes:
 
 ```mermaid
 flowchart LR
-    S["código síncrono<br/>1 · 2"] --> M["microtasks<br/>.then · await<br/>3"] --> T["macrotasks<br/>setTimeout · I/O<br/>4"]
+    S["1 · código síncrono<br/>roda até acabar<br/>a · d"] --> M["2 · fila de prioridade<br/>.then · await<br/>c"] --> T["3 · fila normal<br/>setTimeout · I/O<br/>b"]
     style M fill:#dbeafe,stroke:#2563eb,color:#000
 ```
 
-Microtasks (`.then`, `await`) rodam antes de qualquer macrotask (`setTimeout`,
-I/O). Isso importa quando você tenta "dar uma folga" ao loop com `setTimeout(0)`
-e nada melhora.
+1. **Primeiro roda todo o código síncrono**, sem interrupção, até a última linha.
+   Daí `a` e `d` saírem juntos e na ordem em que estão escritos.
+2. **Depois esvazia a fila de prioridade**, onde ficam as continuações de Promise
+   (`.then`, e o que vem depois de um `await`). É `c`.
+3. **Só então pega um item da fila normal**, onde ficam `setTimeout`, `setInterval`
+   e as respostas de I/O. É `b`.
+
+Os nomes oficiais dessas duas filas são **microtask** (a de prioridade) e
+**macrotask** (a normal). Você vai encontrá-los em toda discussão sobre event
+loop; o que eles significam é só isso.
+
+Onde isso te morde na prática: quando um laço pesado está travando o servidor e
+alguém sugere "dá uma folga pro loop com `setTimeout(0)`". Se você quebrar o
+trabalho usando Promises, ele continua na fila de prioridade — que é esvaziada
+**inteira** antes de qualquer I/O ser atendido. O servidor continua travado.
 
 ### CommonJS vs ESM
 
@@ -170,26 +283,46 @@ O que garante build reproduzível não é a faixa, é o **`package-lock.json`** 
 grava a versão exata que foi instalada. Commite sempre. E `npm ci` (em vez de
 `npm install`) instala exatamente o lockfile, sem atualizar nada.
 
-### Callbacks → Promises → async/await
+### Callbacks, Promises e async/await
 
-```mermaid
-timeline
-    title Três gerações do mesmo problema
-    Callback : erro no 1º argumento : aninha até virar pirâmide
-    Promise : .then / .catch : encadeia plano
-    async-await : lê como código síncrono : try/catch normal
-```
+Voltemos ao "me avise quando terminar". Como é que você escreve isso em código?
+
+A resposta mais antiga é passar uma função junto com o pedido: _"leia este
+arquivo e, quando acabar, chame esta função aqui"_. Essa função que fica
+guardada para ser chamada depois é um **callback** — literalmente, uma chamada
+de volta.
+
+Funciona, e por anos foi o único jeito. O problema aparece quando um callback
+precisa de outro:
 
 ```ts
-// 1. Callback: erro é o primeiro argumento, por convenção.
+// 1. CALLBACK. Repare que o erro chega no PRIMEIRO argumento — é a convenção
+//    do Node, e existe porque não há como um callback "lançar" um erro para
+//    quem o registrou: aquele código já terminou.
 fs.readFile('a.txt', (erro, dados) => {
   if (erro) return console.error(erro);
+  fs.readFile(dados.proximo, (erro2, dados2) => {
+    // e cada passo novo empurra o código mais uma casa para a direita
+  });
 });
+```
 
-// 2. Promise: encadeia plano, com .catch no fim.
+A segunda geração inverte quem guarda a função. Em vez de você entregar o
+callback junto com o pedido, o pedido devolve **um objeto** que representa o
+resultado que ainda não chegou. Esse objeto é a **Promise**, e você pendura nele
+o que fazer depois:
+
+```ts
+// 2. PROMISE. Encadeia para baixo em vez de aninhar para a direita, e o
+//    .catch no fim pega o erro de qualquer passo da corrente.
 readFile('a.txt').then(usar).catch(tratar);
+```
 
-// 3. async/await: lê como código síncrono. É o que usamos daqui pra frente.
+A terceira geração é açúcar sobre a segunda — ou seja, uma escrita mais
+confortável para exatamente a mesma coisa, sem nenhum mecanismo novo por baixo:
+
+```ts
+// 3. ASYNC/AWAIT. É o que usamos daqui para a frente.
 try {
   const dados = await readFile('a.txt');
 } catch (erro) {
@@ -197,14 +330,18 @@ try {
 }
 ```
 
-`async/await` **é** Promise por baixo — açúcar sintático, não outro mecanismo.
-Toda função `async` devolve uma Promise, mesmo que você retorne um número.
+Vale insistir neste ponto porque ele evita confusão mais tarde: `async/await`
+**é** Promise. Toda função marcada `async` devolve uma Promise, mesmo que o
+`return` dela seja um número. O `await` não é um mecanismo paralelo ao `.then()`;
+é outra forma de escrevê-lo.
 
-**O princípio:** uma Promise é um **valor que ainda não chegou**, e `await` é
-"pause esta função até chegar". A palavra que engana é "pause": a função pausa, a
-**thread não**. Ela sai para atender outra requisição e volta depois.
+**E o que "await" realmente faz:** ele pausa **a sua função** até o valor chegar.
+A palavra que engana é "pausa" — a função pausa, a **thread não**. Ela é
+devolvida ao event loop, atende outras requisições, e volta a esta função quando
+o resultado estiver pronto. Se a thread também parasse, estaríamos de volta ao
+modelo de 10 GB de RAM parada.
 
-Daí uma regra prática que economiza latência de graça:
+Daí sai uma regra prática que economiza latência de graça:
 
 ```ts
 // ❌ SÉRIE — 600ms. Cada await espera o anterior sem precisar.
@@ -275,13 +412,21 @@ await Promise.all(livros.map((l) => salvar(l)));
 ## Na prática
 
 ```bash
-node src/exemplos/02-node-async/event-loop.ts   # I/O não bloqueia, CPU bloqueia
-node src/exemplos/02-node-async/promises.ts     # as 3 gerações + armadilhas
+node src/exemplos/02-node-async/event-loop.ts    # I/O não bloqueia, CPU bloqueia
+node src/exemplos/02-node-async/promises.ts      # as 3 gerações + as armadilhas
+node src/exemplos/02-node-async/medindo-tempo.ts # o atraso que o loop sofre
 ```
 
-O primeiro mede: três esperas de 1s em paralelo levam ~1s; um `setTimeout(0)`
-atrás de um loop pesado só dispara **depois** do loop. O segundo mostra série
-(600ms) vs `Promise.all` (200ms) para o mesmo trabalho.
+O que cada um prova, com os números que eles imprimem de verdade:
+
+| Comando            | O que você vê                                                                                                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `event-loop.ts`    | Três esperas de 1s **em paralelo** levam ~1001ms, não 3000ms. E um `setTimeout(0)` atrás de um laço pesado só dispara depois dele — 632ms depois, na medição de agora. |
+| `promises.ts`      | O mesmo trabalho em série leva ~601ms e com `Promise.all` leva ~200ms. E o item 5 mostra o `try/catch` que **não** pega a rejeição.                                    |
+| `medindo-tempo.ts` | O atraso do loop: ~10ms com só I/O, ~370ms com cálculo no meio.                                                                                                        |
+
+Os tempos variam com a máquina. O que não varia é a razão entre eles — e é ela
+que o módulo está ensinando.
 
 ## Erros comuns
 
@@ -316,13 +461,44 @@ npm ls pacote      # mostra a versão realmente instalada
 
 ## Os princípios deste módulo
 
-| Princípio                                                                          | Onde reaparece |
-| ---------------------------------------------------------------------------------- | -------------- |
-| **O Node não é paralelo; ele é eficiente por não desperdiçar thread esperando.**   | 15, 17         |
-| **Espera é grátis, cálculo é caro** — trabalho de CPU no request trava todo mundo. | 15, 17         |
-| **Serialize só o que depende do anterior.**                                        | 10 (N+1), 15   |
-| **Toda Promise precisa de um dono do erro:** `await`, `.catch` ou `void`.          | 06             |
-| **O lockfile é o que garante build reproduzível**, não a faixa de versão.          | 16 (CI/CD)     |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                   | Onde volta   |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| O Node não faz várias coisas ao mesmo tempo. Ele atende mais gente por nunca deixar a thread parada esperando.            | 15, 17       |
+| Esperar não custa nada; calcular custa a thread inteira. Trabalho de CPU dentro do handler trava todos os clientes.       | 15, 17       |
+| Faça um depois do outro só quando o segundo precisa do resultado do primeiro. Nos outros casos, dispare junto.            | 10 (N+1), 15 |
+| Toda Promise precisa de alguém responsável pelo erro dela: um `await`, um `.catch` ou um `void` dizendo "é de propósito". | 06           |
+| Quem garante que o build de amanhã é igual ao de hoje é o `package-lock.json`, não a faixa `^` que você escreveu.         | 16 (CI/CD)   |
+
+## Se quiser ir mais fundo
+
+### As fases do event loop
+
+Eu falei em "fila normal" como se fosse uma só. Na verdade cada volta do event
+loop passa por fases, e cada fase tem a sua fila:
+
+| Fase     | O que ela processa                                             |
+| -------- | -------------------------------------------------------------- |
+| _timers_ | Callbacks de `setTimeout` e `setInterval` cujo prazo já venceu |
+| _poll_   | I/O que terminou — é onde o loop passa a maior parte do tempo  |
+| _check_  | Callbacks de `setImmediate`                                    |
+| _close_  | Eventos de fechamento, como `socket.on('close')`               |
+
+Isso explica um comportamento que confunde: `setImmediate` roda **depois** do
+I/O da volta atual, enquanto `setTimeout(fn, 0)` roda na volta seguinte. Se você
+quer "rodar assim que o I/O atual terminar", `setImmediate` é o certo.
+
+Existe ainda o `process.nextTick`, que é mais prioritário que qualquer microtask
+— e é justamente por isso que é fácil travar o loop com ele: um `nextTick` que
+agenda outro `nextTick` nunca deixa o loop avançar.
+
+### Por que `JSON.parse` aparece na lista de vilões
+
+Ele parece I/O, mas não é: o texto já está na memória, e transformá-lo em objeto
+é cálculo puro, na sua thread. Um corpo de 50 MB trava o servidor por segundos —
+e é exatamente por isso que o `express.json()` tem um limite de tamanho por
+padrão (módulo 03), e por que o módulo 13 trata isso como assunto de segurança.
 
 ## Para ir além
 
