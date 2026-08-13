@@ -1,13 +1,28 @@
-# Backend do zero — Node.js + Express + TypeScript
+<div align="center">
 
-Guia de estudo prático de backend. Cada módulo tem **teoria curta**, **código que
-roda** e **um exercício**. Sem enrolação.
+<img src="./docs/imagens/banner.svg" alt="Backend do zero — Node.js, Express e TypeScript" width="100%">
+
+**Um curso de backend em 20 módulos, em português.**<br>
+Teoria densa, código que roda de verdade e um exercício por módulo.
+
+[![Módulos](https://img.shields.io/badge/módulos-14%20de%2020-fbbf24?style=for-the-badge)](./GUIA-IMPLEMENTACAO.md#9-roadmap-de-execução)
+[![Testes](https://img.shields.io/badge/testes-113%20passando-4ade80?style=for-the-badge)](./docs/12-testes.md)
+[![Node](https://img.shields.io/badge/node-24-3f8f43?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](./tsconfig.json)
+[![Último commit](https://img.shields.io/github/last-commit/kessleru/Backend-express?style=for-the-badge&color=38bdf8)](https://github.com/kessleru/Backend-express/commits/main)
+
+</div>
+
+## Rodando em 30 segundos
 
 ```bash
+git clone https://github.com/kessleru/Backend-express.git
+cd Backend-express
 npm install
-cp .env.example .env
 npm run dev          # http://localhost:5050
 ```
+
+<img src="./docs/imagens/quickstart.svg" alt="npm run dev subindo o servidor e respondendo em localhost:5050" width="620">
 
 Os módulos 01–09 rodam só com isso. **A partir do módulo 10** (Prisma) são
 necessários mais três passos, porque o client e o banco não vêm no git:
@@ -18,24 +33,43 @@ npm run db:migrate   # cria as tabelas
 npm run db:seed      # popula com dados de exemplo
 ```
 
-Sem eles, `npm run typecheck` acusa erros no módulo 10 e o exemplo falha com
-`P2021 — table main.livros does not exist`.
+> **Atenção:**
+> Sem eles, `npm run typecheck` acusa erros no módulo 10 e o exemplo falha com
+> `P2021 — table main.livros does not exist`.
 
-## Leia no preview do VS Code
+## O que este repo é
 
-Os `.md` deste repo são **Markdown puro**: não precisam de extensão nenhuma.
-`Ctrl+K V` abre o preview lado a lado, e os diagramas já renderizam — o suporte a
-**mermaid** é embutido no VS Code desde a versão 1.121. No GitHub, idem.
+Um **guia de estudo**, não uma biblioteca. Nada aqui é para instalar no seu
+projeto — é para você ler, rodar, quebrar e reescrever.
 
-### Recursos de Markdown usados nos docs
+A diferença para um tutorial: cada assunto passa por **problema → princípio →
+mecânica → trade-off → consequência**. Você não aprende que "usamos hash de
+senha", aprende que **a senha nunca é armazenada** — uma frase que continua
+valendo quando o argon2 for substituído.
 
-| Recurso                 | Onde aparece                                 |
-| ----------------------- | -------------------------------------------- |
-| Diagramas **mermaid**   | Fluxos, camadas, sequências, modelo de dados |
-| `> **Atenção:** …`      | Avisos, armadilhas e decisões                |
-| `<details>`             | Aprofundamento opcional, recolhido           |
-| Linguagem em todo bloco | Destaque de sintaxe (`ts`, `sql`, `http`)    |
-| Listas de tarefas       | Critérios de aceite dos exercícios           |
+Todo exemplo é executado antes de entrar no repo. Se está escrito que devolve
+`429`, é porque devolveu.
+
+## O que você vai ter construído
+
+Do módulo 03 em diante os exercícios param de ser soltos e viram **uma API de
+biblioteca** que cresce a cada módulo — CRUD em memória, depois camadas, depois
+banco, depois login, depois testes, depois blindada para produção.
+
+<table>
+<tr>
+  <td width="52%" valign="top"><img src="./docs/imagens/modulo-13-rate-limit.svg" alt="Sexta tentativa de login devolvendo 429" width="100%"></td>
+  <td width="48%" valign="top"><img src="./docs/imagens/testes.svg" alt="Vitest com 113 testes passando" width="100%"></td>
+</tr>
+<tr>
+  <td align="center"><sub><b>Módulo 13</b> — o rate limit corta o ataque de força bruta</sub></td>
+  <td align="center"><sub><b>Módulo 12</b> — a suíte que segura tudo isso</sub></td>
+</tr>
+</table>
+
+<img src="./docs/imagens/modulo-14-logs.svg" alt="Logs estruturados do Pino com a senha redigida e request id" width="560">
+
+<sub><b>Módulo 14</b> — log estruturado: nível por status, `req.id` atravessando a stack e a senha redigida por configuração, não por disciplina.</sub>
 
 ## Como estudar
 
@@ -53,6 +87,9 @@ do zero mostra o que você realmente sabe.
 > **Importante:**
 > Resolva em `src/playground/`. É a única pasta que é sua — nada mais no repo
 > escreve lá.
+
+Os `.md` são **Markdown puro**: `Ctrl+K V` abre o preview no VS Code e os
+diagramas mermaid já renderizam, sem instalar extensão nenhuma. No GitHub, idem.
 
 ## Currículo
 
@@ -114,21 +151,21 @@ flowchart TD
 
 ### Parte IV — Produção
 
-| #   | Módulo              | O que você aprende                           |
-| --- | ------------------- | -------------------------------------------- |
-| 13  | Segurança           | OWASP, rate limit, CORS de verdade, segredos |
-| 14  | Observabilidade     | Logs estruturados, request ID, health check  |
-| 15  | Performance e cache | Redis, paginação, load testing               |
-| 16  | Deploy e CI/CD      | Docker, GitHub Actions                       |
+| #   | Módulo                                          | O que você aprende                           |     |
+| --- | ----------------------------------------------- | -------------------------------------------- | --- |
+| 13  | [Segurança](./docs/13-seguranca.md)             | OWASP, rate limit, CORS de verdade, segredos | ✅  |
+| 14  | [Observabilidade](./docs/14-observabilidade.md) | Logs estruturados, request ID, health check  | ✅  |
+| 15  | Performance e cache                             | Redis, paginação, load testing               | ⬜  |
+| 16  | Deploy e CI/CD                                  | Docker, GitHub Actions                       | ⬜  |
 
 ### Parte V — Avançado
 
-| #   | Módulo       | O que você aprende              |
-| --- | ------------ | ------------------------------- |
-| 17  | Filas e jobs | BullMQ, retry, idempotência     |
-| 18  | Tempo real   | WebSocket, SSE                  |
-| 19  | Uploads      | Multipart, validação, streaming |
-| 20  | Além do REST | OpenAPI/Swagger, GraphQL, tRPC  |
+| #   | Módulo       | O que você aprende              |     |
+| --- | ------------ | ------------------------------- | --- |
+| 17  | Filas e jobs | BullMQ, retry, idempotência     | ⬜  |
+| 18  | Tempo real   | WebSocket, SSE                  | ⬜  |
+| 19  | Uploads      | Multipart, validação, streaming | ⬜  |
+| 20  | Além do REST | OpenAPI/Swagger, GraphQL, tRPC  | ⬜  |
 
 ### Apêndices
 
@@ -159,14 +196,6 @@ flowchart LR
 | `npm start`              | Roda o build de produção           |
 | `npm run format`         | Formata tudo com Prettier          |
 
-A partir do módulo 12 (testes):
-
-| Comando              | O que faz                                     |
-| -------------------- | --------------------------------------------- |
-| `npm test`           | Roda a suíte uma vez                          |
-| `npm run test:watch` | Reexecuta o que muda enquanto você escreve    |
-| `npm run test:cov`   | Cobertura; relatório em `coverage/index.html` |
-
 A partir do módulo 10 (Prisma):
 
 | Comando               | O que faz                                     |
@@ -177,9 +206,27 @@ A partir do módulo 10 (Prisma):
 | `npm run db:reset`    | Apaga, reaplica as migrations e roda o seed   |
 | `npm run db:studio`   | Abre o navegador de banco em `localhost:5555` |
 
+A partir do módulo 12 (testes):
+
+| Comando              | O que faz                                     |
+| -------------------- | --------------------------------------------- |
+| `npm test`           | Roda a suíte uma vez                          |
+| `npm run test:watch` | Reexecuta o que muda enquanto você escreve    |
+| `npm run test:cov`   | Cobertura; relatório em `coverage/index.html` |
+
+<details>
+<summary><b>Como as imagens deste README são geradas</b></summary>
+
+Elas não são desenhadas à mão: `node docs/imagens/gerar.mjs` transforma a saída
+real dos comandos em SVG. Se um exemplo mudar de comportamento, é só rodar de
+novo — screenshot desatualizado é pior que nenhum, porque quebra a confiança em
+tudo o mais que está escrito aqui.
+
+</details>
+
 ## Stack
 
-Node.js 24 · TypeScript 7 · Express 5 · SQLite · Prisma
+Node.js 24 · TypeScript 7 · Express 5 · SQLite · Prisma · Zod · Vitest · Pino
 
 O Node 24 roda TypeScript direto (`node arquivo.ts`), então **não existe passo de
 build durante o desenvolvimento** — e nada de `ts-node`, `nodemon` ou `dotenv`,
@@ -187,4 +234,8 @@ que o Node já substitui nativamente.
 
 ---
 
+<div align="center">
+
 Planejamento completo e estado do projeto: [`GUIA-IMPLEMENTACAO.md`](./GUIA-IMPLEMENTACAO.md)
+
+</div>
