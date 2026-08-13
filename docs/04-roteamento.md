@@ -3,6 +3,32 @@
 **Em uma frase:** `express.Router()` transforma um servidor de 500 linhas em
 arquivos pequenos, cada um responsável por um recurso.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [A dor: um arquivo que só cresce](#a-dor-um-arquivo-que-só-cresce)
+  - [Router(): um app pequeno dentro do app](#router-um-app-pequeno-dentro-do-app)
+  - [Como isso fica montado](#como-isso-fica-montado)
+  - [Ordem importa (o bug clássico)](#ordem-importa-o-bug-clássico)
+  - [Padrões de caminho — Express 5 mudou](#padrões-de-caminho-express-5-mudou)
+  - [router.param — o 404 escrito uma vez](#routerparam-o-404-escrito-uma-vez)
+  - [Routers aninhados, e a armadilha do :id que some](#routers-aninhados-e-a-armadilha-do-id-que-some)
+  - [404 no fim](#404-no-fim)
+  - [Design de URL: nomeie coisas, não ações](#design-de-url-nomeie-coisas-não-ações)
+  - [Versionamento](#versionamento)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Se quiser ir mais fundo](#se-quiser-ir-mais-fundo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Um arquivo por recurso é a diferença entre achar e caçar código.

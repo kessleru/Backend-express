@@ -11,6 +11,29 @@ A explicação daqui é a versão curta, só para destravar a leitura. A coluna
 "Onde" aponta o módulo em que a ideia é desenvolvida de verdade — é lá que ela
 ganha o problema que resolve, o custo e o exemplo rodando.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [A](#a)
+- [B](#b)
+- [C](#c)
+- [E](#e)
+- [F](#f)
+- [H](#h)
+- [I](#i)
+- [K](#k)
+- [L](#l)
+- [M](#m)
+- [N](#n)
+- [P](#p)
+- [R](#r)
+- [S](#s)
+- [T](#t)
+- [V](#v)
+
+<!-- sumario:fim -->
+
 ## A
 
 | Termo                  | O que é                                                                                                                                                                                                          | Onde                                                         |

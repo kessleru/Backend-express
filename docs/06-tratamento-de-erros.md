@@ -3,6 +3,29 @@
 **Em uma frase:** as rotas dizem **o que** deu errado; um tratador central decide
 **como** isso vira resposta HTTP.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Duas coisas muito diferentes com o mesmo nome](#duas-coisas-muito-diferentes-com-o-mesmo-nome)
+  - [AppError](#apperror)
+  - [Por que throw em vez de res.status(404)](#por-que-throw-em-vez-de-resstatus404)
+  - [O que mudou no Express 5](#o-que-mudou-no-express-5)
+  - [O tratador central](#o-tratador-central)
+  - [A ordem, de novo](#a-ordem-de-novo)
+  - [next(erro) — quando throw não serve](#nexterro-quando-throw-não-serve)
+  - [A rede de segurança do processo](#a-rede-de-segurança-do-processo)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Sem um lugar central, cada rota inventa seu formato de erro e o cliente precisa

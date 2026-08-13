@@ -3,6 +3,35 @@
 **Em uma frase:** o Prisma gera um client tipado a partir de um schema
 declarativo — você para de escrever SQL e passa a escrever objetos.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Driver vs query builder vs ORM](#driver-vs-query-builder-vs-orm)
+  - [O que o ORM resolve — e o que cobra](#o-que-o-orm-resolve-e-o-que-cobra)
+  - [O que a abstração esconde, e a conta disso](#o-que-a-abstração-esconde-e-a-conta-disso)
+  - [O schema](#o-schema)
+  - [Prisma 7: a URL saiu do schema](#prisma-7-a-url-saiu-do-schema)
+  - [Migrations](#migrations)
+  - [Queries](#queries)
+  - [include e o problema N+1](#include-e-o-problema-n1)
+  - [Escrita](#escrita)
+  - [Transações](#transações)
+  - [Quando voltar para SQL cru](#quando-voltar-para-sql-cru)
+  - [O ORM não apaga as diferenças entre bancos](#o-orm-não-apaga-as-diferenças-entre-bancos)
+  - [Prisma Studio](#prisma-studio)
+  - [Comparação rápida](#comparação-rápida)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Tipagem de ponta a ponta: `titulu` no `where` é erro de compilação, não uma

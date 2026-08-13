@@ -3,6 +3,32 @@
 **Em uma frase:** autenticação responde **quem você é** (401); autorização
 responde **o que você pode** (403). São duas perguntas e dois middlewares.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [As duas palavras](#as-duas-palavras)
+  - [Hash de senha: por que não SHA-256](#hash-de-senha-por-que-não-sha-256)
+  - [O problema que sobra: senhas iguais, hashes iguais](#o-problema-que-sobra-senhas-iguais-hashes-iguais)
+  - [Comparação em tempo constante](#comparação-em-tempo-constante)
+  - [Sessão com cookie vs JWT](#sessão-com-cookie-vs-jwt)
+  - [Anatomia de um JWT](#anatomia-de-um-jwt)
+  - [Access + refresh](#access-refresh)
+  - [Onde guardar o token no cliente](#onde-guardar-o-token-no-cliente)
+  - [Mensagem de erro no login](#mensagem-de-erro-no-login)
+  - [Permissão por papel (RBAC)](#permissão-por-papel-rbac)
+  - [OAuth2 em visão geral](#oauth2-em-visão-geral)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - É o ponto onde um erro custa caro — vazamento de senha não tem rollback.

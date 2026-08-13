@@ -4,6 +4,31 @@
 acontecendo aí dentro?" sem abrir o código nem reproduzir o problema — usando só
 o que o sistema já emite.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O princípio que separa log de console.log](#o-princípio-que-separa-log-de-consolelog)
+  - [As três perguntas da observabilidade](#as-três-perguntas-da-observabilidade)
+  - [Níveis: o filtro que você configura sem reescrever código](#níveis-o-filtro-que-você-configura-sem-reescrever-código)
+  - [Pino: o que ele realmente compra](#pino-o-que-ele-realmente-compra)
+  - [O que nunca logar](#o-que-nunca-logar)
+  - [Request ID: o fio que costura a requisição inteira](#request-id-o-fio-que-costura-a-requisição-inteira)
+  - [pino-http: o log de requisição pronto](#pino-http-o-log-de-requisição-pronto)
+  - [Métricas: RED](#métricas-red)
+  - [Health check e readiness](#health-check-e-readiness)
+  - [Tracing distribuído, em visão geral](#tracing-distribuído-em-visão-geral)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Em produção você não tem `console.log` interativo nem depurador: só o que o

@@ -4,6 +4,33 @@
 o Express percorre essa lista uma posição por vez, e cada função pode olhar,
 modificar, passar adiante ou encerrar a requisição.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O que o Express guarda quando você chama app.use](#o-que-o-express-guarda-quando-você-chama-appuse)
+  - [O caminho de uma requisição](#o-caminho-de-uma-requisição)
+  - [As três saídas de um middleware](#as-três-saídas-de-um-middleware)
+  - [Para que serve: a coisa que precisa acontecer em toda rota](#para-que-serve-a-coisa-que-precisa-acontecer-em-toda-rota)
+  - [A ordem é a ordem do arquivo](#a-ordem-é-a-ordem-do-arquivo)
+  - [Descida e subida](#descida-e-subida)
+  - [Três escopos](#três-escopos)
+  - [Middleware com argumento: fábrica](#middleware-com-argumento-fábrica)
+  - [Passando dados entre middlewares](#passando-dados-entre-middlewares)
+  - [Middleware de erro: 4 argumentos](#middleware-de-erro-4-argumentos)
+  - [Os dois de terceiros deste módulo](#os-dois-de-terceiros-deste-módulo)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Se quiser ir mais fundo](#se-quiser-ir-mais-fundo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - É **o** conceito central do Express. Sua rota é só o último item da lista.

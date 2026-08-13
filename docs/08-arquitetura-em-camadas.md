@@ -3,6 +3,31 @@
 **Em uma frase:** separar "responder HTTP", "decidir a regra" e "guardar o dado"
 em arquivos diferentes, com as dependências apontando sempre para dentro.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [As quatro camadas](#as-quatro-camadas)
+  - [A regra da direção das dependências](#a-regra-da-direção-das-dependências)
+  - [O contrato do repositório](#o-contrato-do-repositório)
+  - [Injeção de dependência sem framework](#injeção-de-dependência-sem-framework)
+  - [Composition root](#composition-root)
+  - [O que vai em cada camada, na dúvida](#o-que-vai-em-cada-camada-na-dúvida)
+  - [DTO](#dto)
+  - [A pegadinha do exactOptionalPropertyTypes](#a-pegadinha-do-exactoptionalpropertytypes)
+  - [Quando não usar camadas](#quando-não-usar-camadas)
+  - [Clean Architecture e DDD, sem hype](#clean-architecture-e-ddd-sem-hype)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Rota de 200 linhas fazendo tudo é impossível de testar e de reusar.

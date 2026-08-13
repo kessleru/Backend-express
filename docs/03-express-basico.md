@@ -4,6 +4,29 @@
 roteamento, leitura de body e escrita de resposta — o trabalho manual do
 [módulo 01](./01-fundamentos-http.md).
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O menor servidor Express que existe](#o-menor-servidor-express-que-existe)
+  - [O que o Express te poupou](#o-que-o-express-te-poupou)
+  - [Os dois 404](#os-dois-404)
+  - [Os três tipos de parâmetro — a decisão central](#os-três-tipos-de-parâmetro-a-decisão-central)
+  - [400 ou 409? O erro do cliente tem dois sabores](#400-ou-409-o-erro-do-cliente-tem-dois-sabores)
+  - [express.json()](#expressjson)
+  - [Escrevendo a resposta](#escrevendo-a-resposta)
+  - [PUT vs PATCH na prática](#put-vs-patch-na-prática)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - É o framework mais usado do ecossistema Node; entender ele é entender os outros.

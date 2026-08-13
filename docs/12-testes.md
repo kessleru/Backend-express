@@ -3,6 +3,33 @@
 **Em uma frase:** teste é o código que afirma o que o seu código promete — e
 avisa, em segundos, quando alguém quebra a promessa sem perceber.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [A pirâmide, e o que ela realmente diz](#a-pirâmide-e-o-que-ela-realmente-diz)
+  - [O que testar em cada nível — o critério](#o-que-testar-em-cada-nível-o-critério)
+  - [criarApp() — a mudança que Supertest exige](#criarapp-a-mudança-que-supertest-exige)
+  - [O repositório injetado é o que dispensa mock](#o-repositório-injetado-é-o-que-dispensa-mock)
+  - [Os dublês, do melhor para o pior](#os-dublês-do-melhor-para-o-pior)
+  - [Isolamento: fábrica, não constante](#isolamento-fábrica-não-constante)
+  - [SQLite :memory: — onde ele brilha](#sqlite-memory-onde-ele-brilha)
+  - [Suíte de contrato: os mesmos testes nas duas implementações](#suíte-de-contrato-os-mesmos-testes-nas-duas-implementações)
+  - [Teste como trava de decisão](#teste-como-trava-de-decisão)
+  - [TDD: RED → GREEN → REFACTOR](#tdd-red-green-refactor)
+  - [Cobertura é sintoma, não meta](#cobertura-é-sintoma-não-meta)
+  - [Vitest, e por que não Jest](#vitest-e-por-que-não-jest)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Sem teste, "não quebrei nada" é uma sensação; com teste, é uma verificação.

@@ -3,6 +3,33 @@
 **Em uma frase:** um schema Zod descreve o que a entrada pode ser — e o
 TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [A dor: a validação escrita na mão](#a-dor-a-validação-escrita-na-mão)
+  - [Por que você não pode simplesmente confiar](#por-que-você-não-pode-simplesmente-confiar)
+  - [A saída: uma fonte de verdade só](#a-saída-uma-fonte-de-verdade-só)
+  - [Onde a validação acontece, e por que ali](#onde-a-validação-acontece-e-por-que-ali)
+  - [z.input vs z.output](#zinput-vs-zoutput)
+  - [.strict() — rejeite o que você não conhece](#strict-rejeite-o-que-você-não-conhece)
+  - [Query param: tudo é string](#query-param-tudo-é-string)
+  - [A armadilha do .partial() para PATCH](#a-armadilha-do-partial-para-patch)
+  - [O middleware validar(schema, fonte)](#o-middleware-validarschema-fonte)
+  - [parse vs safeParse](#parse-vs-safeparse)
+  - [Formato do erro](#formato-do-erro)
+  - [Validação vs regra de negócio](#validação-vs-regra-de-negócio)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - **Nunca confie no cliente.** `req.body` é `any`: um objeto que chegou pela rede.

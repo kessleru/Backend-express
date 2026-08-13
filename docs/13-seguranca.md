@@ -4,6 +4,35 @@
 conjunto de decisões que já foram tomadas nos módulos anteriores, e que aqui
 ganham nome, prioridade e as duas ou três libs que faltavam.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O princípio que organiza o módulo inteiro](#o-princípio-que-organiza-o-módulo-inteiro)
+  - [Defesa em profundidade](#defesa-em-profundidade)
+  - [OWASP Top 10, filtrado para uma API Node](#owasp-top-10-filtrado-para-uma-api-node)
+  - [Broken Access Control — o erro nº 1, na prática](#broken-access-control-o-erro-nº-1-na-prática)
+  - [Injeção — além do SQL](#injeção-além-do-sql)
+  - [XSS: por que ainda importa numa API que só devolve JSON](#xss-por-que-ainda-importa-numa-api-que-só-devolve-json)
+  - [CSRF: quando você precisa se preocupar (e quando não)](#csrf-quando-você-precisa-se-preocupar-e-quando-não)
+  - [CORS: o que ele faz, e o que ele definitivamente não faz](#cors-o-que-ele-faz-e-o-que-ele-definitivamente-não-faz)
+  - [Rate limiting e brute force](#rate-limiting-e-brute-force)
+  - [Enumeração de usuário](#enumeração-de-usuário)
+  - [Helmet: os headers, e por que cada um existe](#helmet-os-headers-e-por-que-cada-um-existe)
+  - [Segredos](#segredos)
+  - [Dependências vulneráveis](#dependências-vulneráveis)
+  - [Upload](#upload)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Quase tudo aqui é **barato de fazer antes** e caríssimo de corrigir depois de

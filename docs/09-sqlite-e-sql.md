@@ -3,6 +3,33 @@
 **Em uma frase:** trocar o array em memória por um banco de verdade — e descobrir
 que só a camada de repositório muda.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Por que SQLite para estudar (e para produção)](#por-que-sqlite-para-estudar-e-para-produção)
+  - [Modelagem](#modelagem)
+  - [Relacionamentos](#relacionamentos)
+  - [SQL injection — e por que ? resolve](#sql-injection-e-por-que-resolve)
+  - [A API do node:sqlite](#a-api-do-nodesqlite)
+  - [JOIN](#join)
+  - [GROUP BY, WHERE e HAVING](#group-by-where-e-having)
+  - [Índices e EXPLAIN QUERY PLAN](#índices-e-explain-query-plan)
+  - [Transações e ACID](#transações-e-acid)
+  - [Migrations à mão](#migrations-à-mão)
+  - [O ganho da camada de repositório, na prática](#o-ganho-da-camada-de-repositório-na-prática)
+  - [node:sqlite vs better-sqlite3](#nodesqlite-vs-better-sqlite3)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Array em memória some no restart. Toda API real tem um banco.

@@ -3,6 +3,30 @@
 **Em uma frase:** HTTP é o combinado de como um cliente pede algo a um servidor e
 como o servidor responde.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O ciclo](#o-ciclo)
+  - [O que viaja no fio, exatamente](#o-que-viaja-no-fio-exatamente)
+  - [As três características que esse texto revela](#as-três-características-que-esse-texto-revela)
+  - [Métodos](#métodos)
+  - [Status codes](#status-codes)
+  - [Headers que aparecem sempre](#headers-que-aparecem-sempre)
+  - [Sem estado: para onde o estado vai](#sem-estado-para-onde-o-estado-vai)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Mini desafios](#mini-desafios)
+- [Se quiser ir mais fundo](#se-quiser-ir-mais-fundo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Todo framework web — Express incluso — é uma casca fina sobre isto.

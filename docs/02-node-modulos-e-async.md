@@ -3,6 +3,31 @@
 **Em uma frase:** o Node roda JavaScript fora do navegador com **uma thread só**,
 e é a assincronia que faz isso bastar para atender milhares de clientes.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O que é uma thread, e por que "uma só" é a notícia](#o-que-é-uma-thread-e-por-que-uma-só-é-a-notícia)
+  - [As três peças](#as-três-peças)
+  - [Event loop: como uma thread atende mil clientes](#event-loop-como-uma-thread-atende-mil-clientes)
+  - [Ordem de execução: nem toda fila é a mesma fila](#ordem-de-execução-nem-toda-fila-é-a-mesma-fila)
+  - [CommonJS vs ESM](#commonjs-vs-esm)
+  - [package.json campo a campo](#packagejson-campo-a-campo)
+  - [Semver](#semver)
+  - [Callbacks, Promises e async/await](#callbacks-promises-e-asyncawait)
+  - [O try/catch que não pega nada](#o-trycatch-que-não-pega-nada)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Se quiser ir mais fundo](#se-quiser-ir-mais-fundo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Entender o event loop é o que separa "funciona" de "aguenta carga".
