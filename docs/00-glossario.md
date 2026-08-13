@@ -87,9 +87,10 @@ ganha o problema que resolve, o custo e o exemplo rodando.
 
 ## K
 
-| Termo          | O que é                                                                                                                                      | Onde                           |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| **keep-alive** | Reaproveitar a mesma conexão de rede para várias requisições, em vez de abrir uma nova a cada vez. Não muda o seu código, muda o desempenho. | [01](./01-fundamentos-http.md) |
+| Termo          | O que é                                                                                                                                                                       | Onde                               |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **kernel**     | O núcleo do sistema operacional: a parte que conversa com o hardware e com a rede. É ele que consegue vigiar milhares de conexões de uma vez e avisar quais tiveram novidade. | [02](./02-node-modulos-e-async.md) |
+| **keep-alive** | Reaproveitar a mesma conexão de rede para várias requisições, em vez de abrir uma nova a cada vez. Não muda o seu código, muda o desempenho.                                  | [01](./01-fundamentos-http.md)     |
 
 ## L
 
