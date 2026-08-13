@@ -12,52 +12,67 @@ TypeScript deriva o tipo daquele mesmo schema, sem você escrever duas vezes.
 
 ## Conceitos
 
-### A regra de ouro
+### A dor: a validação escrita na mão
 
-> **Importante:**
-> Todo dado que vem de fora é suspeito: body, query, params, headers, arquivo,
-> resposta de API de terceiro. Não porque o usuário é malicioso — mas porque ele
-> é **um cliente que você não controla**, e um dia vai mandar `horas: "8"`.
-
-Valide quatro coisas: **tipo**, **formato**, **obrigatoriedade** e **limites**.
-
-**O princípio: a validação é a fronteira do sistema.** Dentro dela, o código pode
-confiar nos dados; fora, não. Sem uma fronteira nítida, a desconfiança se espalha
-— cada função passa a fazer sua própria checagem defensiva, e ninguém sabe mais
-quem já validou o quê.
-
-```mermaid
-flowchart LR
-    F([mundo lá fora<br/>body · query · header · API terceira]) --> V["🛡️ validação<br/><i>a fronteira</i>"]
-    V --> D["dentro: tipos confiáveis<br/>service · repositório"]
-    style V fill:#fed7aa,stroke:#ea580c,color:#000
-    style D fill:#bbf7d0,stroke:#16a34a,color:#000
-```
-
-Por que **antes** de tudo, e não "quando precisar":
-
-| Validar na fronteira            | Validar espalhado                               |
-| ------------------------------- | ----------------------------------------------- |
-| Um lugar, fácil de auditar      | Checagem repetida, e a que falta é invisível    |
-| Erro chega junto e completo     | Uma mensagem por vez, o usuário corrige em loop |
-| O tipo depois dela é verdadeiro | `any` viajando três camadas adiante             |
-
-> **Importante:**
-> **`limites` é o item que mais se esquece, e o que mais custa.** `?porPagina=999999`
-> não é dado inválido — é um pedido perfeitamente formado que derruba o servidor.
-> Todo campo aberto (string, array, número, upload) precisa de um teto: é
-> validação **e** é defesa contra negação de serviço (módulo 13).
-
-### A dor sem Zod
+Volte ao [módulo 03](./03-express-basico.md). Cada rota que aceitava dados
+começava assim:
 
 ```ts
-// Módulo 03: 15 linhas por rota, e o tipo é uma segunda verdade
-if (typeof titulo !== 'string' || titulo.trim() === '') return res.status(400)...
-if (typeof horas !== 'number' || horas <= 0) return res.status(400)...
-type Curso = { titulo: string; horas: number }; // ← precisa acompanhar na mão
+// 15 linhas antes de a rota fazer qualquer coisa útil
+if (typeof titulo !== 'string' || titulo.trim() === '') {
+  return res.status(400).json({ erro: 'titulo é obrigatório' });
+}
+if (typeof horas !== 'number' || horas <= 0) {
+  return res.status(400).json({ erro: 'horas precisa ser positivo' });
+}
+
+// e, em outro arquivo, a mesma regra escrita de novo — desta vez em tipo:
+type Curso = { titulo: string; horas: number };
 ```
 
-### O ganho: uma fonte de verdade
+Três problemas moram aí, e o terceiro é o pior.
+
+**Um:** é longo, e cresce com cada campo novo.
+
+**Dois:** ele para no primeiro erro. Quem mandou o formulário com três campos
+errados corrige um, reenvia, descobre o segundo, corrige, reenvia. Uma volta por
+campo.
+
+**Três, e este é o que causa bug:** a regra está escrita em **dois lugares**. O
+`if` diz que `horas` é número positivo; o `type` diz que `horas` é `number`. Nada
+obriga os dois a concordarem. No dia em que você acrescenta um campo no `type` e
+esquece o `if`, o TypeScript não reclama — porque `req.body` é `any`, e `any`
+aceita qualquer coisa.
+
+### Por que você não pode simplesmente confiar
+
+Vale ser explícito sobre a premissa, porque ela não é sobre desconfiar de gente.
+
+Todo dado que chega de fora é suspeito: corpo, query, parâmetro de rota, header,
+arquivo enviado, resposta de uma API de terceiro. Não porque quem está do outro
+lado seja mal-intencionado — a maioria não é —, mas porque ele é **um cliente que
+você não controla**. Um dia ele vai mandar `horas: "8"` com aspas, porque o
+formulário dele lê tudo como texto e ninguém converteu.
+
+E há quatro coisas para conferir, não duas:
+
+| O que conferir      | Exemplo do que barra                          |
+| ------------------- | --------------------------------------------- |
+| **tipo**            | `horas: "8"` quando deveria ser número        |
+| **formato**         | `contato: "arroba"` quando deveria ser e-mail |
+| **obrigatoriedade** | `titulo` ausente                              |
+| **limites**         | `titulo` com 5 MB de texto                    |
+
+> **Importante:**
+> **`limites` é o que mais se esquece, e o que mais custa.** Repare que
+> `?porPagina=999999` não é dado inválido: o tipo está certo, o formato está
+> certo, o campo veio. É um pedido perfeitamente formado que faz o servidor
+> tentar carregar um milhão de registros na memória.
+>
+> Todo campo aberto — texto, lista, número, upload — precisa de um teto. É
+> validação **e** é defesa contra negação de serviço (módulo 13).
+
+### A saída: uma fonte de verdade só
 
 ```ts
 export const criarCursoSchema = z
@@ -83,15 +98,13 @@ flowchart LR
 Mudar a regra muda o tipo, e o TypeScript aponta todo lugar que precisa
 acompanhar. É o oposto de manter `type` e `validar()` sincronizados na mão.
 
-**O princípio: duas fontes de verdade sempre divergem — a questão é quando.**
+Esse é o terceiro problema da lista lá de cima, resolvido. E vale nomear o que
+aconteceu, porque a ideia é maior que o Zod: **duas descrições da mesma regra
+sempre acabam divergindo — a única questão é quando.** Nada obriga o `type` e o
+`if` a concordarem, e nada avisa no dia em que param.
 
-O `type` escrito à mão e o `if` de validação descrevem a mesma regra em dois
-lugares. Nada obriga os dois a concordarem, e nada avisa quando param de
-concordar: você adiciona um campo no `type`, esquece o `if`, e o TypeScript
-continua feliz porque `req.body` é `any`.
-
-Derivar um do outro (`z.infer`) elimina a categoria inteira de bug. É a mesma
-ideia que aparece em:
+Derivar um do outro elimina a categoria inteira de bug, porque não há mais dois.
+É a mesma ideia que volta em vários pontos do curso:
 
 | Onde                             | O derivado                       |
 | -------------------------------- | -------------------------------- |
@@ -106,6 +119,34 @@ ideia que aparece em:
 > escreve os tipos de **domínio** à mão: o negócio não deve depender do Zod. O
 > schema descreve o que a API aceita; o domínio, o que o negócio é. Eles se
 > parecem hoje e podem divergir amanhã.
+
+### Onde a validação acontece, e por que ali
+
+Com o schema pronto, falta decidir **quando** ele roda. A resposta é: o mais cedo
+possível, antes de qualquer código seu tocar no dado.
+
+Isso desenha uma linha no seu sistema. De um lado dela, o dado é o que chegou pela
+rede e pode ser qualquer coisa. Do outro, ele já passou pelo schema — e daí para
+frente o seu código pode simplesmente confiar:
+
+```mermaid
+flowchart LR
+    F([mundo lá fora<br/>body · query · header · API terceira]) --> V["validação<br/><i>a linha</i>"]
+    V --> D["daqui para dentro:<br/>o tipo diz a verdade"]
+    style V fill:#fed7aa,stroke:#ea580c,color:#000
+    style D fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
+O ganho de ter uma linha nítida fica claro quando você imagina o contrário. Sem
+ela, cada função ao longo do caminho precisa se perguntar "será que isto já foi
+checado?" — e, na dúvida, checa de novo. A desconfiança se espalha, a checagem se
+repete, e a que **faltou** é invisível, porque não há um lugar onde olhar.
+
+| Validar na linha, uma vez       | Validar espalhado, quando lembra                |
+| ------------------------------- | ----------------------------------------------- |
+| Um lugar só, fácil de auditar   | Checagem repetida, e a que falta é invisível    |
+| Erro chega junto e completo     | Uma mensagem por vez, o usuário corrige em loop |
+| O tipo depois dela é verdadeiro | `any` viajando três camadas adiante             |
 
 ### `z.input` vs `z.output`
 
@@ -247,10 +288,17 @@ marcar o input certo.
 | Onde               | Schema, no middleware | Service / handler                      |
 | Status             | `400`                 | `409`, `403`, `422`                    |
 
-**O princípio que separa as duas: validação é uma função pura da entrada; regra
-de negócio depende do estado do mundo.**
+O que separa as duas colunas é uma diferença só, e ela explica todas as outras
+linhas da tabela: **a validação olha apenas para o que chegou; a regra de negócio
+precisa olhar para o mundo.**
 
-A consequência é bem concreta, e não é sobre organização de pastas:
+"Este título tem 3 caracteres?" se responde com o texto na mão. "Já existe outro
+curso com este título?" exige ir ao banco perguntar — e a resposta muda conforme
+o tempo passa.
+
+Em termos de código: a validação é uma [função pura](./00-glossario.md), e a
+regra de negócio não é. A consequência disso é bem concreta, e não é sobre
+organização de pastas:
 
 | Propriedade                      | Validação                    | Regra de negócio                   |
 | -------------------------------- | ---------------------------- | ---------------------------------- |
@@ -363,13 +411,15 @@ flowchart LR
 
 ## Os princípios deste módulo
 
-| Princípio                                                                         | Onde reaparece |
-| --------------------------------------------------------------------------------- | -------------- |
-| **A validação é a fronteira:** dentro dela dá para confiar, fora não.             | 08, 11, 13     |
-| **Duas fontes de verdade sempre divergem** — derive uma da outra.                 | 08, 10, 20     |
-| **Todo campo aberto precisa de um teto** — limite é validação e é defesa.         | 13, 15         |
-| **Validação é função pura da entrada; regra de negócio depende do estado.**       | 08, 11         |
-| **Rejeite o que você não conhece** (`.strict()`) em vez de descartar em silêncio. | 13             |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                    | Onde volta |
+| -------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| A validação é a linha do sistema: depois dela o tipo diz a verdade, antes dela o dado pode ser qualquer coisa.             | 08, 11, 13 |
+| A mesma regra escrita em dois lugares vai divergir; a única questão é quando. Derive um do outro e não haverá dois.        | 08, 10, 20 |
+| Todo campo aberto precisa de um teto. `?porPagina=999999` é um pedido bem formado que derruba o servidor.                  | 13, 15     |
+| A validação olha só para o que chegou; a regra de negócio precisa consultar o mundo — e por isso só ela exige ir ao banco. | 08, 11     |
+| Campo que você não conhece é rejeitado, não descartado em silêncio. Descartar esconde o erro de digitação de quem chamou.  | 13         |
 
 ## Para ir além
 
