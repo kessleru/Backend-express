@@ -1,4 +1,4 @@
-# Onde a sessão parou — 2026-08-13
+# Onde a sessão parou — 2026-08-13 (revisão didática CONCLUÍDA)
 
 > Bilhete para a próxima sessão. O planejamento completo continua em
 > [`GUIA-IMPLEMENTACAO.md`](GUIA-IMPLEMENTACAO.md) (seção 2 = achados técnicos,
@@ -6,11 +6,14 @@
 
 ## Resumo em uma linha
 
-**Revisão didática em andamento**: as regras de escrita foram trocadas e os
-**docs 01 a 05 já foram reescritos** sob elas. Faltam os docs 06 a 14, a passada
-final, os SVGs e os sumários.
+**Revisão didática concluída**: as regras de escrita foram trocadas e **os 14
+docs foram reescritos** sob elas, cada um verificado rodando o exemplo. Entraram
+também o glossário, os sumários navegáveis, dois SVGs e a limpeza da raiz.
 
-## ▶ O QUE ESTÁ ACONTECENDO AGORA
+**Nada da revisão foi mergeado em `main`** — está tudo na branch
+`revisao-didatica-docs`.
+
+## ▶ POR QUE ESTA REVISÃO ACONTECEU
 
 O usuário travou no módulo 05 e disse o que estava errado:
 
@@ -71,51 +74,46 @@ Quatro regras substituídas e três novas:
 7. **Novo:** rampa — `## Conceitos` abre no mínimo; o avançado vai para a seção
    nova `## Se quiser ir mais fundo`.
 
-## O que já foi feito nesta sessão
+## O que foi feito nesta sessão
 
-| #   | Tarefa                           | Estado |
-| --- | -------------------------------- | ------ |
-| 1   | Regras novas no CLAUDE.md e guia | ✅     |
-| 2   | `docs/00-glossario.md` criado    | ✅     |
-| 3   | Raiz limpa                       | ✅     |
-| 4   | README enxuto                    | ✅     |
-| 5   | Doc 01 — HTTP                    | ✅     |
-| 6   | Doc 02 — Node e async            | ✅     |
-| 7   | Doc 03 — Express básico          | ✅     |
-| 8   | Doc 04 — Roteamento              | ✅     |
-| 9   | Doc 05 — Middlewares             | ✅     |
+As 21 tarefas do plano, todas concluídas. Um commit por tarefa.
 
 **Mudanças estruturais no repo:**
 
 - `GUIA-IMPLEMENTACAO.md`, `GUIA-README.md` e este arquivo saíram da raiz e foram
   para `.projeto/`. Sobram `README.md` e `CLAUDE.md` na raiz.
 - `docs/imagens/` virou `assets/` — as imagens são do README, não material de
-  estudo. O `gerar.mjs` escreve em `import.meta.dirname`, então funciona no lugar
-  novo (verificado: os 4 SVGs saem idênticos).
-- `docs/00-glossario.md`, novo: 30 termos em linguagem comum, com link para o
-  módulo onde cada ideia é desenvolvida. **Cresce a cada doc revisado.**
+  estudo, e `docs/` agora só tem os módulos e o glossário. O `gerar.mjs` escreve
+  em `import.meta.dirname`, então funciona no lugar novo (verificado: os 4 SVGs
+  saem idênticos).
+- `docs/00-glossario.md`, novo: **34 termos** em linguagem comum, com link para o
+  módulo onde cada ideia é desenvolvida.
 - README de 241 → 179 linhas. As 5 tabelas de currículo viraram uma.
+- **Sumário navegável em cada doc**, gerado por `.projeto/gerar-sumarios.mjs`
+  (idempotente — dá para rodar de novo quando um doc ganhar seções). As 281
+  âncoras foram conferidas contra os títulos reais.
 
-### Dois achados de conteúdo errado
+### Quatro achados de conteúdo errado, todos corrigidos
 
 1. **Doc 02** prometia `/io 1530ms → outro cliente esperou 13ms` e
    `/cpu 1364ms → 1364ms`. **Essas rotas não existem em lugar nenhum do repo** —
    os números não saíram de medição reproduzível. Trocado pela saída real do
    `medindo-tempo.ts` (~10ms com I/O, ~370ms com cálculo).
-2. **Docs 06 e 09** têm 4 links para módulos que não existem
-   (`15-performance-e-cache.md`, `16-deploy-docker-ci.md`, `17-jobs-e-filas.md`).
-   **Ainda não corrigidos** — estão anotados nas tarefas 10 e 13.
+2. **Doc 10** afirmava que o repositório do 09 tem 172 linhas e o do 10 tem ~90.
+   Têm **134 e 113**. O argumento foi reescrito: o ganho do ORM não é escrever
+   menos código, é que tipo de código sumiu.
+3. **Docs 06 e 09** tinham 4 links para módulos que não existem (15, 16 e 17).
+   Viraram texto simples dizendo "ainda não escrito".
+4. **Doc 08** tinha o mesmo aviso duplicado em dois lugares do arquivo.
 
-## O que falta
+### Um achado que virou aviso no doc
 
-| #     | Tarefa                                   |
-| ----- | ---------------------------------------- |
-| 10–18 | Docs **06 a 14**, um por vez, na ordem   |
-| 19    | Passada final (glossário, links, testes) |
-| 20    | SVGs conceituais                         |
-| 21    | Sumário em cada doc                      |
+O exemplo do módulo 09 é o primeiro do curso que **grava em disco**. Os `curl`
+dão os status prometidos na primeira execução; na segunda, o `201` vira `409`
+porque o curso ficou gravado. O doc não dizia isso — quem rodasse duas vezes
+acharia que o material mentiu. Entrou o aviso com `rm -f data/exemplo-09.sqlite*`.
 
-### Tarefa 20 — SVGs
+### Os dois SVGs
 
 Pedido do usuário, com limite explícito dito duas vezes: **"não quero que você
 encha de imagem, coloque onde cairia muito bem na explicação"**. E não precisa
@@ -127,24 +125,24 @@ público. Os SVGs são escritos à mão, em `assets/`, no mesmo painel escuro
 escuro sem depender de `prefers-color-scheme`, que não é confiável dentro de
 `<img>` no GitHub.
 
-**Feito:** `assets/modulo-05-pilha.svg` — três momentos da mesma requisição, a
-pilha parada e o índice `i` andando. É a coisa que mermaid não consegue mostrar.
+Ficaram **dois**, e só dois:
 
-**Candidatos restantes:** módulo 02 (a thread devolvida ao event loop durante um
-`await`), módulo 01 (anatomia anotada de uma requisição HTTP), módulo 08 (as
-camadas e quem chama quem).
+| Arquivo                       | O que mostra                                                                       |
+| ----------------------------- | ---------------------------------------------------------------------------------- |
+| `assets/modulo-05-pilha.svg`  | Três momentos da mesma requisição: a pilha parada e o índice `i` andando           |
+| `assets/modulo-02-thread.svg` | Linha do tempo: a requisição A espera 300ms e a única thread atende a B nesse meio |
 
-### Tarefa 21 — Sumários
+**Descartados de propósito**, e o motivo — vale manter o critério em sessões
+futuras:
 
-Índice navegável no topo de cada doc, logo depois do "Em uma frase", para quem
-chega com uma dúvida específica. Markdown puro com âncoras (`[Título](#titulo)`),
-que rolam a página sozinhas no GitHub e no preview do VS Code. **Não usar**
-`@import "[TOC]"` — é sintaxe do Markdown Preview Enhanced e está proibida.
+- **Módulo 01**, anatomia da requisição: o bloco ` ```http ` com as setas `←` já
+  mostra isso melhor que um desenho mostraria.
+- **Módulo 08**, camadas: o mermaid existente resolve.
 
-Fazer numa passada só, depois dos 14 docs, para o formato sair consistente. Falta
-conferir como as âncoras se comportam com acento.
+A regra que ficou: **se um mermaid ou um bloco de código já resolve, não faça
+SVG.**
 
-## Como cada doc está sendo revisado
+## Como cada doc foi revisado
 
 1. Ler o doc inteiro antes de editar.
 2. Para cada bloco de princípio: a mecânica que o justifica já apareceu antes? Se
@@ -158,13 +156,36 @@ conferir como as âncoras se comportam com acento.
 
 ### Verificações feitas por módulo
 
-| Doc | Como foi verificado                                                                                                                                                        |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 01  | Porta 4001: 4 curl + os resultados dos mini desafios 2, 4, 5 e 6 (5 headers; 201/201/400; `ana`; `HEAD` → 404)                                                             |
-| 02  | Os 3 scripts; a ordem `a d c b` rodada num arquivo separado                                                                                                                |
-| 03  | Porta 5051: 14 curl, incluindo `?maxHoras=abc` → 400, vazio → 400, `=0` → 200                                                                                              |
-| 04  | Porta 5052: 9 curl + wildcard vira array, literal antes de `:id`, aninhado herda o `:id`. `mergeParams` testado num arquivo à parte: sem ele vem `null`, com ele vem `'3'` |
-| 05  | Porta 5053: 9 curl, incluindo `/travado` estourando por timeout (curl exit 28)                                                                                             |
+| Doc | Como foi verificado                                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 01  | Porta 4001: 4 curl + os resultados dos mini desafios 2, 4, 5 e 6 (5 headers; 201/201/400; `ana`; `HEAD` → 404)                                                                               |
+| 02  | Os 3 scripts; a ordem `a d c b` rodada num arquivo separado                                                                                                                                  |
+| 03  | Porta 5051: 14 curl, incluindo `?maxHoras=abc` → 400, vazio → 400, `=0` → 200                                                                                                                |
+| 04  | Porta 5052: 9 curl + wildcard vira array, literal antes de `:id`, aninhado herda o `:id`. `mergeParams` testado num arquivo à parte: sem ele vem `null`, com ele vem `'3'`                   |
+| 05  | Porta 5053: 9 curl, incluindo `/travado` estourando por timeout (curl exit 28)                                                                                                               |
+| 06  | Porta 5054: 9 curl. O par que o doc descreve: cliente recebe genérico com `requestId`, terminal recebe a stack                                                                               |
+| 07  | Porta 5055: 8 curl. Três erros numa resposta só; `.strict()` rejeitando `hora`; trim com defaults; PATCH que **não** zera `publicado`                                                        |
+| 08  | Porta 5056: 7 curl. E a promessa do doc conferida com `diff -rq`: os services do 08 e do 10 são mesmo idênticos                                                                              |
+| 09  | Porta 5057, **com banco limpo**: 201 e depois 409 (o `UNIQUE` é case-insensitive). Injeção testada de verdade: título com `DROP TABLE` volta vazio e a tabela fica de pé                     |
+| 10  | Porta 5058, depois de `db:generate` + `db:migrate` + `db:seed`: 5 curl                                                                                                                       |
+| 11  | Porta 5059: registro, login, `/eu` com e sem token, RBAC (o 1º cadastrado vira admin por desenho — o 403 só aparece do 2º em diante), e a mensagem de login idêntica nos dois casos de falha |
+| 12  | `npm test`: 113 testes, 10 arquivos                                                                                                                                                          |
+| 13  | Portas 5063 e 5064, cada par insegura × segura: rate limit (429 na 6ª), path traversal (400 × 200), helmet (4 headers × 0), login que vaza × que não vaza                                    |
+| 14  | Porta 5064: `/health` continua 200 com o banco fora e `/ready` vai a 503; o `redact` deixa a senha como `[REDACTED]` mesmo com o corpo inteiro sendo logado de propósito                     |
+
+### A passada final
+
+```
+grep de aforismo remanescente  → 0  (eram 36)
+regra velha que voltou         → 0
+uso de [!NOTE] / @import       → 0  (as ocorrências são as regras que os proíbem)
+links relativos quebrados      → 0  (fora ../../actions, que é URL do GitHub num exemplo)
+âncoras de sumário conferidas  → 281, nenhuma quebrada
+npm run typecheck              → passa
+npm run typecheck:ex           → passa
+npm test                       → 113 testes, verde
+npm run build                  → passa, e dist/ sai sem arquivo de teste
+```
 
 ## Pendências anteriores, que continuam de pé
 
@@ -189,15 +210,15 @@ Nada disto foi tocado nesta sessão, e nada disto está no escopo da revisão:
 | 03 Express básico         | ✅  | ✅            | ✅      | ✅        | ✅           |
 | 04 Roteamento             | ✅  | ✅            | ✅      | ✅        | ✅           |
 | 05 Middlewares            | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 06 Tratamento de erros    | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 07 Validação (Zod)        | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 08 Arquitetura em camadas | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 09 SQLite e SQL           | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 10 Prisma (ORM)           | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 11 Autenticação           | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| 12 Testes                 | ✅  | ⬜            | ✅      | ✅        | ✅           |
-| **13 Segurança**          | ✅  | ⬜            | ✅      | ✅        | ❌ **falta** |
-| **14 Observabilidade**    | ✅  | ⬜            | ✅      | ✅        | ❌ **falta** |
+| 06 Tratamento de erros    | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 07 Validação (Zod)        | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 08 Arquitetura em camadas | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 09 SQLite e SQL           | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 10 Prisma (ORM)           | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 11 Autenticação           | ✅  | ✅            | ✅      | ✅        | ✅           |
+| 12 Testes                 | ✅  | ✅            | ✅      | ✅        | ✅           |
+| **13 Segurança**          | ✅  | ✅            | ✅      | ✅        | ❌ **falta** |
+| **14 Observabilidade**    | ✅  | ✅            | ✅      | ✅        | ❌ **falta** |
 | 15–20                     | ❌  | —             | ❌      | ❌        | ❌           |
 
 ## Convenções que se firmaram e valem manter
