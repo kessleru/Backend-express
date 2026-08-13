@@ -299,14 +299,21 @@ editor de texto — que é exatamente o ponto.
 ```
 Backend-express/
 ├── CLAUDE.md                    # regras curtas para o Claude Code
-├── GUIA-IMPLEMENTACAO.md        # este arquivo
 ├── README.md                    # porta de entrada + índice do currículo
 ├── .gitignore                   # restaurado (foi deletado)
 ├── .env.example                 # variáveis de ambiente documentadas
 ├── package.json
 ├── tsconfig.json
 │
+├── .projeto/                    # 🔧 INTERNO — nada aqui é material de estudo
+│   ├── GUIA-IMPLEMENTACAO.md    #    este arquivo
+│   ├── GUIA-README.md           #    como fazer o README do GitHub
+│   ├── ULTIMO.md                #    bilhete entre sessões
+│   ├── specs/                   #    desenhos aprovados
+│   └── plans/                   #    planos de execução
+│
 ├── docs/                        # 📚 TEORIA — um arquivo por módulo
+│   ├── 00-glossario.md          #    toda palavra técnica, em uma frase
 │   ├── 01-fundamentos-http.md
 │   ├── 02-node-modulos-e-async.md
 │   ├── ...
@@ -786,7 +793,7 @@ leitor viu a coisa funcionar, e é escrita em frase comum.
 
 | Regra                           | Detalhe                                                                                                                                                                                                                                    |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Termo definido na estreia**   | Toda palavra técnica é explicada na primeira vez que aparece, na própria linha ou na seguinte, e entra em [`docs/00-glossario.md`](./docs/00-glossario.md). Escreveu "aridade" sem dizer que é o número de parâmetros? O leitor parou ali. |
+| **Termo definido na estreia**   | Toda palavra técnica é explicada na primeira vez que aparece, na própria linha ou na seguinte, e entra em [`docs/00-glossario.md`](../docs/00-glossario.md). Escreveu "aridade" sem dizer que é o número de parâmetros? O leitor parou ali. |
 | **Diagrama não adianta módulo** | Um mermaid só pode conter o que já foi ensinado **até aquele módulo**. `helmet` num fluxo do 05 é ruído: o leitor vê sete caixas e reconhece duas. O que depende de módulo futuro vai para `## Se quiser ir mais fundo`.                   |
 | **Rampa**                       | `## Conceitos` abre no caso mínimo e cresce. Comparação com outro framework, caso de borda e nome acadêmico do padrão saem do corpo do módulo.                                                                                             |
 

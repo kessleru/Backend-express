@@ -3,7 +3,7 @@
 Repositório de **estudo de backend**: Node.js + Express + TypeScript, do básico
 ao avançado. O objetivo é ensinar, não entregar produto.
 
-**Antes de qualquer coisa, leia `GUIA-IMPLEMENTACAO.md`.** Ele tem o currículo
+**Antes de qualquer coisa, leia `.projeto/GUIA-IMPLEMENTACAO.md`.** Ele tem o currículo
 completo (20 módulos), o catálogo de ferramentas e a tabela de progresso
 (seção 9) que diz onde o trabalho parou.
 

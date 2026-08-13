@@ -5,7 +5,7 @@
 **Um curso de backend em 20 módulos, em português.**<br>
 Teoria densa, código que roda de verdade e um exercício por módulo.
 
-[![Módulos](https://img.shields.io/badge/módulos-14%20de%2020-fbbf24?style=for-the-badge)](./GUIA-IMPLEMENTACAO.md#9-roadmap-de-execução)
+[![Módulos](https://img.shields.io/badge/módulos-14%20de%2020-fbbf24?style=for-the-badge)](./.projeto/GUIA-IMPLEMENTACAO.md#9-roadmap-de-execução)
 [![Testes](https://img.shields.io/badge/testes-113%20passando-4ade80?style=for-the-badge)](./docs/12-testes.md)
 [![Node](https://img.shields.io/badge/node-24-3f8f43?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](./tsconfig.json)
@@ -236,6 +236,6 @@ que o Node já substitui nativamente.
 
 <div align="center">
 
-Planejamento completo e estado do projeto: [`GUIA-IMPLEMENTACAO.md`](./GUIA-IMPLEMENTACAO.md)
+Planejamento completo e estado do projeto: [`.projeto/GUIA-IMPLEMENTACAO.md`](./.projeto/GUIA-IMPLEMENTACAO.md)
 
 </div>
