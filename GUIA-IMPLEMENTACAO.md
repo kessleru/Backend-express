@@ -23,11 +23,12 @@ Público-alvo: você, estudando do zero até conseguir projetar uma API de produ
 
 Idioma: **português** em toda documentação e comentários.
 
-**Estilo: completo em cobertura, denso em conteúdo, enxuto em texto.** Todos os
-20 módulos existem, cada um vai ao fundo do assunto, e o corte é de redundância —
-nunca de profundidade. Código e tabela no lugar de parágrafo. O padrão
-obrigatório está na seção 7, e a régua de qualidade de ensino é a subseção
-"Qualidade de ensino" — ela vale acima das outras regras de estilo.
+**Estilo: completo em cobertura e em explicação.** Todos os 20 módulos existem,
+cada um vai ao fundo do assunto, e o corte é de redundância — nunca de
+profundidade nem de clareza. Tabela compara e enumera **depois** da explicação,
+não no lugar dela. O padrão obrigatório está na seção 7, e a régua de qualidade
+de ensino é a subseção "Qualidade de ensino" — ela vale acima das outras regras
+de estilo.
 
 ---
 
@@ -147,6 +148,13 @@ reescrever o que já existia** (regra 7 da seção 10):
   princípio aos módulos onde ele reaparece.
 - **Custos declarados** onde havia só elogio: o que o Express cobra (03), o que
   camadas custam (08), o que o ORM esconde (10), o que o JWT troca por escala (11).
+
+> **Atenção:**
+> O primeiro item acima **foi revertido em 2026-08-13**. Os "blocos de princípio
+> nomeado" viraram 36 aforismos colocados **antes** da mecânica que os
+> explicaria, e o leitor travou no módulo 05. A ordem das cinco camadas foi
+> invertida e a regra de nomear em frase transferível caiu. Ver a seção 7 e o
+> diagnóstico completo em `.projeto/specs/2026-08-13-revisao-didatica-docs-design.md`.
 
 ### Fase 4 em andamento (2026-08-05)
 
@@ -620,7 +628,13 @@ Vale saber por quê — você vai encontrá-las em tutoriais:
 
 ## 7. Padrão de escrita dos módulos
 
-A meta é **aprender rápido**, não ler um livro. Cobertura completa, texto curto.
+A meta é o leitor **entender**, não passar rápido pelo texto. Cobertura completa
+e explicação completa: o corte é por redundância, nunca por concisão.
+
+> **Atenção:**
+> Aqui dizia "cobertura completa, **texto curto**". Essa frase produziu módulos
+> que citavam conceito sem explicar, e foi trocada na revisão de 2026-08-13.
+> Módulo longo não é defeito; módulo em que o leitor trava numa palavra é.
 
 ### Template obrigatório de cada `docs/NN-*.md`
 
@@ -635,11 +649,15 @@ A meta é **aprender rápido**, não ler um livro. Cobertura completa, texto cur
 
 ## Conceitos
 
-Tabela ou bullets curtos. Um conceito por linha.
+Um conceito por vez, e cada um pelas cinco camadas na ordem: problema →
+mecânica → princípio → trade-off → consequência. Abre no caso mínimo e cresce.
+Tabela serve para comparar e enumerar, **depois** da explicação — nunca no
+lugar dela.
 
 ## Na prática
 
-Código comentado. É aqui que mora a explicação de verdade.
+O exemplo do módulo rodando, com os comandos e a saída que eles devolvem
+de verdade.
 
 ## Erros comuns
 
@@ -651,11 +669,18 @@ O resumo que você volta pra consultar depois.
 
 ## Os princípios deste módulo
 
-Tabela: princípio nomeado + em que módulos ele reaparece.
+Tabela: o princípio em frase comum + em que módulos ele reaparece. É recapitulação
+do que o leitor já viu no corpo — nunca a primeira aparição da ideia.
 
 ## Mini desafios
 
 Perguntas curtas que se respondem RODANDO. Formato na subseção abaixo.
+
+## Se quiser ir mais fundo
+
+Comparação com outros frameworks, nome acadêmico do padrão, caso de borda,
+detalhe de implementação. Tudo que é verdade mas atrapalha a primeira leitura.
+Some a seção inteira se o módulo não tiver nada assim.
 
 ## Para ir além
 
@@ -687,14 +712,14 @@ depois dos princípios, e não substituem o exercício da pasta `exercicios/`.
 
 ### Regras
 
-| Regra             | Limite                                                               |
-| ----------------- | -------------------------------------------------------------------- |
-| Tamanho do módulo | **Sem limite.** Acaba quando o assunto acaba, não na linha N.        |
-| Parágrafo         | Máximo 4 linhas. Sem muro de texto.                                  |
-| Prosa vs código   | Se dá pra mostrar em código comentado, mostre em código.             |
-| Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração.             |
-| Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora. |
-| Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.    |
+| Regra             | Limite                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tamanho do módulo | **Sem limite.** Acaba quando o assunto acaba, não na linha N.                                                                                     |
+| Parágrafo         | **Uma ideia.** O limite é a ideia, não a linha: um parágrafo de 8 linhas que desenvolve um raciocínio fica; dois de 3 dizendo a mesma coisa saem. |
+| Prosa e código    | Código mostra o **quê**; o texto ao redor diz o **porquê** e o que observar. Bloco de código entre dois títulos, sem texto, é defeito.            |
+| Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração — **não** para substituir a explicação que precede a comparação.                          |
+| Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora.                                                                              |
+| Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.                                                                                 |
 
 ### Qualidade de ensino — o padrão que vale acima de tudo
 
@@ -707,35 +732,63 @@ num caso que o módulo não mostrou?
 
 #### As cinco camadas obrigatórias de todo conceito
 
-Todo conceito que entra num módulo passa pelas cinco. Faltou uma, o conceito
-está pela metade:
+Todo conceito que entra num módulo passa pelas cinco, **nesta ordem**. Faltou
+uma, o conceito está pela metade; fora de ordem, o leitor trava:
 
-| #   | Camada           | Pergunta que responde                        | Como cortar se ficar longo        |
-| --- | ---------------- | -------------------------------------------- | --------------------------------- |
-| 1   | **Problema**     | Que dor existia antes disto?                 | Vira uma frase, nunca some        |
-| 2   | **Princípio**    | Qual é a ideia geral, além desta ferramenta? | **Não corte. É o conteúdo.**      |
-| 3   | **Mecânica**     | Como funciona por baixo?                     | Vira diagrama ou código comentado |
-| 4   | **Trade-off**    | O que isto custa e quando **não** usar?      | Vira linha de tabela              |
-| 5   | **Consequência** | O que muda no código de quem usa?            | Vira o exemplo executável         |
+| #   | Camada           | Pergunta que responde                               | Como cortar se ficar longo                 |
+| --- | ---------------- | --------------------------------------------------- | ------------------------------------------ |
+| 1   | **Problema**     | Que dor existia antes disto?                        | Vira uma frase, nunca some                 |
+| 2   | **Mecânica**     | Como funciona por baixo?                            | **Não corte. É o que responde "por quê".** |
+| 3   | **Princípio**    | Que ideia geral isto que você acabou de ver mostra? | Vira uma frase, sempre depois da mecânica  |
+| 4   | **Trade-off**    | O que isto custa e quando **não** usar?             | Vira linha de tabela                       |
+| 5   | **Consequência** | O que muda no código de quem usa?                   | Vira o exemplo executável                  |
 
-> **Importante:** A camada 2 é a razão de o repositório existir. Express, Zod e Prisma mudam;
-> "não confie no cliente", "estado compartilhado precisa de coordenação" e
-> "custo assimétrico" não. **Sempre nomeie o princípio**, em negrito, com uma
-> frase que faça sentido fora do contexto da ferramenta.
+> **Atenção:**
+> **A ordem é obrigatória.** Princípio antes da mecânica foi o defeito que
+> motivou a revisão de 2026-08-13: o leitor ouvia o nome de uma coisa que ainda
+> não tinha visto acontecer, e parava ali.
+>
+> O caso que provocou a mudança estava no módulo 05: _"middleware é composição de
+> funções sobre um valor mutável — a mágica do framework é uma lista de funções e
+> um índice que anda"_. A lista e o índice nunca eram mostrados. O leitor
+> perguntou, com razão: **que valor mutável? que índice?**
+
+A camada 3 continua sendo a razão de o repositório existir — Express, Zod e
+Prisma mudam; "não confie no cliente" e "estado compartilhado precisa de
+coordenação" não. Mas ela é **conclusão, não premissa**: só entra depois que o
+leitor viu a coisa funcionar, e é escrita em frase comum.
+
+> **Cuidado:**
+> Se a frase precisa ser decorada para fazer sentido, ela está errada.
+>
+> "**A senha nunca é armazenada**" é princípio: qualquer pessoa entende, e
+> continua valendo quando o argon2 for substituído.
+>
+> "**Middleware é composição de funções sobre um valor mutável**" é aforismo:
+> soa profundo, exige três definições que não foram dadas, e não ensina ninguém
+> a decidir nada.
 
 #### Regras de material e exemplo
 
-| Regra                          | Detalhe                                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **Princípio nomeado**          | Em negrito e numa frase transferível: "**a senha nunca é armazenada**", não "usamos hash".               |
-| **Mostre a dor primeiro**      | O jeito ruim (comentado como ruim) antes do bom. Ferramenta sem dor prévia vira ritual.                  |
-| **Toda decisão tem um porquê** | Nenhum número, flag ou opção entra sem a frase que explica a escolha. `memoryCost: 19456` — por quê?     |
-| **Diga o custo**               | Toda técnica tem contrapartida. Módulo que só elogia a ferramenta não ensina a escolher.                 |
-| **Exemplo é progressivo**      | Começa mínimo e cresce. Um arquivo de 200 linhas despejado de uma vez não ensina, só impressiona.        |
-| **Exemplo é real**             | Reusa o domínio da biblioteca. Nada de `foo`/`bar` — o leitor tem que reconhecer o problema.             |
-| **Erro comum é reproduzível**  | A tabela "Erros comuns" descreve o sintoma exato (mensagem, status, comportamento), não "pode dar erro". |
-| **Falso amigo explicitado**    | O que "parece certo e está errado" (`.partial()` no PATCH, `decode` no lugar de `verify`) vira destaque. |
-| **Fecha o ciclo**              | O módulo lembra o que veio antes e diz qual módulo resolve o que ficou em aberto (`// TODO`).            |
+| Regra                          | Detalhe                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Princípio derivado**         | Aparece **depois** da mecânica que o sustenta, em frase comum. O leitor tem que conseguir dizer "ah, é isso que eu acabei de ver". |
+| **Mostre a dor primeiro**      | O jeito ruim (comentado como ruim) antes do bom. Ferramenta sem dor prévia vira ritual.                                            |
+| **Toda decisão tem um porquê** | Nenhum número, flag ou opção entra sem a frase que explica a escolha. `memoryCost: 19456` — por quê?                               |
+| **Diga o custo**               | Toda técnica tem contrapartida. Módulo que só elogia a ferramenta não ensina a escolher.                                           |
+| **Exemplo é progressivo**      | Começa mínimo e cresce. Um arquivo de 200 linhas despejado de uma vez não ensina, só impressiona.                                  |
+| **Exemplo é real**             | Reusa o domínio da biblioteca. Nada de `foo`/`bar` — o leitor tem que reconhecer o problema.                                       |
+| **Erro comum é reproduzível**  | A tabela "Erros comuns" descreve o sintoma exato (mensagem, status, comportamento), não "pode dar erro".                           |
+| **Falso amigo explicitado**    | O que "parece certo e está errado" (`.partial()` no PATCH, `decode` no lugar de `verify`) vira destaque.                           |
+| **Fecha o ciclo**              | O módulo lembra o que veio antes e diz qual módulo resolve o que ficou em aberto (`// TODO`).                                      |
+
+#### Três regras que entraram na revisão de 2026-08-13
+
+| Regra                           | Detalhe                                                                                                                                                                                                                                    |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Termo definido na estreia**   | Toda palavra técnica é explicada na primeira vez que aparece, na própria linha ou na seguinte, e entra em [`docs/00-glossario.md`](./docs/00-glossario.md). Escreveu "aridade" sem dizer que é o número de parâmetros? O leitor parou ali. |
+| **Diagrama não adianta módulo** | Um mermaid só pode conter o que já foi ensinado **até aquele módulo**. `helmet` num fluxo do 05 é ruído: o leitor vê sete caixas e reconhece duas. O que depende de módulo futuro vai para `## Se quiser ir mais fundo`.                   |
+| **Rampa**                       | `## Conceitos` abre no caso mínimo e cresce. Comparação com outro framework, caso de borda e nome acadêmico do padrão saem do corpo do módulo.                                                                                             |
 
 #### O mesmo padrão no código
 
@@ -944,8 +997,9 @@ retomar.
    doc precisa explicar qual problema ela resolve e o que ela custa.
 6. **Explique o porquê, não só o como.** O objetivo é ensinar princípios de
    backend; o Express é o veículo. Todo conceito passa pelas cinco camadas da
-   seção 7 (problema → princípio → mecânica → trade-off → consequência), e o
-   princípio é sempre **nomeado** em uma frase que vale fora da ferramenta.
+   seção 7 **nesta ordem** (problema → **mecânica** → princípio → trade-off →
+   consequência). O princípio vem depois de o leitor ver a coisa funcionar, e é
+   escrito em frase comum — nunca aforismo.
 7. **Não reescreva módulos já concluídos** por preferência de estilo. Corrija
    erro e acrescente profundidade que falta — não troque redação por gosto.
 8. **Siga o padrão de escrita da seção 7.** Corte o que se repete ou não muda uma
