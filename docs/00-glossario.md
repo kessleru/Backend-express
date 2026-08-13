@@ -27,10 +27,11 @@ ganha o problema que resolve, o custo e o exemplo rodando.
 
 ## C
 
-| Termo          | O que é                                                                                                                          | Onde                       |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| **claim**      | Cada pedaço de informação guardado dentro de um token: quem é o usuário, quando o token expira, que papel ele tem.               | [11](./11-autenticacao.md) |
-| **composição** | Encadear funções pequenas, de forma que uma prepare o terreno para a próxima, em vez de escrever uma função grande que faz tudo. | [05](./05-middlewares.md)  |
+| Termo                     | O que é                                                                                                                                                                                                                  | Onde                           |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| **chave de idempotência** | Um identificador único que o cliente inventa para a tentativa e manda junto. O servidor guarda o resultado por chave e, na repetição, devolve o mesmo sem refazer nada. É como API de pagamento evita cobrar duas vezes. | [01](./01-fundamentos-http.md) |
+| **claim**                 | Cada pedaço de informação guardado dentro de um token: quem é o usuário, quando o token expira, que papel ele tem.                                                                                                       | [11](./11-autenticacao.md)     |
+| **composição**            | Encadear funções pequenas, de forma que uma prepare o terreno para a próxima, em vez de escrever uma função grande que faz tudo.                                                                                         | [05](./05-middlewares.md)      |
 
 ## E
 
@@ -57,6 +58,7 @@ ganha o problema que resolve, o custo e o exemplo rodando.
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | **idempotente**             | Repetir a operação 10 vezes deixa o sistema no mesmo estado que fazer 1 vez. `DELETE /livros/7` é idempotente: apagar o que já foi apagado não muda mais nada.                                        | [01](./01-fundamentos-http.md), [03](./03-express-basico.md) |
 | **índice (da pilha)**       | O contador que o Express usa para lembrar em que altura da fila de funções aquela requisição está. `next()` faz ele andar uma casa; se ninguém chama `next()`, ele para e a requisição nunca termina. | [05](./05-middlewares.md)                                    |
+| **instância**               | Uma cópia do seu servidor rodando. Ter três instâncias é ter o mesmo programa aberto em três lugares, atendendo requisições em paralelo.                                                              | [01](./01-fundamentos-http.md)                               |
 | **inversão de dependência** | Em vez de a peça criar sozinha aquilo que ela usa, ela **recebe pronto** de fora. Isso permite trocar a peça de baixo (o banco, por exemplo) sem tocar na de cima.                                    | [08](./08-arquitetura-em-camadas.md)                         |
 
 ## K
@@ -67,15 +69,17 @@ ganha o problema que resolve, o custo e o exemplo rodando.
 
 ## L
 
-| Termo     | O que é                                                                                                                                           | Onde                               |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
-| **libuv** | A biblioteca em C que o Node usa por baixo para conversar com o sistema operacional e descobrir quando uma operação de disco ou de rede terminou. | [02](./02-node-modulos-e-async.md) |
+| Termo             | O que é                                                                                                                                                                                            | Onde                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **libuv**         | A biblioteca em C que o Node usa por baixo para conversar com o sistema operacional e descobrir quando uma operação de disco ou de rede terminou.                                                  | [02](./02-node-modulos-e-async.md) |
+| **load balancer** | Quem fica na frente de várias cópias do seu servidor e decide qual delas atende cada requisição. Reparte por carga, não por usuário — então duas requisições suas podem cair em cópias diferentes. | [01](./01-fundamentos-http.md)     |
 
 ## M
 
-| Termo          | O que é                                                                                                                                               | Onde                      |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| **middleware** | Uma função que roda no meio do caminho entre a requisição chegar e a resposta sair. Pode olhar, alterar, deixar passar adiante ou encerrar ali mesmo. | [05](./05-middlewares.md) |
+| Termo           | O que é                                                                                                                                               | Onde                           |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **middleware**  | Uma função que roda no meio do caminho entre a requisição chegar e a resposta sair. Pode olhar, alterar, deixar passar adiante ou encerrar ali mesmo. | [05](./05-middlewares.md)      |
+| **multiplexar** | Deixar várias trocas de mensagem acontecerem ao mesmo tempo dentro de uma conexão só, em vez de uma esperar a outra. É o que o HTTP/2 faz.            | [01](./01-fundamentos-http.md) |
 
 ## N
 

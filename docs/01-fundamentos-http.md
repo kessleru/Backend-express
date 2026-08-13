@@ -24,23 +24,14 @@ sequenceDiagram
     Note over C,S: conexão encerrada — o servidor não lembra de você
 ```
 
-Uma requisição, uma resposta. Só isso.
+O cliente pergunta, o servidor responde, e acabou. Nenhum dos dois continua
+conversando depois disso.
 
-**O princípio:** HTTP é um **protocolo de texto, sem estado e iniciado pelo
-cliente**. As três palavras carregam consequências que atravessam o curso inteiro:
+### O que viaja no fio, exatamente
 
-| Propriedade         | Consequência que você vai sentir                                                        |
-| ------------------- | --------------------------------------------------------------------------------------- |
-| **Texto** (legível) | Dá para depurar com `curl` e ler no fio — e por isso HTTPS não é opcional               |
-| **Sem estado**      | Toda requisição carrega quem você é; daí token e cookie (módulo 11)                     |
-| **Cliente inicia**  | O servidor **não** consegue te avisar de nada; daí polling, SSE e WebSocket (módulo 18) |
-
-> **Nota:** "Uma requisição, uma resposta" é o modelo mental, não a implementação. Na
-> prática a conexão TCP é reaproveitada (keep-alive) e o HTTP/2 multiplexa várias
-> trocas na mesma conexão. Nada disso muda o seu código — muda o desempenho
-> (módulo 15).
-
-### Anatomia de uma requisição
+Antes de falar em "protocolo", vale ver a coisa. Isto é o que sai do seu
+computador quando você envia um formulário — não uma representação didática, é
+o conteúdo literal dos bytes:
 
 ```http
 POST /cursos?rascunho=true HTTP/1.1     ← método, caminho, query
@@ -51,7 +42,7 @@ Authorization: Bearer abc123
 { "titulo": "Backend do zero" }          ← body: os dados
 ```
 
-E da resposta:
+E isto é o que volta:
 
 ```http
 HTTP/1.1 201 Created                     ← status code
@@ -59,6 +50,51 @@ Content-Type: application/json
 
 { "id": 7, "titulo": "Backend do zero" }
 ```
+
+Repare em três detalhes da estrutura, porque eles são o protocolo inteiro:
+
+1. **A primeira linha diz a intenção.** Na requisição: o que fazer (`POST`) e
+   com o quê (`/cursos`). Na resposta: como foi (`201 Created`).
+2. **Depois vêm os headers**, um por linha, no formato `Nome: valor`. São
+   informações _sobre_ a mensagem — que formato ela tem, quem está mandando.
+3. **Uma linha em branco separa os headers do corpo.** É só isso que marca onde
+   os metadados acabam e os dados começam.
+
+Você pode digitar esse texto à mão num socket e receber a resposta — o **mini
+desafio 1**, no fim deste módulo, faz exatamente isso.
+
+### As três características que esse texto revela
+
+Agora dá para nomear. O que você acabou de ver mostra três coisas sobre HTTP, e
+as três atravessam o curso inteiro:
+
+**1. É texto legível.** Não há formato binário, nem estrutura comprimida: são
+linhas que uma pessoa lê. Por isso dá para depurar com `curl` e ver a mensagem
+exata — e é exatamente por isso que HTTPS não é opcional, porque qualquer um no
+caminho lê o mesmo que você.
+
+**2. É sem estado** (em inglês, _stateless_). O servidor não guarda nada entre
+uma requisição e a seguinte. Repare que o `Authorization: Bearer abc123` está
+_dentro_ da requisição: ele precisa ir junto **toda vez**, porque o servidor
+esqueceu quem você é assim que respondeu a anterior. É daí que vêm token e
+cookie (módulo 11).
+
+**3. Quem começa é sempre o cliente.** Não existe, neste modelo, o servidor
+mandando uma mensagem do nada. Se você quer ser avisado de algo, precisa
+perguntar de novo — ou usar uma técnica que contorne isso, como polling, SSE e
+WebSocket (módulo 18).
+
+> **Nota:**
+> "Uma requisição, uma resposta" é o modelo mental, não a implementação.
+>
+> Na prática a mesma conexão de rede é reaproveitada para várias requisições
+> (**keep-alive**), em vez de abrir uma nova a cada vez — abrir conexão TCP é
+> caro. E o HTTP/2 vai além: ele **multiplexa**, ou seja, deixa várias trocas
+> acontecerem ao mesmo tempo dentro de uma conexão só.
+>
+> Nada disso muda o seu código; muda o desempenho (módulo 15). E o modelo mental
+> continua valendo: cada requisição tem a sua resposta, e o servidor continua não
+> lembrando de você entre elas. O **mini desafio 3** prova isso rodando.
 
 ### Métodos
 
@@ -89,10 +125,9 @@ o contrato com toda a infraestrutura entre você e o cliente.
 > importa quão conveniente seja o link. Já derrubaram bancos de dados inteiros
 > porque um robô de indexação seguiu todos os `<a href="/apagar/1">` de um painel.
 
-E onde a idempotência não existe (`POST`), o jeito de recuperá-la é uma **chave de
-idempotência**: o cliente manda um identificador único da tentativa, o servidor
-guarda o resultado e, na repetição, devolve o mesmo resultado sem refazer nada.
-É como toda API de pagamento resolve isso.
+E quando a operação simplesmente não pode ser idempotente — criar um pedido é
+criar um pedido — existe uma saída, a **chave de idempotência**. Ela está em
+[Se quiser ir mais fundo](#se-quiser-ir-mais-fundo), no fim do módulo.
 
 ### Status codes
 
@@ -164,16 +199,23 @@ poupa o cliente de caçar um bug que não existe.
 | `Cache-Control` | Se e por quanto tempo pode guardar           |
 | `Location`      | Onde está o recurso recém-criado (com `201`) |
 
-### Statelessness
+### Sem estado: para onde o estado vai
 
-O servidor **não lembra** de você entre requisições. Cada uma chega sozinha e
-precisa carregar tudo que é necessário — inclusive quem você é (daí o
-`Authorization` em toda requisição).
+Já vimos que o servidor não lembra de você entre requisições. Falta a parte que
+tem consequência prática: **se o servidor não guarda, alguém guarda.** O estado
+não desaparece por decreto.
 
-**O princípio:** statelessness **empurra o estado para as pontas**. Ele não some
-— vai para o cliente (token, cookie) ou para um armazenamento compartilhado
-(banco, Redis). O que ele nunca deve fazer é morar na memória de **uma** das suas
-instâncias.
+Pense no caso mais simples. Você faz login e recebe um token. Onde esse "estou
+logado" fica guardado?
+
+- **No seu computador**, dentro do token ou do cookie que vai junto em toda
+  requisição. O servidor lê e reconstrói quem você é, do zero, toda vez.
+- **Num lugar que todas as máquinas do servidor enxergam** — um banco, um Redis.
+  O servidor recebe só um identificador e vai buscar o resto ali.
+
+O que não funciona é a terceira opção, que é a tentadora: guardar numa variável
+dentro do processo. Ela parece funcionar perfeitamente enquanto você roda **uma**
+máquina — e quebra no dia em que sobem duas.
 
 ```mermaid
 flowchart LR
@@ -185,19 +227,38 @@ flowchart LR
     style R fill:#dbeafe,stroke:#2563eb,color:#000
 ```
 
-A conta que isso paga aparece em quase todo módulo seguinte:
+Duas palavras do diagrama, caso sejam novas: uma **instância** é uma cópia do seu
+servidor rodando; o **load balancer** é quem fica na frente delas e decide qual
+cópia atende cada requisição. Ele reparte por carga, não por usuário — então
+**duas requisições seguidas da mesma pessoa caem em instâncias diferentes**, e é
+aí que a variável local vira problema.
 
-| Se o estado estivesse na memória de uma instância | O que quebra                        |
-| ------------------------------------------------- | ----------------------------------- |
-| Sessão do usuário                                 | Ele deslogaria a cada 2 requisições |
-| Contador de rate limit (05)                       | O limite triplicaria com 3 réplicas |
-| Lista de refresh revogados (11)                   | Logout não teria efeito nas outras  |
-| Cache (15)                                        | Cada instância cacheia sozinha      |
+É por isso que a caixa do estado compartilhado está fora das três: as três
+precisam enxergar a mesma coisa.
 
-> **Nota:** O custo do modelo é repetição: reenviar o token a cada requisição, e o servidor
-> reconstruir contexto toda vez. Em troca, escalar horizontalmente é ligar mais
-> uma máquina. É a troca que sustenta a web inteira — e um dos poucos casos em
-> que "menos eficiente por requisição" ganha de longe.
+Repare no que quebraria em cada caso concreto, se o estado morasse na memória de
+uma instância só:
+
+| O que ficaria na memória       | O que quebra                                                      |
+| ------------------------------ | ----------------------------------------------------------------- |
+| Sessão do usuário              | Ele desloga a cada duas requisições, sem motivo aparente          |
+| Contador de rate limit (05)    | O limite triplica: 5 tentativas por instância = 15 no total       |
+| Lista de tokens revogados (11) | "Sair de todos os dispositivos" não teria efeito nas outras       |
+| Cache (15)                     | Cada instância cacheia sozinha, e invalidar todas fica impossível |
+
+**A ideia que isso mostra:** o estado não some quando o servidor deixa de
+guardá-lo — ele é **empurrado para as pontas**. Vai para o cliente, que passa a
+carregá-lo em toda requisição, ou para um armazenamento que todas as instâncias
+compartilham. O que ele não pode é morar na memória de uma delas.
+
+**E o que isso custa:** repetição. O token viaja de novo a cada requisição, e o
+servidor reconstrói o contexto toda vez, mesmo que a requisição anterior tenha
+sido há 200ms. É trabalho desperdiçado, e é assumido de propósito.
+
+O que se compra em troca é a escala: se nenhuma instância guarda nada especial,
+adicionar a quarta máquina é só ligá-la. Nenhuma migração de dados, nenhuma
+coordenação. É a troca que sustenta a web inteira, e um dos poucos casos em que
+"menos eficiente por requisição" ganha com folga.
 
 ## Na prática
 
@@ -286,13 +347,16 @@ DELETE /cursos/7      remove        → 204
 
 ## Os princípios deste módulo
 
-| Princípio                                                             | Onde reaparece |
-| --------------------------------------------------------------------- | -------------- |
-| **HTTP é texto, sem estado, e sempre iniciado pelo cliente.**         | 11, 15, 18     |
-| **Statelessness empurra o estado para as pontas** — ele não some.     | 05, 11, 15     |
-| **O status code é a interface com a máquina; o corpo, com a pessoa.** | 06, 14         |
-| **Se a ação muda estado, o método não pode ser `GET`.**               | 03, 13         |
-| **Idempotência é o que torna repetir seguro.**                        | 03, 15, 17     |
+Recapitulando o que o módulo mostrou — cada linha é uma conclusão que você já
+viu acontecer aqui, não uma regra para decorar:
+
+| A ideia                                                                                                                   | Onde volta |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| HTTP é texto legível, o servidor não lembra de você, e quem começa a conversa é sempre o cliente.                         | 11, 15, 18 |
+| O estado não some por o servidor não guardar — ele vai para o cliente ou para um lugar que todas as cópias veem.          | 05, 11, 15 |
+| O status code é lido por máquina (cliente, cache, alerta); o corpo é lido por gente. Mentir no status quebra as máquinas. | 06, 14     |
+| Se a ação muda alguma coisa no servidor, o método não pode ser `GET` — porque `GET` promete não mudar nada.               | 03, 13     |
+| Uma operação que pode ser repetida sem estragar nada é o que permite ao cliente tentar de novo depois de um timeout.      | 03, 15, 17 |
 
 ## Mini desafios
 
@@ -576,6 +640,51 @@ Configuração é igual em todas as instâncias e não muda durante a execução
 tem por que sair dali.
 
 </details>
+
+## Se quiser ir mais fundo
+
+Nada aqui é necessário para escrever a sua primeira API. É o que fica de fora
+da primeira leitura e vale a pena quando você voltar.
+
+### A chave de idempotência
+
+Vimos que `POST` não é idempotente: mandar duas vezes cria dois recursos. Isso é
+um problema real quando o cliente perde a conexão **depois** de o servidor
+processar. Ele não sabe se deu certo. Se tentar de novo, pode cobrar duas vezes;
+se não tentar, pode não ter cobrado nenhuma.
+
+A solução é o cliente decidir a identidade da tentativa **antes** de mandar:
+
+```http
+POST /pagamentos HTTP/1.1
+Idempotency-Key: 7f3a9c21-4e8b-11ef-9f2d-0242ac120002
+Content-Type: application/json
+
+{ "valor": 5000, "cartao": "..." }
+```
+
+O servidor guarda o resultado associado àquela chave. Se a mesma chave chegar de
+novo, ele **não refaz nada** — devolve a resposta que já tinha guardado. O
+cliente pode repetir à vontade.
+
+Repare que a idempotência não virou propriedade do método `POST`; ela virou
+responsabilidade do servidor, comprada com armazenamento. É assim que Stripe,
+PayPal e praticamente toda API de pagamento resolvem o problema.
+
+### As versões do protocolo
+
+Tudo neste módulo vale para as três versões — o que muda é o transporte, não o
+significado.
+
+| Versão   | O que mudou                                                                                   | Muda seu código? |
+| -------- | --------------------------------------------------------------------------------------------- | ---------------- |
+| HTTP/1.1 | Texto puro, como você viu aqui. Uma requisição por vez em cada conexão.                       | é a referência   |
+| HTTP/2   | O mesmo significado, mas em binário e **multiplexado**: várias trocas na mesma conexão.       | não              |
+| HTTP/3   | Igual ao 2, mas em cima de UDP (QUIC) em vez de TCP — reconecta mais rápido em rede instável. | não              |
+
+O ponto que importa: **método, status, headers e corpo são idênticos nas três**.
+Você continua escrevendo `res.status(201).json(...)`. Quem escolhe a versão é a
+infraestrutura (servidor, CDN, navegador), não o seu handler.
 
 ## Para ir além
 
