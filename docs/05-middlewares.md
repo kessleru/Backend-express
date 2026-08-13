@@ -1,54 +1,168 @@
 # 05 — Middlewares
 
-**Em uma frase:** um middleware é uma função `(req, res, next)` numa fila; cada
-uma pode inspecionar, modificar, passar adiante ou encerrar a requisição.
+**Em uma frase:** middleware é uma função `(req, res, next)` guardada numa lista;
+o Express percorre essa lista uma posição por vez, e cada função pode olhar,
+modificar, passar adiante ou encerrar a requisição.
 
 ## Por que importa
 
-- É **o** conceito central do Express. Rota é só o último middleware da fila.
+- É **o** conceito central do Express. Sua rota é só o último item da lista.
 - Tudo que vale para todas as rotas (log, auth, CORS, erro) mora aqui, uma vez.
 - O bug mais silencioso do Express é ordem errada ou `next()` esquecido.
 
 ## Conceitos
 
-### A assinatura e as três saídas
+### O que o Express guarda quando você chama `app.use`
+
+Você já escreveu `app.use(express.json())` sem pensar no que aquilo faz. Vamos
+abrir.
+
+Quando o servidor sobe, nenhuma requisição existe ainda. Então `app.use(fn)` não
+pode estar executando `fn` — não há requisição, não há `req`, não há o que
+executar. Ele só **guarda** `fn` numa lista, na ordem em que você chamou:
+
+```ts
+app.use(a); //  a lista agora é  [a]
+app.use(b); //  a lista agora é  [a, b]
+app.get('/x', c); //  a lista agora é  [a, b, c]
+```
+
+Repare que `app.get` entra na **mesma lista**. Sua rota não é uma categoria
+especial de coisa: ela é o item `[2]`, com a condição extra de só rodar quando o
+método for `GET` e o caminho for `/x`.
+
+Essa lista tem nome: é a **pilha** de middlewares.
+
+Agora chega uma requisição. O Express precisa percorrer a pilha — mas não com um
+`for`, e o motivo importa: uma dessas funções pode demorar (ela vai ler o banco,
+por exemplo), e o Node não pode ficar parado esperando (é o [módulo
+02](./02-node-modulos-e-async.md) inteiro).
+
+Então ele faz diferente: **passa o controle**. Cria um contador em zero, chama
+`pilha[0]` e entrega junto uma função chamada `next`. E a única coisa que `next`
+faz é isto:
+
+```ts
+let i = 0; // o índice: onde esta requisição está na pilha
+
+function next() {
+  i++; // anda uma casa
+  pilha[i](req, res, next); // e chama a próxima, entregando o next de novo
+}
+```
+
+É esse `i` o **índice**. Ele é o marcador de em que altura da pilha aquela
+requisição está agora. E repare em quem faz ele andar: **você**, chamando
+`next()`. O Express não anda sozinho.
+
+Daí sai o bug mais silencioso do Express. Se a sua função não chama `next()` e
+também não responde, o `i` fica parado onde está. Ninguém dá erro, ninguém
+avisa, nada aparece no log: a requisição simplesmente **nunca termina**, e o
+cliente fica esperando até desistir sozinho.
+
+Uma última peça: os objetos `req` e `res` são **os mesmos** em todas as funções
+da pilha. Não há cópia entre uma e outra. Então o que a função `a` escreve em
+`req`, a função `b` enxerga — é assim que um middleware de autenticação consegue
+deixar o usuário logado disponível para a rota lá na frente.
+
+E é só isso. Não existe registro, prioridade, peso ou configuração escondida:
+**uma lista de funções, um índice que anda, e dois objetos que todas
+compartilham.**
+
+<img src="../assets/modulo-05-pilha.svg" alt="Três momentos da mesma requisição: a pilha é sempre a mesma lista de três funções, e o que muda é o índice i, que anda uma casa a cada next(). Os objetos req e res são os mesmos nos três momentos." width="100%">
+
+Repare no que **não** muda entre os três momentos: a pilha. Ela é montada uma vez
+quando o servidor sobe e continua idêntica. O que anda é o `i`.
+
+### O caminho de uma requisição
+
+Com as três peças na mão, o fluxo inteiro cabe num diagrama:
+
+```mermaid
+flowchart LR
+    REQ([req chega<br/>i = 0]) --> A["pilha[0]<br/>log"]
+    A -->|"next()  ·  i = 1"| B["pilha[1]<br/>express.json"]
+    B -->|"next()  ·  i = 2"| C["pilha[2]<br/>handler da rota"]
+    C --> RES([res.json<br/>acabou])
+    style RES fill:#bbf7d0,stroke:#16a34a,color:#000
+```
+
+Cada seta é um `next()`, e cada `next()` é o `i` andando uma casa. O handler da
+rota não tem nada de especial: ele é só o último item da pilha, e responde em vez
+de chamar `next()`.
+
+### As três saídas de um middleware
+
+Toda função da pilha recebe os mesmos três argumentos e tem exatamente três
+saídas possíveis — mais uma quarta, que é o bug:
 
 ```ts
 function meuMiddleware(req: Request, res: Response, next: NextFunction) {
-  // 1. lê ou modifica req/res
-  // 2. next()               → passa a bola adiante
-  // 3. res.json(...)        → responde e ENCERRA a cadeia
-  // 4. next(erro)           → pula para o middleware de erro
+  // pode ler e modificar req e res à vontade. E então, obrigatoriamente:
+  //
+  //   next()          → anda o índice: a próxima da pilha assume
+  //   res.json(...)   → responde e ENCERRA aqui; o resto da pilha não roda
+  //   next(erro)      → pula direto para o tratador de erro, no fim
+  //
+  // e se não fizer nenhuma das três, a requisição congela.
 }
 ```
 
 ```mermaid
 flowchart LR
-    IN([req]) --> MW["middleware"]
-    MW -->|"next()"| PROX["próximo da fila"]
-    MW -->|"res.json()"| FIM([resposta — cadeia encerrada])
-    MW -->|"next(erro)"| ERR["tratador de erro<br/>(4 argumentos)"]
-    MW -->|"nada 😱"| TRAVA["requisição congela<br/>até o timeout"]
+    MW["sua função"] -->|"next()"| PROX["próxima da pilha"]
+    MW -->|"res.json()"| FIM([respondeu — acabou])
+    MW -->|"next(erro)"| ERR["tratador de erro<br/>(lá no fim)"]
+    MW -->|"nada"| TRAVA["congela até o cliente desistir"]
     style FIM fill:#bbf7d0,stroke:#16a34a,color:#000
     style ERR fill:#fed7aa,stroke:#ea580c,color:#000
     style TRAVA fill:#fecaca,stroke:#dc2626,color:#000
 ```
 
 > **Nota:**
-> `express.json()` sempre foi isso. Não existe categoria especial: o parser de
-> body, o `cors`, sua rota — tudo é middleware.
+> `express.json()` é uma função exatamente como essa. O mesmo vale para o `cors`,
+> para o `morgan` e para a sua rota. **Não existe categoria especial** — o que
+> muda entre elas é só o que fazem e em que posição da pilha estão.
 
-**O princípio:** middleware é **composição de funções sobre um valor mutável**. O
-Express não tem nada além disso — a "mágica" do framework é uma lista de funções
-e um índice que anda.
+### Para que serve: a coisa que precisa acontecer em toda rota
 
-O padrão tem nome fora do Express (chain of responsibility, pipeline, interceptor)
-e a mesma forma no `.NET`, no Rails e em qualquer proxy HTTP. O que ele resolve:
+Agora que a mecânica está clara, a pergunta seguinte é por que alguém iria querer
+isso.
 
-**preocupação transversal** — algo que precisa acontecer em quase toda requisição
-(log, autenticação, CORS, medição, request id) e não pertence a nenhuma rota
-específica. Sem middleware, o jeito é chamar as mesmas 5 linhas no topo de cada
-handler — e o dia em que alguém esquecer uma, o buraco é silencioso.
+Imagine que toda rota da sua API precisa registrar quem chamou. Sem middleware,
+o jeito é escrever as mesmas linhas no começo de cada handler:
+
+```ts
+app.get('/livros', (req, res) => {
+  console.log(`${req.method} ${req.path}`); // ← esta linha
+  // ...
+});
+
+app.get('/autores', (req, res) => {
+  console.log(`${req.method} ${req.path}`); // ← e de novo
+  // ...
+});
+```
+
+Com 40 rotas, são 40 cópias. E o problema não é a digitação — é o dia em que
+alguém acrescenta a rota 41 e esquece. Nada quebra, nada avisa: aquela rota
+simplesmente não aparece no log, e você só descobre quando precisa investigar
+algo e o registro não está lá.
+
+Com middleware, isso vira uma linha, num lugar só:
+
+```ts
+app.use((req, _res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+```
+
+Log é o exemplo mais fácil, mas a família é maior: autenticação, CORS, medir
+tempo, marcar um identificador na requisição. Todas têm em comum o fato de
+**precisarem acontecer em quase toda requisição sem pertencer a nenhuma rota
+específica**. O nome disso na literatura é _preocupação transversal_ — atravessa
+o sistema em vez de morar num lugar dele.
 
 | Sem middleware                          | Com middleware                   |
 | --------------------------------------- | -------------------------------- |
@@ -57,10 +171,16 @@ handler — e o dia em que alguém esquecer uma, o buraco é silencioso.
 | Ordem implícita, espalhada              | Ordem explícita, num arquivo     |
 
 > **Atenção:**
-> O custo vem junto: **o comportamento deixa de estar visível no handler.** Quem
-> abre a rota não vê que existe autenticação. É por isso que, a partir do
-> [módulo 08](./08-arquitetura-em-camadas.md), a autorização fica declarada **na
-> rota** e não num `app.use` distante — perto o suficiente para ser auditável.
+> E o custo vem junto, porque ele é o mesmo ganho visto de outro ângulo: **o
+> comportamento deixou de estar visível no handler.**
+>
+> Quem abre o arquivo da rota e lê o handler não vê que existe autenticação
+> acontecendo antes dele. Para descobrir, precisa saber que a pilha existe e ir
+> procurar em outro arquivo.
+>
+> É por isso que, a partir do [módulo 08](./08-arquitetura-em-camadas.md), a
+> autorização fica declarada **na própria rota** e não num `app.use` distante —
+> perto o suficiente de quem lê para ser auditável.
 
 ### A ordem é a ordem do arquivo
 
@@ -116,26 +236,19 @@ function cronometro(_req, res, next) {
 Naquele momento o status já está definido e você **não pode mais** mexer na
 resposta — só observar.
 
-**Por que existe essa assimetria:** o `next()` empurra a requisição para frente,
-mas nada a traz de volta. Quando o handler chama `res.json()`, os bytes saem — não
-há "caminho de volta" pela pilha de middlewares.
+**Por que a pilha só anda para frente:** volte ao `next()` da primeira seção. Ele
+faz `i++` e chama a próxima função. Não existe nada que faça `i--`, nem nada que
+devolva o controle para quem chamou depois de a resposta sair. Quando o handler
+chama `res.json()`, os bytes vão embora pela rede — e não há caminho de volta
+subindo a pilha.
 
-É a diferença entre este modelo e o de outros frameworks (Koa, ASP.NET), onde o
-middleware faz `await next()` e o código **depois** dessa linha roda na volta:
+A consequência prática que mais dói: **não dá para acrescentar um header depois
+que o handler respondeu.** Se um header depende do resultado do handler, ele tem
+que ser posto pelo próprio handler, ou por um middleware que embrulhe o
+`res.json` antes de ele ser chamado — que é como o `compression` funciona.
 
-```ts
-// Koa — o "depois" existe de verdade
-app.use(async (ctx, next) => {
-  const inicio = Date.now();
-  await next(); // desce toda a cadeia...
-  ctx.set('X-Tempo', `${Date.now() - inicio}`); // ...e volta aqui, ANTES de responder
-});
-```
-
-No Express, `res.on('finish')` é só observação: a resposta já foi. Consequência
-prática: **não dá para adicionar header depois do handler.** Se um header depende
-do resultado, ele tem que ser posto pelo próprio handler ou por um middleware que
-envolva `res.json` (o que o `compression` faz).
+Nem todo framework é assim, e a comparação está em
+[Se quiser ir mais fundo](#se-quiser-ir-mais-fundo).
 
 ### Três escopos
 
@@ -184,11 +297,19 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 });
 ```
 
+Repare que essa função tem **quatro** parâmetros, não três. E é exatamente isso
+que o Express usa para reconhecê-la: ele conta quantos parâmetros a função
+declara. Três parâmetros, é um middleware comum; quatro, é um tratador de erro.
+
 > **Importante:**
-> O que faz o Express reconhecer isto é a **aridade**: exatamente 4 parâmetros.
-> Remover o `_next` — mesmo sem usar — transforma o tratador num middleware
-> normal que nunca recebe erro. É o [módulo 06](./06-tratamento-de-erros.md)
-> inteiro.
+> O nome dessa contagem é **aridade** — o número de parâmetros que uma função
+> declara (não quantos você passa na chamada). Está no
+> [glossário](./00-glossario.md).
+>
+> A armadilha: apagar o `_next` porque "não está sendo usado" transforma o
+> tratador num middleware normal, que nunca vai receber erro nenhum. O código
+> continua compilando e a função continua na pilha — ela só para de ser chamada
+> quando dá erro. O [módulo 06](./06-tratamento-de-erros.md) é sobre isso.
 
 ### Os dois de terceiros deste módulo
 
@@ -209,10 +330,18 @@ app.use((erro: unknown, _req: Request, res: Response, _next: NextFunction) => {
 > `curl`, para Postman e para qualquer script. Quem protege é autenticação
 > (módulo 11), não CORS.
 
-**O princípio geral, que vale para toda lib de middleware:** antes de instalar,
-pergunte **de quem é a regra que ela implementa**. `cors` implementa uma regra do
-navegador; `helmet` manda instruções para o navegador; `express-rate-limit`
-implementa uma regra sua. Só a terceira categoria protege o servidor.
+Isso sugere uma pergunta que vale fazer antes de instalar **qualquer** lib de
+middleware: **de quem é a regra que ela implementa?**
+
+| A lib...             | Implementa regra de quem | Protege o servidor? |
+| -------------------- | ------------------------ | ------------------- |
+| `cors`               | do navegador             | não                 |
+| `helmet`             | do navegador             | não                 |
+| `express-rate-limit` | **sua**                  | sim                 |
+
+As duas primeiras mandam instruções para o navegador obedecer. Se o cliente não
+for um navegador — e `curl` não é — não há quem obedeça. Só a terceira categoria
+recusa trabalho no seu servidor, e por isso só ela protege alguma coisa.
 
 ## Na prática
 
@@ -278,40 +407,91 @@ res.on('finish', fn); // depois da resposta ir
 req.header('X-Api-Key');
 ```
 
+A ordem em que você monta a pilha decide o comportamento, então vale ter uma
+ordem padrão na cabeça. Com o que você viu **neste módulo**, ela é esta:
+
 ```mermaid
 flowchart TD
-    A["1 · morgan / pino-http<br/><i>log primeiro, para registrar tudo</i>"]
-    B["2 · cors, helmet<br/><i>headers</i>"]
-    C["3 · express.json()<br/><i>body</i>"]
-    D["4 · middlewares próprios<br/><i>auth, rate limit</i>"]
-    E["5 · rotas"]
-    F["6 · 404 genérico"]
-    G["7 · middleware de erro<br/><i>4 args, sempre o último</i>"]
-    A --> B --> C --> D --> E --> F --> G
-    style G fill:#fecaca,stroke:#dc2626,color:#000
-    style E fill:#bbf7d0,stroke:#16a34a,color:#000
+    A["1 · log<br/><i>primeiro, para registrar até o que for rejeitado</i>"]
+    B["2 · express.json()<br/><i>antes de quem lê req.body</i>"]
+    C["3 · middlewares seus<br/><i>autenticação, permissão</i>"]
+    D["4 · as rotas"]
+    E["5 · 404 genérico"]
+    F["6 · tratador de erro<br/><i>4 parâmetros, sempre o último</i>"]
+    A --> B --> C --> D --> E --> F
+    style F fill:#fecaca,stroke:#dc2626,color:#000
+    style D fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-A ordem acima não é convenção arbitrária — cada posição tem um porquê:
+Cada posição tem um motivo, e nenhum deles é convenção arbitrária:
 
-| Posição | Por que ali                                                                    |
-| ------- | ------------------------------------------------------------------------------ |
-| Log 1º  | Para registrar **inclusive** o que vai ser rejeitado depois                    |
-| CORS 2º | O `OPTIONS` de preflight precisa ser respondido antes de qualquer autenticação |
-| Body 3º | Autenticação e rotas leem `req.body`                                           |
-| Auth 4º | Depois do body (pode ler credencial dele), antes das rotas                     |
-| 404 6º  | Só é 404 depois que **nenhuma** rota casou                                     |
-| Erro 7º | Recebe o que qualquer um dos anteriores jogou                                  |
+| Posição | Por que ali                                                                         |
+| ------- | ----------------------------------------------------------------------------------- |
+| Log 1º  | Para registrar **inclusive** as requisições que vão ser rejeitadas mais adiante     |
+| Body 2º | Autenticação e rotas precisam de `req.body` já preenchido                           |
+| Auth 3º | Depois do body, porque pode precisar ler a credencial dele; antes das rotas         |
+| Rotas   | O trabalho de verdade                                                               |
+| 404 5º  | Só é 404 depois que **nenhuma** rota casou — por isso não pode estar antes delas    |
+| Erro 6º | Recebe o `next(erro)` de qualquer um dos anteriores, então tem que vir depois deles |
+
+> **Nota:**
+> Essa pilha vai crescer. O `cors` e o `helmet` entram entre o log e o body
+> (o `OPTIONS` de preflight precisa ser respondido antes de qualquer
+> autenticação), e o rate limit entra junto com os seus. Isso é assunto do
+> [módulo 13](./13-seguranca.md) — a versão completa está lá, e não faria
+> sentido você decorar agora as posições de coisas que ainda não usou.
 
 ## Os princípios deste módulo
 
-| Princípio                                                                         | Onde reaparece |
-| --------------------------------------------------------------------------------- | -------------- |
-| **Middleware resolve preocupação transversal** — o que vale para quase toda rota. | 06, 07, 11, 13 |
-| **O custo é invisibilidade:** o handler não mostra o que roda antes dele.         | 08, 11         |
-| **A cadeia só desce.** O "depois" é observação, não interferência.                | 14, 15         |
-| **Antes de instalar, pergunte de quem é a regra** que a lib implementa.           | 13             |
-| **Decida no middleware o que não depende dos dados; o resto é regra de negócio.** | 08, 11         |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                         | Onde volta     |
+| ------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| Middleware serve para o que precisa acontecer em quase toda rota sem pertencer a nenhuma delas.                                 | 06, 07, 11, 13 |
+| O preço disso é que o handler deixa de mostrar o que roda antes dele. Quem lê a rota não vê a autenticação.                     | 08, 11         |
+| A pilha só anda para frente. Depois que a resposta saiu, dá para observar, não para interferir.                                 | 14, 15         |
+| Antes de instalar uma lib de middleware, pergunte de quem é a regra que ela implementa: do navegador ou sua.                    | 13             |
+| No middleware ficam as decisões que não dependem dos dados. O que depende do conteúdo é regra de negócio e mora na camada dela. | 08, 11         |
+
+## Se quiser ir mais fundo
+
+### Frameworks em que a pilha volta
+
+No Express a pilha só desce. Em Koa e em ASP.NET o middleware dá `await next()`,
+e o código escrito **depois** dessa linha roda na volta, antes de a resposta sair:
+
+```ts
+// Koa — aqui o "depois" existe de verdade
+app.use(async (ctx, next) => {
+  const inicio = Date.now();
+  await next(); // desce a pilha inteira e espera ela terminar...
+  ctx.set('X-Tempo', `${Date.now() - inicio}`); // ...e volta AQUI, antes de responder
+});
+```
+
+Isso resolve exatamente o problema do header que depende do resultado. Em troca,
+cada middleware passa a segurar memória enquanto espera a volta, e um `await
+next()` esquecido quebra a cadeia de um jeito bem menos óbvio que um `next()`
+esquecido.
+
+Vale conhecer porque, quando você ler que "no Koa dá para fazer X depois do
+handler", a diferença é essa — não é que o Express seja limitado por descuido, é
+outro desenho.
+
+### Os nomes acadêmicos disso
+
+O que o Express faz tem nome fora do Express, e você vai encontrar esses nomes em
+discussões e em outras linguagens:
+
+| Nome                        | Onde aparece                                                    |
+| --------------------------- | --------------------------------------------------------------- |
+| _chain of responsibility_   | Padrão de projeto clássico: cada elo decide se trata ou repassa |
+| _pipeline_                  | Como o ASP.NET chama a mesma coisa                              |
+| _interceptor_               | Como o Angular, o NestJS e o gRPC chamam                        |
+| _filter_ / _servlet filter_ | Como o mundo Java chama                                         |
+
+Saber os nomes não te ajuda a escrever middleware. Ajuda a reconhecer que você já
+entende o assunto quando ele aparecer com outro rótulo.
 
 ## Para ir além
 
