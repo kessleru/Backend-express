@@ -4,7 +4,7 @@
 > currículo e para **sessões futuras do Claude Code** entenderem o projeto sem
 > precisar redescobrir tudo.
 >
-> Última atualização: 2026-08-03
+> Última atualização: 2026-08-13
 
 ---
 
@@ -32,211 +32,102 @@ de estilo.
 
 ---
 
-## 2. Estado atual
+## 2. Estado atual e achados técnicos
 
-### Já feito (sessão de 2026-07-29)
+**Onde o trabalho parou:** veja [`ULTIMO.md`](ULTIMO.md). A tabela da seção 9
+deste arquivo tem as fases.
 
-- `src/server.ts` migrado de `require` para `import express from 'express'`.
-- `@types/express` instalado (Express 5 não traz tipos próprios).
-- `package.json`: `"type": "commonjs"` → `"type": "module"`, necessário porque o
-  `tsconfig.json` usa `verbatimModuleSyntax: true` + `module: "nodenext"`.
-- Verificado: `npx tsc --noEmit` passa e o módulo carrega em runtime.
+Em resumo: **módulos 01 a 14 completos** (doc, exemplo, exercício e solução),
+faltando as soluções dos exercícios 13 e 14, os mini desafios dos módulos 02 a
+14, os módulos 15–20 e os apêndices.
 
-### Fase 0 concluída (2026-07-29)
+### Achados de comportamento, todos verificados rodando
 
-- `.gitignore` restaurado (+ regras para `data/*.sqlite`).
-- `tsconfig.json`: `rootDir`/`outDir` ativados, flags de compatibilidade com o
-  type stripping do Node, `jsx` removido, `src/playground` excluído do build.
-- `tsconfig.playground.json`: typecheck isolado do playground, para que código
-  seu em rascunho não quebre o build principal.
-- `package.json`: `main` corrigido, scripts `dev`/`start`/`build`/`typecheck`/
-  `typecheck:play`/`format`, `nodemon` removido.
-- Prettier + `.editorconfig` configurados.
-- `.env.example`, `data/`, `src/playground/`, `exercicios/`.
-- `CLAUDE.md` e `README.md`.
-- Verificado: `npm run dev`, `npm run build` e `npm start` funcionam; `/` e
-  `/health` respondem.
+Esta é a parte desta seção que não envelhece. Cada linha custou tempo de
+depuração e virou conteúdo de módulo — não repita a descoberta.
 
-**ESLint ficou de fora.** O `typescript-eslint` declara peer
-`typescript@">=4.8.4 <6.1.0"` e o projeto usa TS 7 — não há versão compatível
-ainda. Opções: (a) esperar o suporte, (b) baixar para TypeScript 5.9. Por ora o
-`tsc --strict` já cobre boa parte do que o ESLint pegaria.
+**Express 5**
 
-### Fases 1 e 2 concluídas (2026-07-30)
+| Achado                                                                                              | Onde virou conteúdo |
+| --------------------------------------------------------------------------------------------------- | ------------------- |
+| `req.body` fica **`undefined`** (não `{}`) quando falta o `Content-Type`                            | 03, 07              |
+| `req.query` virou **getter**: atribuir (`req.query = validado`) lança `TypeError`. Use `res.locals` | 07                  |
+| Wildcard `/*resto` devolve **array** de segmentos, não string                                       | 04                  |
+| `*` **exige** nome no caminho; `/:formato?` virou `{/:formato}`                                     | 04                  |
+| `throw` em rota `async` agora chega ao tratador sozinho — `asyncHandler` é código morto             | 06                  |
 
-- **Módulos 01–07** com doc, exemplo executável e exercício + solução.
-- Dependências novas: `cors`, `morgan` (módulo 05) e `zod` (07).
-- `tsconfig.exercicios.json` + script `typecheck:ex`, para checar os tipos das
-  soluções (que ficam fora de `src/`).
-- Achados que viraram conteúdo, todos verificados rodando:
-  - Express 5 deixa `req.body` **`undefined`** (não `{}`) sem `Content-Type`.
-  - Express 5 tornou `req.query` **getter**: `req.query = validado` lança
-    `TypeError`. O middleware de validação guarda em `res.locals`.
-  - Wildcard do Express 5 (`/*resto`) devolve **array** de segmentos.
-  - Zod: `schemaComDefault.partial()` **não** serve para PATCH — os `.default()`
-    continuam valendo e sobrescrevem o registro salvo.
-  - Zod 4: `z.string().email()` está deprecado; use `z.email()`.
+**Zod 4**
 
-### Fase 3 em andamento (2026-07-30)
+| Achado                                                                                                                              | Onde |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `schemaComDefault.partial()` **não** serve para PATCH: os `.default()` continuam valendo e sobrescrevem o registro salvo            | 07   |
+| `z.string().email()` está deprecado; use `z.email()`                                                                                | 07   |
+| `validar()` precisa de `req.body ?? {}`, senão body ausente produz "expected object, received undefined" em vez de listar os campos | 07   |
 
-- **Módulos 08 a 11** com doc, exemplo executável e exercício. Solução pronta
-  para 08, 09 e 10; a do **11 ainda não existe** (só o enunciado).
-- Dependências novas: `prisma` + `@prisma/client` +
-  `@prisma/adapter-better-sqlite3` (10) e `argon2`, `jsonwebtoken`,
-  `cookie-parser` (11).
-- Scripts novos: `db:migrate`, `db:generate`, `db:seed`, `db:reset`, `db:studio`.
-- `prisma/schema.prisma`, `prisma.config.ts`, `prisma/seed.ts` e a primeira
-  migration versionada.
-- Achados que viraram conteúdo, todos verificados rodando:
-  - **Prisma 7** tirou o `url` do `datasource` (erro P1012): ele vai para
-    `prisma.config.ts`, e o client recebe um **adapter** no construtor.
-  - O export do adapter é `PrismaBetterSqlite3` — **s** minúsculo.
-  - `createMany({ skipDuplicates: true })` não funciona no SQLite.
-  - `COUNT`/`SUM`/`MIN` via `$queryRaw` voltam `bigint`, e `JSON.stringify` de
-    bigint lança — 500 misterioso na rota.
-  - `exactOptionalPropertyTypes: true` briga com o idioma do Prisma
-    (`data: { x: undefined }` não compila) e com spread de update em geral.
-    Solução: spread condicional.
-  - `validar()` precisa de `req.body ?? {}`, senão body ausente produz
-    "expected object, received undefined" em vez de listar os campos que faltam.
-    Corrigido no exemplo do módulo 07 e nas 4 soluções que o copiam.
-  - `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10
-    poder importar o Prisma Client gerado em `src/`.
+**Prisma 7**
 
-### Fase 3 concluída (2026-08-03)
+| Achado                                                                                                                              | Onde |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| O `url` saiu do `datasource` (erro **P1012**): vai para `prisma.config.ts`, e o client recebe um **adapter**                        | 10   |
+| O export do adapter é `PrismaBetterSqlite3` — **s** minúsculo, ao contrário do que a doc de várias versões sugere                   | 10   |
+| `createMany({ skipDuplicates: true })` não funciona no SQLite                                                                       | 10   |
+| `COUNT`/`SUM`/`MIN` via `$queryRaw` voltam `bigint`, e `JSON.stringify` de bigint lança — 500 misterioso                            | 10   |
+| `exactOptionalPropertyTypes: true` briga com o idioma do Prisma (`data: { x: undefined }` não compila). Solução: spread condicional | 10   |
 
-- **Solução do exercício 11** criada sobre a base do 08 (repositórios em
-  memória). Os **18 critérios de aceite** foram verificados com `curl`, um por
-  um: 30 checagens, todas passando.
-- **Módulo 12 (testes)** com doc, exemplo executável, enunciado e solução.
-- Dependências novas: `vitest`, `supertest`, `@types/supertest`,
-  `@vitest/coverage-v8`.
-- Arquivos novos na raiz: `vitest.config.ts`, `vitest.setup.ts` e
-  `tsconfig.build.json`.
-- Scripts novos: `test`, `test:watch`, `test:cov`.
-- Suíte atual: **113 testes em 10 arquivos**, verde e idempotente (roda duas
-  vezes seguidas com o mesmo resultado). Cobertura ~80%.
+**Segurança (módulo 13)**
 
-Achados desta fase, todos verificados rodando:
+| Achado                                                                                                                                                                                                                                                  | Onde |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `helmet()` liga 12 headers e remove `x-powered-by`. `x-xss-protection` vem **`0`** de propósito: o filtro antigo do navegador tinha bugs que criavam vulnerabilidades. "Corrigir" para `1; mode=block` **piora** a segurança — virou falso amigo no doc | 13   |
+| `express-rate-limit` 8 usa `standardHeaders: 'draft-8'`: o header vem como `ratelimit="2-in-1min"; r=0; t=60`, não mais `X-RateLimit-*`                                                                                                                 | 13   |
+| `req.params.nome` é `string \| string[] \| undefined` com `noUncheckedIndexedAccess` — normalize com `String(... ?? '')` antes de `resolve()`                                                                                                           | 13   |
+| `npm audit` acusou um **high real** (`fast-uri`, transitiva). Virou o exemplo de auditoria, em vez de um caso inventado                                                                                                                                 | 13   |
 
-- `criarApp()` **precisou ser extraído**: os módulos 01–11 chamam `listen` no
-  topo, e importar isso num teste sobe servidor de verdade (`EADDRINUSE`, o
-  processo não encerra). Os módulos anteriores **não** foram reescritos —
-  regra 7 da seção 10 — e o contraste virou conteúdo do 12.
-- O `JWT_SECRET` do `.env`/`.env.example` tinha 23 caracteres e reprovava no
-  próprio critério de aceite do módulo 11 (mínimo 32). Corrigido.
-- **Rate limit versus suíte de teste**: 10 tentativas/min por IP num balde
-  compartilhado entre `registrar`/`login`/`trocar-senha` estourava. Duas
-  correções: baldes separados por rota (cada `limitar()` tem o próprio Map) e
-  `criarApp(deps, { rateLimit: false })` para o teste — nunca afrouxar o limite
-  de produção para o teste caber.
-- `tsconfig.build.json` foi necessário para os testes serem **checados** por
-  `npm run typecheck` e ao mesmo tempo ficarem **fora** de `dist/`.
-- `process.loadEnvFile()` (nativo, Node 22+) no `vitest.setup.ts` — é o que faz
-  `npm test` funcionar sem `--env-file` na linha de comando, sem `dotenv`.
-- No `app.ts` da solução 12, `NODE_ENV=test` desliga o middleware de log: 200
-  linhas de `GET /livros 200 em 1.2ms` afogam a falha que importa.
+**Observabilidade (módulo 14)**
 
-### Revisão de profundidade dos docs 01–11 (2026-08-03)
+| Achado                                                                                                                                                                                                                                                                                                                                           | Onde |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| **O `redact` do Pino vazou uma senha durante a escrita do exemplo.** A lista tinha `senha` e `req.body.senha`, mas a rota logava `{ corpo: req.body }` — o caminho real era `corpo.senha`. Ele age nos **caminhos listados**, não no nome do campo em qualquer profundidade. O que pegou o vazamento foi um **teste que procura a senha no log** | 14   |
+| `import pinoHttp from 'pino-http'` **não compila** com `verbatimModuleSyntax` (o pacote é CommonJS). Use `import { pinoHttp }`                                                                                                                                                                                                                   | 14   |
+| `genReqId`/`customLogLevel` recebem `IncomingMessage`/`ServerResponse` do `node:http`, e **não são inferidos** — anotar é obrigatório (TS7006)                                                                                                                                                                                                   | 14   |
+| **Pino não é mais rápido que `JSON.stringify` na mão** (220ms × 156ms, 50 mil linhas). O que ele compra é nível, redação, child logger e serialização de `Error`                                                                                                                                                                                 | 14   |
+| `JSON.stringify(new Error('x'))` devolve `{}` — as propriedades são não-enumeráveis, e a stack se perde justamente no log que mais importa                                                                                                                                                                                                       | 14   |
 
-A régua de "Qualidade de ensino" da seção 7 nasceu nesta sessão, depois dos
-módulos 01–10. Todos foram passados por ela — **acrescentando o que faltava, sem
-reescrever o que já existia** (regra 7 da seção 10):
+**Testes e build**
 
-- Bloco de **princípio nomeado** em cada conceito central.
-- Seção **"Os princípios deste módulo"** no fim dos docs 01 a 11, ligando cada
-  princípio aos módulos onde ele reaparece.
-- **Custos declarados** onde havia só elogio: o que o Express cobra (03), o que
-  camadas custam (08), o que o ORM esconde (10), o que o JWT troca por escala (11).
+| Achado                                                                                                                                                                                                                                              | Onde   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `criarApp()` precisou ser extraído: os módulos 01–11 chamam `listen` no topo, e importar isso num teste sobe servidor de verdade (`EADDRINUSE`, o processo não encerra). Os anteriores **não** foram reescritos, e o contraste virou conteúdo do 12 | 12     |
+| **Rate limit versus suíte**: baldes separados por rota e `criarApp(deps, { rateLimit: false })` no teste. Nunca afrouxar o limite de produção para o teste caber                                                                                    | 12, 13 |
+| `tsconfig.build.json` foi necessário para os testes serem checados por `npm run typecheck` e ficarem **fora** de `dist/`                                                                                                                            | 12     |
+| `process.loadEnvFile()` (nativo) no `vitest.setup.ts` é o que faz `npm test` rodar sem `--env-file` e sem `dotenv`                                                                                                                                  | 12     |
+| `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10 importar o Prisma Client gerado em `src/`                                                                                                                                | 10     |
 
-> **Atenção:**
-> O primeiro item acima **foi revertido em 2026-08-13**. Os "blocos de princípio
-> nomeado" viraram 36 aforismos colocados **antes** da mecânica que os
-> explicaria, e o leitor travou no módulo 05. A ordem das cinco camadas foi
-> invertida e a regra de nomear em frase transferível caiu. Ver a seção 7 e o
-> diagnóstico completo em `.projeto/specs/2026-08-13-revisao-didatica-docs-design.md`.
+### Nomes de arquivo já reservados
 
-### Fase 4 em andamento (2026-08-05)
+Os docs têm links apontando para módulos futuros. Eles só vão funcionar se os
+arquivos usarem **exatamente** estes nomes:
 
-- **Módulo 13 (segurança)** com doc, exemplo executável e enunciado. A
-  **solução do exercício 13 ainda não existe**.
-- Dependências novas: `helmet` (8.3) e `express-rate-limit` (8.6).
-- **Referências externas** adicionadas em todos os 12 módulos anteriores: seção
-  "Para ir além" entre "Os princípios" e "Pratique", com 3 a 6 fontes cada
-  (RFC 9110, OWASP, docs oficiais, Fowler, livros). **Os 45 links foram
-  verificados por HTTP** — 3 estavam quebrados na primeira tentativa e foram
-  corrigidos.
-- O exemplo do 13 tem cada rota em **par** (versão insegura e segura), e as 12
-  afirmações da doc foram verificadas rodando: headers, rate limit, injeção,
-  path traversal, IDOR e enumeração de usuário.
+| Arquivo                     | Citado em |
+| --------------------------- | --------- |
+| `15-performance-e-cache.md` | 06, 09    |
+| `16-deploy-docker-ci.md`    | 06        |
+| `17-jobs-e-filas.md`        | 06        |
 
-Achados desta fase, todos verificados rodando:
+> **Nota:** na revisão de 2026-08-13 esses três links viraram texto simples
+> ("módulo 15, ainda não escrito"), porque link para arquivo inexistente dá 404
+> no GitHub. Ao criar os módulos, vale voltar e transformá-los em link de novo.
 
-- `helmet()` liga **12 headers** e remove `x-powered-by`. O valor de
-  `x-xss-protection` é **`0`** — ele _desliga_ o filtro antigo do navegador de
-  propósito, porque o filtro tinha bugs que criavam vulnerabilidades. "Corrigir"
-  para `1; mode=block` piora a segurança: virou falso amigo no doc.
-- `express-rate-limit` 8 usa `standardHeaders: 'draft-8'`, e o header vem no
-  formato `ratelimit="2-in-1min"; r=0; t=60` — não é mais o `X-RateLimit-*`.
-- `req.params.nome` é `string | string[] | undefined` com
-  `noUncheckedIndexedAccess`: normalizar com `String(... ?? '')` antes de passar
-  para `resolve()`.
-- `npm audit` acusou um **high real** (`fast-uri`, dependência transitiva). Virou
-  o exemplo de auditoria do módulo, em vez de um caso inventado.
-- Exemplo do módulo 10 falha com **P2021** numa árvore recém-clonada: além do
-  `db:generate`, é preciso `db:migrate` (as tabelas não existem) e `db:seed`.
-  Documentado no README, no guia e no `ULTIMO.md`.
-- Exercício 01 tinha os critérios de aceite marcados (`- [x]`), aparecendo como
-  já concluídos. Corrigido para `- [ ]`.
-- Módulo 12 era o único sem a seção "Os princípios deste módulo". Acrescentada.
+### Setup numa árvore recém-clonada
 
-Achados do **módulo 14**, todos verificados rodando:
-
-- **O `redact` do Pino vazou uma senha durante a escrita do exemplo.** A lista
-  tinha `senha` e `req.body.senha`, mas a rota logava `{ corpo: req.body }` — o
-  caminho real era `corpo.senha`. `redact` age nos **caminhos listados**, não no
-  nome do campo em qualquer profundidade. Corrigido com `'*.senha'`, e o episódio
-  virou conteúdo do doc: o que pegou o vazamento foi um teste que procura a senha
-  no log, não releitura de código.
-- `import pinoHttp from 'pino-http'` **não compila** com `verbatimModuleSyntax`
-  ("This expression is not callable"): o pacote é CommonJS. Use o export nomeado
-  `import { pinoHttp } from 'pino-http'`.
-- Os callbacks `genReqId`/`customLogLevel` recebem `IncomingMessage`/
-  `ServerResponse` do `node:http` (não os do Express) e **não são inferidos** —
-  anotar é obrigatório, senão o `tsc` acusa TS7006.
-- **Pino não é mais rápido que `JSON.stringify` na mão** (220ms × 156ms para 50
-  mil linhas em arquivo). O que ele compra é nível, redação, child logger e
-  serialização de `Error`. Isso está dito no doc, contra o discurso de marketing.
-- Um `info()` descartado por nível custa ~0: **50 mil chamadas em 1ms**. É o que
-  justifica instrumentar generosamente.
-- `JSON.stringify(new Error('x'))` devolve `{}` — as propriedades do `Error` são
-  não-enumeráveis, e a stack se perde justamente no log que mais importa.
-
-### Ainda pendente
-
-- Fases 4, 5 e 6 da tabela da seção 9.
-
-**Nomes de arquivo já reservados.** Os docs 01–12 têm links apontando para
-módulos futuros. Eles só vão funcionar se os arquivos usarem **exatamente** estes
-nomes:
-
-| Arquivo                     | Citado em  |
-| --------------------------- | ---------- |
-| `13-seguranca.md`           | 05         |
-| `14-observabilidade.md`     | 03, 05, 10 |
-| `15-performance-e-cache.md` | 06, 09     |
-| `16-deploy-docker-ci.md`    | 06         |
-| `17-jobs-e-filas.md`        | 06         |
-
-**Setup numa árvore recém-clonada.** Duas coisas do módulo 10 não vêm no git, e
-cada uma quebra de um jeito diferente:
+Duas coisas do módulo 10 não vêm no git, e cada uma quebra de um jeito diferente:
 
 | O que falta                     | Como se manifesta                                                      | Resolve com           |
 | ------------------------------- | ---------------------------------------------------------------------- | --------------------- |
 | Prisma Client (`gerado/`)       | `npm run typecheck` acusa 4 erros em `src/exemplos/10-prisma/`         | `npm run db:generate` |
 | Banco `data/*.sqlite` (migrado) | O exemplo roda e lança **P2021**: "table `main.livros` does not exist" | `npm run db:migrate`  |
 
-A sequência completa é:
+A sequência completa:
 
 ```bash
 npm install
@@ -247,13 +138,6 @@ npm run db:seed       # popula (2 autores, 3 livros)
 
 Sem o terceiro passo o exemplo roda, mas devolve listas vazias — o que confunde
 mais do que um erro.
-
-### Ponto de partida histórico
-
-O commit `a5ddd5b` tinha um `src/index.js` com um CRUD de `/courses` em memória
-(GET/POST/PUT/PATCH/DELETE) e comentários sobre verbos HTTP e tipos de parâmetro.
-Esse conteúdo **não se perde**: vira o exemplo do módulo 03 (Express básico),
-agora em TypeScript e com as explicações movidas para a documentação.
 
 ---
 
@@ -793,11 +677,11 @@ leitor viu a coisa funcionar, e é escrita em frase comum.
 
 #### Três regras que entraram na revisão de 2026-08-13
 
-| Regra                           | Detalhe                                                                                                                                                                                                                                    |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Regra                           | Detalhe                                                                                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Termo definido na estreia**   | Toda palavra técnica é explicada na primeira vez que aparece, na própria linha ou na seguinte, e entra em [`docs/00-glossario.md`](../docs/00-glossario.md). Escreveu "aridade" sem dizer que é o número de parâmetros? O leitor parou ali. |
-| **Diagrama não adianta módulo** | Um mermaid só pode conter o que já foi ensinado **até aquele módulo**. `helmet` num fluxo do 05 é ruído: o leitor vê sete caixas e reconhece duas. O que depende de módulo futuro vai para `## Se quiser ir mais fundo`.                   |
-| **Rampa**                       | `## Conceitos` abre no caso mínimo e cresce. Comparação com outro framework, caso de borda e nome acadêmico do padrão saem do corpo do módulo.                                                                                             |
+| **Diagrama não adianta módulo** | Um mermaid só pode conter o que já foi ensinado **até aquele módulo**. `helmet` num fluxo do 05 é ruído: o leitor vê sete caixas e reconhece duas. O que depende de módulo futuro vai para `## Se quiser ir mais fundo`.                    |
+| **Rampa**                       | `## Conceitos` abre no caso mínimo e cresce. Comparação com outro framework, caso de borda e nome acadêmico do padrão saem do corpo do módulo.                                                                                              |
 
 #### O mesmo padrão no código
 

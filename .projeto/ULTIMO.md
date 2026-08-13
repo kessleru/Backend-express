@@ -43,14 +43,18 @@ Isso é um pedido de aforismo. Somado a "parágrafo: máximo 4 linhas", "enxuto 
 texto" e "se dá pra mostrar em código, mostre em código", produzia exatamente o
 material que o leitor rejeitou.
 
-### Documentos desta revisão
+**Branch:** `revisao-didatica-docs` (não mergeada). Um commit por tarefa, e cada
+mensagem diz o que mudou e como foi verificado.
 
-| Arquivo                                            | O que é                                    |
-| -------------------------------------------------- | ------------------------------------------ |
-| `specs/2026-08-13-revisao-didatica-docs-design.md` | Diagnóstico completo e decisões aprovadas  |
-| `plans/2026-08-13-revisao-didatica-docs.md`        | As 21 tarefas, com verificação de cada uma |
-
-**Branch:** `revisao-didatica-docs` (não mergeada). Um commit por tarefa.
+> **Nota:**
+> A spec com o diagnóstico completo e o plano com as 21 tarefas foram **apagados
+> depois de executados** — estavam obsoletos e custavam ~820 linhas de leitura
+> para quem abrisse `.projeto/`. Continuam no histórico do git:
+>
+> ```bash
+> git show 0f6686d  # a spec: diagnóstico e decisões aprovadas
+> git show 2a36669  # o plano: as 21 tarefas com a verificação de cada uma
+> ```
 
 ## As regras que mudaram
 
