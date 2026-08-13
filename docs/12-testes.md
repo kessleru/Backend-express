@@ -3,6 +3,33 @@
 **Em uma frase:** teste é o código que afirma o que o seu código promete — e
 avisa, em segundos, quando alguém quebra a promessa sem perceber.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [A pirâmide, e o que ela realmente diz](#a-pirâmide-e-o-que-ela-realmente-diz)
+  - [O que testar em cada nível — o critério](#o-que-testar-em-cada-nível-o-critério)
+  - [criarApp() — a mudança que Supertest exige](#criarapp-a-mudança-que-supertest-exige)
+  - [O repositório injetado é o que dispensa mock](#o-repositório-injetado-é-o-que-dispensa-mock)
+  - [Os dublês, do melhor para o pior](#os-dublês-do-melhor-para-o-pior)
+  - [Isolamento: fábrica, não constante](#isolamento-fábrica-não-constante)
+  - [SQLite :memory: — onde ele brilha](#sqlite-memory-onde-ele-brilha)
+  - [Suíte de contrato: os mesmos testes nas duas implementações](#suíte-de-contrato-os-mesmos-testes-nas-duas-implementações)
+  - [Teste como trava de decisão](#teste-como-trava-de-decisão)
+  - [TDD: RED → GREEN → REFACTOR](#tdd-red-green-refactor)
+  - [Cobertura é sintoma, não meta](#cobertura-é-sintoma-não-meta)
+  - [Vitest, e por que não Jest](#vitest-e-por-que-não-jest)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Sem teste, "não quebrei nada" é uma sensação; com teste, é uma verificação.
@@ -12,11 +39,16 @@ avisa, em segundos, quando alguém quebra a promessa sem perceber.
   do Express 5, a stack que não pode vazar.
 
 > **Importante:**
-> O princípio que atravessa o módulo inteiro: **teste bom não é técnica de
-> teste, é consequência de acoplamento baixo.** Se você precisa de um mock
-> complicado, o problema quase nunca está no teste — está no código que importa
-> em vez de receber. Foi por isso que arquitetura em camadas (módulo 08) veio
-> antes deste módulo no currículo.
+> Uma ideia atravessa o módulo inteiro, e vale saber dela desde já: **quando
+> escrever o teste está difícil, o problema quase nunca é o teste.**
+>
+> Se você precisa de uma armação complicada para conseguir testar uma função, é
+> porque ela está presa a coisas que você não consegue trocar — ela **importa** o
+> que usa em vez de **receber**. Testar fica difícil porque o código está
+> amarrado, não porque testar é difícil.
+>
+> É por isso que arquitetura em camadas (módulo 08) veio antes deste módulo. Lá
+> você separou as peças; aqui você colhe o resultado.
 
 ## Conceitos
 
@@ -129,9 +161,14 @@ vi.mock('node:sqlite'); // intercepta o sistema de módulos
 | **Spy**                        | grava as chamadas                  | quando a chamada **é** o resultado |
 | **Mock de módulo** (`vi.mock`) | troca o import                     | último recurso                     |
 
-`vi.mock` é o último porque ele te acopla ao **jeito de importar**: trocar um
-import nomeado por default quebra o teste sem que nada tenha deixado de
-funcionar. Se ele aparece muito, o diagnóstico é acoplamento, não teste.
+`vi.mock` é o último da lista por um motivo específico: ele prende o teste ao
+**jeito de importar**. Trocar um `export` nomeado por um `export default` quebra
+o teste, mesmo com o comportamento do código intacto — o teste passou a depender
+de um detalhe que não é comportamento.
+
+E vale ler `vi.mock` frequente como sintoma. Se você precisa dele o tempo todo, é
+porque as peças estão presas umas às outras pelo `import` — o remédio é fazê-las
+receber o que usam (módulo 08), não ficar melhor em mockar.
 
 > **Atenção:**
 > Spy tem um custo escondido: `expect(repo.remover).toHaveBeenCalled()` testa o
@@ -367,16 +404,18 @@ npx vitest run -t "nome do teste"        # só um teste
 
 ## Os princípios deste módulo
 
-| Princípio                                                                                                       | Onde reaparece |
-| --------------------------------------------------------------------------------------------------------------- | -------------- |
-| **Teste testa comportamento, não implementação** — se refatorar quebra o teste, ele testava a coisa errada.     | 08             |
-| **Testabilidade é consequência de design**, não uma técnica: quem injeta dependência (08) não precisa de mock.  | 08, 10         |
-| **Código que sobe servidor ao ser importado não é testável** — daí `criarApp()` separar montagem de execução.   | 16             |
-| **O melhor dublê é o objeto real**; mock é o último recurso, não o primeiro.                                    | 08             |
-| **Isolamento vem de fábrica, não de constante compartilhada** — estado que sobrevive entre testes é bug futuro. | 09             |
-| **Cobertura é sintoma, não meta.** 100% com asserção fraca não protege nada.                                    | —              |
-| **Teste é a trava que registra a decisão** — ele documenta o porquê melhor que comentário.                      | 06, 11         |
-| **Nunca afrouxe produção para o teste passar**; injete a configuração de teste.                                 | 11, 13, 16     |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                                 | Onde volta |
+| --------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| O teste afirma o que o código **faz**, não como ele faz por dentro. Se reorganizar o código quebra o teste, ele testava a coisa errada. | 08         |
+| Testar fácil não é técnica de teste: é resultado de as peças receberem o que usam em vez de importarem.                                 | 08, 10     |
+| Arquivo que sobe servidor só de ser importado não dá para testar. Daí separar "montar o app" de "abrir a porta".                        | 16         |
+| O melhor dublê é o objeto de verdade. Mock é o último recurso da lista, não o primeiro.                                                 | 08         |
+| Cada teste monta o seu próprio estado. Estado que sobrevive de um teste para o outro é um bug esperando a ordem mudar.                  | 09         |
+| Cobertura mede o que foi executado, não o que foi verificado. 100% com asserção fraca não protege nada.                                 | —          |
+| Um teste registra por que a decisão foi tomada, e ao contrário do comentário ele avisa quando alguém a desfaz.                          | 06, 11     |
+| Nunca afrouxe a produção para o teste passar. Se o rate limit atrapalha, o teste recebe a configuração dele.                            | 11, 13, 16 |
 
 ## Para ir além
 

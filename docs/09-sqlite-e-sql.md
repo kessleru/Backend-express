@@ -3,6 +3,33 @@
 **Em uma frase:** trocar o array em memória por um banco de verdade — e descobrir
 que só a camada de repositório muda.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Por que SQLite para estudar (e para produção)](#por-que-sqlite-para-estudar-e-para-produção)
+  - [Modelagem](#modelagem)
+  - [Relacionamentos](#relacionamentos)
+  - [SQL injection — e por que ? resolve](#sql-injection-e-por-que-resolve)
+  - [A API do node:sqlite](#a-api-do-nodesqlite)
+  - [JOIN](#join)
+  - [GROUP BY, WHERE e HAVING](#group-by-where-e-having)
+  - [Índices e EXPLAIN QUERY PLAN](#índices-e-explain-query-plan)
+  - [Transações e ACID](#transações-e-acid)
+  - [Migrations à mão](#migrations-à-mão)
+  - [O ganho da camada de repositório, na prática](#o-ganho-da-camada-de-repositório-na-prática)
+  - [node:sqlite vs better-sqlite3](#nodesqlite-vs-better-sqlite3)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Array em memória some no restart. Toda API real tem um banco.
@@ -96,7 +123,7 @@ PRIMARY KEY (livro_id, genero_id)
 **Normalização o suficiente:** cada fato num lugar só. O nome do autor mora em
 `autores`, não repetido em cada livro — senão corrigir um typo exige um UPDATE em
 mil linhas, e duas delas vão ficar diferentes. Desnormalize depois, com número na
-mão ([módulo 15](./15-performance-e-cache.md)), não por antecipação.
+mão (módulo 15, ainda não escrito), não por antecipação.
 
 ### SQL injection — e por que `?` resolve
 
@@ -116,8 +143,14 @@ db.prepare('SELECT * FROM livros WHERE titulo = ?').get(malicioso); // 0 resulta
 > recebe a query já compilada e os dados à parte. Por isso não existe caractere
 > que "escape" da parametrização.
 
-**O princípio, e ele vale muito além de SQL: nunca misture instrução com dado.**
-Toda vulnerabilidade de injeção é a mesma falha, com roupas diferentes:
+Vale parar aqui, porque o que você acabou de ver não é sobre SQL.
+
+Repare no que deu errado na primeira versão: o texto que o usuário mandou foi
+**juntado** ao comando, virando uma string só, e essa string foi entregue a
+alguém que sabe interpretar comandos. O banco não tinha como distinguir a parte
+que era ordem da parte que era conteúdo — para ele chegou tudo junto.
+
+Essa falha tem o mesmo formato em toda parte, só troca de nome:
 
 | Contexto | A instrução | Como se faz certo                       |
 | -------- | ----------- | --------------------------------------- |
@@ -127,10 +160,17 @@ Toda vulnerabilidade de injeção é a mesma falha, com roupas diferentes:
 | Log      | formato     | log estruturado (JSON), módulo 14       |
 | E-mail   | cabeçalho   | recusar `\n` no assunto                 |
 
-Repare no que todas têm em comum: alguém **construiu uma string** juntando texto
-confiável com texto de fora, e entregou a um interpretador. Escapar é tentar
-adivinhar todos os caracteres perigosos daquele interpretador — e você vai
-esquecer um. Separar os canais **elimina a pergunta**.
+A saída errada é tentar limpar o texto: procurar as aspas, as barras, os
+caracteres perigosos, e neutralizá-los. Isso é escapar — e o problema é que você
+precisa acertar a lista **inteira** de caracteres perigosos daquele
+interpretador específico, para sempre, inclusive quando ele ganhar um caractere
+especial novo na versão seguinte.
+
+A saída certa é não juntar. Mandar a instrução por um canal e o dado por outro
+faz a pergunta "este caractere é perigoso?" deixar de existir — o dado nunca vai
+ser lido como instrução, seja ele qual for.
+
+**A regra, que vale muito além de SQL: nunca misture instrução com dado.**
 
 > **Cuidado:**
 > Validar (módulo 07) **não** substitui parametrizar. Um título legítimo pode
@@ -283,14 +323,17 @@ stateDiagram-v2
     ROLLBACK --> [*]: como se nada tivesse acontecido
 ```
 
-**O princípio: transação é a unidade de trabalho do NEGÓCIO, não do banco.**
-"Emprestar um livro" é uma coisa só para quem usa o sistema — que sejam duas
-escritas é detalhe de implementação, e o usuário nunca deveria ver um estado
-intermediário.
+A pergunta prática é: **até onde vai uma transação?** Duas escritas? Cinco? A
+requisição inteira?
 
-O jeito de encontrar o limite certo: **liste os estados possíveis se o processo
-morrer no meio.** Se algum deles é inaceitável, as operações pertencem à mesma
-transação.
+O critério não é técnico, é do negócio. "Emprestar um livro" é **uma** coisa para
+quem usa o sistema. Que por baixo sejam duas escritas — marcar o livro como
+indisponível e registrar o empréstimo — é detalhe de implementação, e quem usa
+nunca deveria conseguir observar o meio do caminho.
+
+Existe um jeito objetivo de achar o limite: **liste os estados possíveis se o
+processo morrer entre uma escrita e outra.** Se algum desses estados é
+inaceitável, as duas operações pertencem à mesma transação.
 
 | Se cair entre as duas escritas | Estado resultante                             | Aceitável?                            |
 | ------------------------------ | --------------------------------------------- | ------------------------------------- |
@@ -366,6 +409,20 @@ node src/exemplos/09-sqlite/servidor.ts        # a API do módulo 08 sobre SQLit
 O primeiro imprime nove seções, incluindo o `EXPLAIN QUERY PLAN` antes e depois do
 índice, e a transação sendo desfeita.
 
+> **Atenção:**
+> Diferente de todos os módulos anteriores, **este exemplo grava em disco** — o
+> banco fica em `data/exemplo-09.sqlite` e sobrevive quando você desliga o
+> servidor. É a diferença entre um array em memória e um banco de verdade, e é o
+> ponto do módulo.
+>
+> A consequência prática: os `curl` abaixo dão os status prometidos **na primeira
+> vez**. Rodando de novo, o `POST` que dava `201` passa a dar `409`, porque o
+> curso já está gravado. Para recomeçar do zero, apague o arquivo:
+>
+> ```bash
+> rm -f data/exemplo-09.sqlite*
+> ```
+
 ```bash
 B=localhost:5057/api/v1/cursos
 curl "$B?publicado=true"
@@ -425,14 +482,16 @@ db.close();
 
 ## Os princípios deste módulo
 
-| Princípio                                                                  | Onde reaparece |
-| -------------------------------------------------------------------------- | -------------- |
-| **Nunca misture instrução com dado** — vale para SQL, shell, HTML e log.   | 13, 14, 19     |
-| **Regra que o banco consegue garantir, garanta no banco.**                 | 10, 11         |
-| **Transação é a unidade de trabalho do negócio**, não do banco.            | 10, 11, 17     |
-| **Deixe o banco decidir a corrida**, não o seu `if` entre duas consultas.  | 11, 15         |
-| **Migration é imutável** — corrigir é escrever a próxima.                  | 10, 16         |
-| **Meça antes de otimizar** (`EXPLAIN QUERY PLAN`), não indexe por palpite. | 15             |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                      | Onde volta |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Instrução vai por um canal, dado vai por outro. Juntar os dois numa string é a mesma falha em SQL, shell, HTML e log.        | 13, 14, 19 |
+| O que o banco consegue garantir sozinho, deixe o banco garantir. Ele é o único que enxerga todas as escritas ao mesmo tempo. | 10, 11     |
+| O tamanho de uma transação é decidido pelo negócio: o que é "uma coisa só" para quem usa não pode ser observado pela metade. | 10, 11, 17 |
+| Entre a sua consulta e a sua escrita cabe outra requisição. Quem decide o empate é o banco, não o seu `if`.                  | 11, 15     |
+| Migration já aplicada não se edita — corrigir é escrever a próxima. O banco de quem já rodou não volta atrás.                | 10, 16     |
+| Índice se decide medindo (`EXPLAIN QUERY PLAN`), não por palpite. Todo índice acelera leitura e atrasa escrita.              | 15         |
 
 ## Para ir além
 

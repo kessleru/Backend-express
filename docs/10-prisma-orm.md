@@ -3,6 +3,35 @@
 **Em uma frase:** o Prisma gera um client tipado a partir de um schema
 declarativo — você para de escrever SQL e passa a escrever objetos.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Driver vs query builder vs ORM](#driver-vs-query-builder-vs-orm)
+  - [O que o ORM resolve — e o que cobra](#o-que-o-orm-resolve-e-o-que-cobra)
+  - [O que a abstração esconde, e a conta disso](#o-que-a-abstração-esconde-e-a-conta-disso)
+  - [O schema](#o-schema)
+  - [Prisma 7: a URL saiu do schema](#prisma-7-a-url-saiu-do-schema)
+  - [Migrations](#migrations)
+  - [Queries](#queries)
+  - [include e o problema N+1](#include-e-o-problema-n1)
+  - [Escrita](#escrita)
+  - [Transações](#transações)
+  - [Quando voltar para SQL cru](#quando-voltar-para-sql-cru)
+  - [O ORM não apaga as diferenças entre bancos](#o-orm-não-apaga-as-diferenças-entre-bancos)
+  - [Prisma Studio](#prisma-studio)
+  - [Comparação rápida](#comparação-rápida)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Tipagem de ponta a ponta: `titulu` no `where` é erro de compilação, não uma
@@ -41,20 +70,41 @@ builder: não tem entidade "rica" com métodos, só dados tipados.
 | Migrations a partir do schema               | Recurso do banco não exposto      |
 | Relação em uma linha (`include`)            | **N+1** fácil de escrever sem ver |
 
-Compare os dois repositórios do mesmo contrato:
-`src/exemplos/09-sqlite/repositorio-sqlite.ts` (172 linhas, com conversão manual,
-`WHERE` e `SET` montados à mão) e
-`src/exemplos/10-prisma/repositorio-prisma.ts` (~90, sem nenhuma delas).
+Vale abrir os dois repositórios do **mesmo contrato**, lado a lado:
 
-**O princípio: toda abstração vaza, e você paga pelo que ela esconde quando
-precisa do que ela escondeu.**
+```bash
+wc -l src/exemplos/09-sqlite/repositorio-sqlite.ts   # 134
+wc -l src/exemplos/10-prisma/repositorio-prisma.ts   # 113
+```
 
-Um ORM esconde o SQL. Enquanto você faz o que ele previu, o ganho é enorme.
-Quando você precisa de algo que ele não previu — uma CTE recursiva, um índice
-parcial, um `EXPLAIN` — a abstração não ajuda **e** atrapalha, porque agora
-existe uma camada entre você e a ferramenta.
+Repare que a diferença de tamanho é modesta — 21 linhas. Se o argumento a favor
+do ORM fosse "escreve menos código", ele seria fraco.
 
-A consequência prática não é "não use ORM". É esta:
+O ganho está em **que tipo** de código sumiu. Abra o arquivo do módulo 09 e veja
+o que existe lá e não existe no do 10: a conversão de `0/1` para booleano em toda
+leitura, o `WHERE` montado por concatenação condicional, o `SET` do `UPDATE`
+montado do mesmo jeito, e o array de valores que precisa ficar na mesma ordem dos
+`?`. Nenhuma dessas coisas é regra de negócio. São tradução — e é isso que o ORM
+assume.
+
+### O que a abstração esconde, e a conta disso
+
+Um ORM esconde o SQL. Enquanto você faz o que ele previu, o ganho é grande. O
+problema aparece quando você precisa de algo que ele **não** previu — uma CTE
+recursiva, um índice parcial, um `EXPLAIN` para entender por que a consulta
+ficou lenta.
+
+Nesse momento a camada deixa de ajudar e passa a atrapalhar, porque agora existe
+alguém entre você e a ferramenta, e você precisa descobrir como fazê-lo gerar o
+SQL que você já sabia escrever.
+
+Isso não é defeito do Prisma. É uma propriedade de toda abstração: **ela cobra
+pelo que escondeu, no dia em que você precisa do que ela escondeu.** Vale para o
+Express escondendo o `node:http` (módulo 01), para o Zod escondendo as checagens
+manuais (03 → 07) e para o Prisma escondendo o SQL (09 → 10). Sempre na mesma
+ordem neste curso — a dor primeiro, o remédio depois.
+
+A conclusão prática não é "não use ORM". É esta:
 
 > **Importante:**
 > **Você precisa saber o que a abstração está fazendo por baixo.** Não para
@@ -62,10 +112,6 @@ A consequência prática não é "não use ORM". É esta:
 > isso que o [módulo 09](./09-sqlite-e-sql.md) veio primeiro. Quem aprende ORM
 > sem SQL não entende o N+1 quando ele aparece: vê um `for` inocente, não 501
 > idas ao banco.
-
-Vale para todo o curso: Express esconde o `node:http` (módulo 01), Zod esconde as
-checagens manuais (03 → 07), Prisma esconde o SQL (09 → 10). Sempre na mesma
-ordem — a dor primeiro, o remédio depois.
 
 ### O schema
 
@@ -210,19 +256,23 @@ sequenceDiagram
 
 Com 3 autores, imperceptível. Com 500, são **501 queries** e a rota leva segundos.
 
-**O princípio: a diferença entre O(1) e O(N) idas ao banco é invisível no código
-e decisiva na produção.**
+O que torna o N+1 traiçoeiro é justamente **não parecer um problema**. O laço é
+legível. O teste passa. A resposta está correta. Não há nada no código que grite.
 
-O que torna o N+1 traiçoeiro é justamente não parecer um problema. O laço é
-legível, o teste passa, a resposta está correta. O que muda é o **número de
-viagens de rede**, e cada viagem custa latência que não aparece no seu localhost
-(onde o banco está a 0,1 ms) e aparece muito no servidor (onde está a 5 ms).
+O que mudou foi o número de **viagens até o banco** — e viagem custa tempo de
+rede, não tempo de processamento. Esse tempo é praticamente zero na sua máquina,
+onde o banco está no mesmo disco, e deixa de ser zero em produção, onde ele está
+em outro servidor:
 
-| Onde               | 501 queries × latência | Percepção     |
-| ------------------ | ---------------------- | ------------- |
-| Localhost (0,1 ms) | ~50 ms                 | "está rápido" |
-| Mesma rede (2 ms)  | ~1 s                   | "estranho"    |
-| Outra zona (10 ms) | ~5 s                   | timeout       |
+| Onde o banco está  | 501 queries × latência | O que você percebe |
+| ------------------ | ---------------------- | ------------------ |
+| Localhost (0,1 ms) | ~50 ms                 | "está rápido"      |
+| Mesma rede (2 ms)  | ~1 s                   | "estranho"         |
+| Outra zona (10 ms) | ~5 s                   | timeout            |
+
+Repare que o **código é exatamente o mesmo** nas três linhas. É por isso que esse
+tipo de problema atravessa a revisão de código e os testes, e só aparece quando
+já está no ar.
 
 Generalizando: **prefira trazer um conjunto a buscar item por item.** O mesmo
 raciocínio vale para chamada de API externa em laço, `readFile` em laço e
@@ -421,13 +471,15 @@ $disconnect()
 
 ## Os princípios deste módulo
 
-| Princípio                                                                          | Onde reaparece |
-| ---------------------------------------------------------------------------------- | -------------- |
-| **Toda abstração vaza** — você paga pelo que ela esconde quando precisa disso.     | 12, 15, 20     |
-| **Saber o que está por baixo é o que permite reconhecer a escolha ruim.**          | 09, 15         |
-| **Prefira trazer um conjunto a buscar item por item** (N+1 não é só de ORM).       | 15, 17         |
-| **O schema no git é a verdade sobre o banco**, e a migration é como ele chega lá.  | 09, 16         |
-| **Ganho de produtividade não dispensa medir** — `log: ['query']` antes do palpite. | 14, 15         |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                           | Onde volta |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Toda abstração cobra pelo que escondeu, no dia em que você precisa do que ela escondeu.                                           | 12, 15, 20 |
+| Saber o que está por baixo é o que te permite reconhecer quando a ferramenta escolheu mal — não é para você substituí-la.         | 09, 15     |
+| Buscar um conjunto de uma vez em vez de item por item. Vale para banco, para API externa, para arquivo e para fila.               | 15, 17     |
+| O schema versionado é a verdade sobre o banco; a migration é o caminho até lá. Quem não versiona não sabe o que está em produção. | 09, 16     |
+| Produtividade não dispensa medir. `log: ['query']` conta quantas idas ao banco uma requisição fez; palpite não conta.             | 14, 15     |
 
 ## Para ir além
 

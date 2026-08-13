@@ -3,6 +3,29 @@
 **Em uma frase:** as rotas dizem **o que** deu errado; um tratador central decide
 **como** isso vira resposta HTTP.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [Duas coisas muito diferentes com o mesmo nome](#duas-coisas-muito-diferentes-com-o-mesmo-nome)
+  - [AppError](#apperror)
+  - [Por que throw em vez de res.status(404)](#por-que-throw-em-vez-de-resstatus404)
+  - [O que mudou no Express 5](#o-que-mudou-no-express-5)
+  - [O tratador central](#o-tratador-central)
+  - [A ordem, de novo](#a-ordem-de-novo)
+  - [next(erro) — quando throw não serve](#nexterro-quando-throw-não-serve)
+  - [A rede de segurança do processo](#a-rede-de-segurança-do-processo)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Sem um lugar central, cada rota inventa seu formato de erro e o cliente precisa
@@ -12,9 +35,23 @@
 
 ## Conceitos
 
-### Erro esperado vs bug
+### Duas coisas muito diferentes com o mesmo nome
 
-|                     | Erro esperado                     | Bug                           |
+Chamamos de "erro" duas situações que não têm quase nada em comum. Compare:
+
+```ts
+// Situação A: alguém mandou POST /cursos sem o campo `titulo`.
+// Situação B: o banco de dados caiu e a conexão foi recusada.
+```
+
+Nas duas o pedido não foi atendido. Mas repare em tudo o que difere entre elas:
+na **A**, quem errou foi quem chamou, e ele consegue consertar mandando o campo.
+Na **B**, quem chamou fez tudo certo — não há nada que ele possa fazer diferente,
+e quem precisa agir é você.
+
+Essa diferença muda **todas** as decisões seguintes:
+
+|                     | Situação A — erro esperado        | Situação B — bug              |
 | ------------------- | --------------------------------- | ----------------------------- |
 | Exemplo             | `titulo` faltando, id inexistente | `undefined.valor`, banco fora |
 | Você previu?        | Sim, criou de propósito           | Não                           |
@@ -22,12 +59,21 @@
 | Mensagem ao cliente | A real, útil                      | Genérica                      |
 | Log                 | Não precisa (é rotina)            | Completo, com stack           |
 
-> **Importante:**
-> **Mensagem de erro que você escreveu pode ir ao cliente; mensagem que o runtime
-> escreveu, não.** `connect ECONNREFUSED 10.0.0.5:5432` é um mapa da sua rede.
+Duas linhas dessa tabela merecem atenção, porque a razão delas não é óbvia.
 
-**O princípio:** a distinção não é sobre gravidade — é sobre **quem consegue
-resolver**.
+**Por que a mensagem do bug é genérica.** Não é para esconder o problema de você
+— é que a mensagem foi escrita por outra pessoa. `connect ECONNREFUSED
+10.0.0.5:5432` conta a quem estiver do outro lado o IP e a porta do seu banco.
+`column "senha_hash" does not exist` entrega o nome das suas colunas. A regra
+prática: **mensagem que você escreveu pode ir ao cliente; mensagem que o runtime
+escreveu, não.**
+
+**Por que o erro esperado não precisa de log.** Um `404` não é um acontecimento;
+é o funcionamento normal de uma API. Registrar todos eles enche o log de coisa
+que ninguém vai ler — e afoga a linha que importa.
+
+Repare que o critério que separou as duas situações **não foi a gravidade**. Foi
+outra coisa: **quem consegue resolver**.
 
 | Quem resolve | Status | O que a resposta precisa ter                | Quem é acordado |
 | ------------ | ------ | ------------------------------------------- | --------------- |
@@ -83,10 +129,12 @@ function acharCurso(id: string): Curso {
 
 A função não precisa saber que existe HTTP. Isso é o que permite reusá-la num
 service ([módulo 08](./08-arquitetura-em-camadas.md)) e num worker de fila
-([17](./17-jobs-e-filas.md)), onde não há requisição nenhuma.
+(módulo 17, ainda não escrito), onde não há requisição nenhuma.
 
-**O princípio:** **quem detecta o problema raramente é quem sabe como comunicá-lo.**
-`throw` separa as duas responsabilidades:
+Repare no que acabou de acontecer: a função que **descobriu** o problema não é a
+que **conta** o problema. Ela sabe que o curso não existe e que isso vale um 404;
+não sabe — e não precisa saber — se a resposta vai sair em JSON, em HTML ou numa
+linha de log. O `throw` é o que separa essas duas responsabilidades:
 
 | Quem       | Sabe                                     | Não sabe                          |
 | ---------- | ---------------------------------------- | --------------------------------- |
@@ -157,22 +205,28 @@ export function tratarErro(
 
 Três detalhes que importam:
 
-1. **4 parâmetros.** É a aridade que faz o Express reconhecer o tratador. Remover
-   o `_next`, mesmo sem usar, transforma num middleware comum que nunca recebe
-   erro — e você cai no handler padrão do Express, que devolve **HTML com a stack
-   trace inteira**.
+1. **4 parâmetros.** É contando os parâmetros declarados — a
+   [aridade](./00-glossario.md) — que o Express reconhece um tratador de erro.
+   Apagar o `_next` porque "não está sendo usado" transforma a função num
+   middleware comum, que nunca recebe erro nenhum. E aí você cai no tratador
+   padrão do Express, que responde **HTML com a stack trace inteira dentro** —
+   para qualquer um que provocar um erro na sua API.
 2. **O caso do `SyntaxError`.** `express.json()` joga isso quando o body é JSON
    malformado. Sem tratar, o cliente recebe 500 por ter mandado lixo.
 3. **`requestId` na resposta.** O cliente cita o id no suporte, você acha todas as
    linhas de log daquela requisição. Vem do
    [módulo 05](./05-middlewares.md#passando-dados-entre-middlewares).
 
-**O princípio do lugar único:** o formato da resposta de erro é **contrato
-público**. Um cliente escreve UM tratamento de erro; se cada rota inventar o seu
-(`{erro}`, `{message}`, `{error:{msg}}`), ele precisa de um `if` por endpoint — e
-o `if` que faltar vira uma tela em branco.
+Vale insistir num ponto que parece detalhe e não é: **o formato do corpo de erro
+é tão contrato quanto o formato do sucesso.**
 
-Centralizar dá três coisas que rota-a-rota não dá:
+Do outro lado, alguém escreve um tratamento de erro só. Se cada rota da sua API
+inventar o seu — uma devolve `{erro}`, outra `{message}`, outra
+`{error: {msg}}` — essa pessoa precisa de um `if` por endpoint. E o `if` que
+faltar não estoura: ele simplesmente não encontra a mensagem, e o usuário vê uma
+tela em branco sem explicação nenhuma.
+
+Centralizar num lugar dá três coisas que rota a rota não dá:
 
 | Ganho                         | Por quê                                                    |
 | ----------------------------- | ---------------------------------------------------------- |
@@ -248,9 +302,11 @@ callback solto não passa.
 > depois de uma exceção não capturada está em estado desconhecido e pode
 > corromper dados silenciosamente.
 
-**O princípio: falhe rápido e alto, em vez de continuar quebrado.** Ele
-contraria o instinto — parece que manter o servidor de pé é sempre melhor —, mas
-a conta é esta:
+Essa recomendação contraria o instinto. Derrubar o processo de propósito parece a
+última coisa que se quer fazer em produção — manter o servidor de pé não deveria
+ser sempre melhor?
+
+Não, e a conta é esta:
 
 | Continuar rodando                             | Reiniciar                         |
 | --------------------------------------------- | --------------------------------- |
@@ -269,8 +325,8 @@ mesmo.
 > `400` não derruba nada — quem falha alto é o processo, não a resposta.
 
 Quem reinicia é o orquestrador (Docker, systemd, PM2) —
-[módulo 16](./16-deploy-docker-ci.md). Encerrar sem cortar requisições em
-andamento é _graceful shutdown_, no [15](./15-performance-e-cache.md).
+módulo 16 (ainda não escrito). Encerrar sem cortar requisições em
+andamento é _graceful shutdown_, no módulo 15 (ainda não escrito).
 
 ## Na prática
 
@@ -337,13 +393,15 @@ app.use(tratarErro); // ÚLTIMO, 4 argumentos
 
 ## Os princípios deste módulo
 
-| Princípio                                                                             | Onde reaparece |
-| ------------------------------------------------------------------------------------- | -------------- |
-| **A classificação do erro é sobre quem consegue resolver**, não sobre gravidade.      | 12, 13, 14     |
-| **Quem detecta o problema não é quem sabe comunicá-lo** — daí `throw`.                | 08, 17         |
-| **Formato de erro é contrato público:** um lugar decide, e dá para testar de uma vez. | 07, 12         |
-| **Mensagem que você escreveu pode sair; mensagem do runtime, não.**                   | 11, 13         |
-| **Falhe rápido e alto em vez de continuar quebrado.**                                 | 11, 16         |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                        | Onde volta |
+| ------------------------------------------------------------------------------------------------------------------------------ | ---------- |
+| O que separa erro de bug não é a gravidade: é se quem chamou consegue fazer alguma coisa diferente para funcionar.             | 12, 13, 14 |
+| Quem descobre o problema não é quem sabe como contá-lo. O `throw` deixa cada lado cuidar do que sabe.                          | 08, 17     |
+| O formato do corpo de erro é contrato, igual ao do sucesso. Um lugar decide, e um teste só cobre a API inteira.                | 07, 12     |
+| Mensagem que você escreveu pode ir ao cliente; mensagem escrita pelo runtime entrega o IP do seu banco e o nome das colunas.   | 11, 13     |
+| Depois de um erro que ninguém previu, o processo está num estado desconhecido. Reiniciar limpo é mais barato que seguir torto. | 11, 16     |
 
 ## Para ir além
 

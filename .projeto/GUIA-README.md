@@ -356,7 +356,7 @@ desatualizado, subir o servidor, bater com `curl`. Foi assim que descobri que o 
 onde escrevi este guia nem começava a rodar sem um `npm install` novo — o README anterior
 prometia um quick-start que ninguém tinha testado desde a última dependência adicionada.
 
-> **Implementação de referência:** [`docs/imagens/gerar.mjs`](./docs/imagens/gerar.mjs) neste
+> **Implementação de referência:** [`assets/gerar.mjs`](../assets/gerar.mjs) neste
 > repositório. São ~140 linhas sem nenhuma dependência, e as quatro imagens do README somam
 > 24 KB.
 

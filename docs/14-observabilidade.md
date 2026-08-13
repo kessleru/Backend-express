@@ -4,6 +4,31 @@
 acontecendo aí dentro?" sem abrir o código nem reproduzir o problema — usando só
 o que o sistema já emite.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [O princípio que separa log de console.log](#o-princípio-que-separa-log-de-consolelog)
+  - [As três perguntas da observabilidade](#as-três-perguntas-da-observabilidade)
+  - [Níveis: o filtro que você configura sem reescrever código](#níveis-o-filtro-que-você-configura-sem-reescrever-código)
+  - [Pino: o que ele realmente compra](#pino-o-que-ele-realmente-compra)
+  - [O que nunca logar](#o-que-nunca-logar)
+  - [Request ID: o fio que costura a requisição inteira](#request-id-o-fio-que-costura-a-requisição-inteira)
+  - [pino-http: o log de requisição pronto](#pino-http-o-log-de-requisição-pronto)
+  - [Métricas: RED](#métricas-red)
+  - [Health check e readiness](#health-check-e-readiness)
+  - [Tracing distribuído, em visão geral](#tracing-distribuído-em-visão-geral)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Em produção você não tem `console.log` interativo nem depurador: só o que o
@@ -99,7 +124,7 @@ outra coisa — e é isso que justifica a dependência:
 | **Redação de segredo**  | Lembrar de nunca logar senha — em cada `log` que escrever |
 | **Child logger**        | Passar o `requestId` por 5 camadas de função              |
 | Serialização de `Error` | `Error` vira `{}` em `JSON.stringify`; a stack se perde   |
-| Escrita assíncrona      | Buffer e backpressure na mão                              |
+| Escrita assíncrona      | Segurar o excesso quando o disco não acompanha            |
 
 O último item da tabela é sutil e importante:
 
@@ -121,9 +146,15 @@ perde. O Pino tem um serializador próprio para isso:
 
 ### O que **nunca** logar
 
-**O princípio: o log costuma ser menos protegido que o banco.** Ele é copiado
-para um agregador, lido por mais gente, retido por meses e raramente
-criptografado. Dado sensível ali é um vazamento com prazo estendido.
+Vale pensar em onde o log vai parar, porque a resposta surpreende.
+
+O banco de dados costuma ter acesso restrito, senha forte e auditoria. O log,
+não: ele é copiado para um agregador, fica visível para o time inteiro, é retido
+por meses "para o caso de precisar", e quase nunca é criptografado.
+
+Ou seja: **na prática, o log costuma ser menos protegido que o banco.** Um dado
+sensível que cai ali não é um vazamento pontual — é um vazamento com prazo
+estendido, em cópias que você não controla.
 
 | Nunca                          | Porque                                           |
 | ------------------------------ | ------------------------------------------------ |
@@ -179,8 +210,13 @@ alguém adiciona um log novo com a senha em outro lugar.
 Sem ele, os logs de 200 requisições simultâneas viram uma sopa: você vê "erro ao
 salvar" mas não sabe de qual requisição, de qual usuário, depois de qual query.
 
-**O princípio: todo evento precisa carregar o identificador da unidade de
-trabalho que o gerou.** Em HTTP, essa unidade é a requisição.
+A saída é dar um número a cada requisição na hora em que ela chega, e fazer esse
+número acompanhar **todas** as linhas que ela produzir daí em diante. Aí filtrar
+por ele reconstrói a história inteira de um atendimento, em ordem.
+
+A ideia geral: **todo evento registrado precisa carregar o identificador da
+unidade de trabalho que o gerou.** Em HTTP, essa unidade é a requisição; numa
+fila, é o job; num processo em lote, é a execução.
 
 ```mermaid
 sequenceDiagram
@@ -292,9 +328,17 @@ app.get('/ready', async (_req, res) => {
 });
 ```
 
-**O princípio: "estou vivo" e "consigo trabalhar" são perguntas diferentes**, e
-respondê-las com o mesmo endpoint transforma uma falha de dependência num loop
-de reinício.
+Repare que são **duas perguntas diferentes**, e misturá-las causa um estrago
+específico.
+
+"Estou vivo" é sobre o processo: ele responde, não travou, não morreu. "Consigo
+trabalhar" é sobre as dependências: o banco está de pé, a fila responde.
+
+Se você responder as duas com o mesmo endpoint, o dia em que o banco cair o seu
+orquestrador vai concluir que a **aplicação** morreu — e reiniciá-la. O banco
+continua fora, o novo processo também não consegue trabalhar, e ele reinicia de
+novo. Você trocou uma falha de dependência por um loop de reinício, e perdeu
+junto as requisições que não dependiam do banco.
 
 ### Tracing distribuído, em visão geral
 
@@ -381,15 +425,17 @@ node servidor.ts | npx pino-pretty        # legível no desenvolvimento
 
 ## Os princípios deste módulo
 
-| Princípio                                                                                      | Onde reaparece |
-| ---------------------------------------------------------------------------------------------- | -------------- |
-| **Log é dado para máquina, não frase para pessoa** — se não dá para filtrar, não serve.        | 15, 16, 17     |
-| **Todo evento carrega o id da unidade de trabalho** que o gerou.                               | 17, 18         |
-| **O log é menos protegido que o banco** — dado sensível ali é vazamento com prazo estendido.   | 11, 13         |
-| **Proteção por configuração vence proteção por disciplina** (`redact` > lembrar de não logar). | 13             |
-| **Média esconde o que percentil revela.**                                                      | 15             |
-| **"Estou vivo" e "consigo trabalhar" são perguntas diferentes.**                               | 16             |
-| **Instrumentar é barato quando o descarte é barato** — daí o nível vir antes da serialização.  | 15             |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                           | Onde volta |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Log é dado para máquina ler, não frase para pessoa. Se você não consegue filtrar por um campo, ele não está ali de verdade.       | 15, 16, 17 |
+| Toda linha registrada carrega o identificador da requisição que a gerou — senão 200 atendimentos simultâneos viram uma sopa.      | 17, 18     |
+| O log costuma ser menos protegido que o banco: mais cópias, mais gente lendo, retido por meses e raramente criptografado.         | 11, 13     |
+| Proteção que depende de configuração vence proteção que depende de alguém lembrar. `redact` funciona; "não logar senha" falha.    | 13         |
+| A média some com o problema que o percentil mostra: 1% dos usuários esperando 8 segundos não muda a média de 200ms.               | 15         |
+| "Estou de pé" e "consigo trabalhar" são perguntas diferentes. Respondê-las juntas troca a queda do banco por um loop de reinício. | 16         |
+| Instrumentar sai barato quando descartar sai barato — por isso o nível é checado antes de o objeto ser montado.                   | 15         |
 
 ## Para ir além
 
