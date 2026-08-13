@@ -60,24 +60,59 @@ Argon2:  199.6ms   (307× mais lento — de propósito)
 > `SHA-256`, `MD5` e qualquer hash rápido para senha significam que um vazamento
 > do seu banco é quebrado em horas numa GPU alugada por hora.
 
-### Salt
+### O problema que sobra: senhas iguais, hashes iguais
+
+Hash lento resolve a força bruta. Falta um problema, e ele aparece quando você
+pensa em **duas pessoas** em vez de uma.
+
+Se o hash depende só da senha, então duas pessoas que escolheram `123456` têm
+exatamente o mesmo hash gravado no banco. Duas consequências ruins saem daí:
+
+1. Quem vazar o banco consegue ver, sem quebrar nada, **quais usuários têm a
+   mesma senha**.
+2. Pior: dá para calcular o hash das senhas mais comuns **uma vez** e sair
+   comparando com o banco inteiro. Uma tabela pronta dessas — milhões de senhas
+   comuns com o hash de cada uma — chama-se **rainbow table**, e um trabalho feito
+   uma vez serve para atacar todos os usuários de todos os vazamentos.
+
+A saída é fazer cada hash depender de mais uma coisa, diferente por usuário: um
+valor aleatório, gerado no momento do cadastro, que entra no cálculo junto com a
+senha. Esse valor é o **salt**.
+
+Com salt, `123456` de uma pessoa e `123456` de outra produzem hashes diferentes,
+e a tabela pré-calculada perde a serventia — ela teria que ser refeita para cada
+salt, ou seja, para cada usuário.
+
+Mas aí vem a pergunta óbvia: se o salt entra no cálculo, você precisa dele de
+volta para conferir a senha no login. Onde ele fica guardado?
+
+**Dentro do próprio hash.** Olhe o que o argon2 devolve:
 
 ```
 $argon2id$v=19$m=19456,p=1,t=2$iVBNhaju9pEdn24M43b2kg$XvXUN5wpG2xbUsJ...
  algoritmo  versão   parâmetros        salt                  hash
 ```
 
-O salt é gerado por senha e **embutido no resultado** — daí `verify` não pedir
-salt. É por isso que dois usuários com a mesma senha têm hashes diferentes, e é o
-que impede uma rainbow table de servir para todos de uma vez.
+São cinco campos separados por `$`, e o salt é um deles — em texto claro, de
+propósito. Salt **não é segredo**; ele não precisa ser escondido, precisa ser
+diferente por usuário.
+
+É por isso que o `verify` não pede salt nenhum: ele lê o salt de dentro da string
+que você guardou e refaz a conta.
 
 ```ts
 await argon2.hash(senha, { type: argon2.argon2id, memoryCost: 19456, timeCost: 2 });
-await argon2.verify(hash, senha); // recalcula com o salt embutido
+await argon2.verify(hash, senha); // ← nenhum salt aqui: ele já está no `hash`
 ```
 
-`memoryCost` é o parâmetro que mais importa: GPU tem muitos cores e pouca RAM por
-core, então exigir memória é o que a atrapalha.
+E repare que os **parâmetros** também estão gravados ali (`m=19456,p=1,t=2`).
+Isso é o que permite endurecer o custo no futuro sem invalidar as senhas antigas:
+cada hash carrega a receita com que foi feito.
+
+> **Nota:**
+> Dos três parâmetros, `memoryCost` é o que mais importa. Uma GPU tem milhares de
+> núcleos e pouca memória por núcleo — então exigir muita RAM por cálculo é o que
+> tira a vantagem dela. Aumentar só o tempo (`timeCost`) atrapalha bem menos.
 
 ### Comparação em tempo constante
 
@@ -109,12 +144,25 @@ Como o próprio tamanho vaza, compare o hash de cada um — hashes têm tamanho 
 > consultar um autenticador central. "É stateless" é a vantagem real; "é moderno"
 > não é argumento.
 
-**O princípio: você troca revogação por escala, e não dá para ter as duas.**
+Olhando de novo, aquela tabela de cinco linhas é **uma escolha só**, vista de
+cinco ângulos.
 
-A tabela acima é uma escolha só, vista de vários ângulos. Se a prova de identidade
-está **no token**, qualquer instância a verifica sozinha (escala) — e ninguém
-consegue cancelá-la (revogação). Se está **no servidor**, cancelar é apagar uma
-linha — e toda requisição paga uma consulta.
+Comece por uma pergunta: onde mora a prova de que você é você?
+
+- **No token.** Então qualquer máquina que tenha a chave consegue conferir
+  sozinha, sem perguntar a ninguém. Isso escala de graça. E é exatamente por isso
+  que ninguém consegue cancelar aquele token: não existe um lugar central onde
+  riscar o nome dele. Ele vale até expirar.
+- **No servidor.** Então cancelar é apagar uma linha, e o efeito é imediato. Mas
+  agora **toda** requisição precisa ir até esse lugar perguntar — e todas as
+  máquinas precisam enxergar o mesmo lugar.
+
+Repare que as duas colunas da tabela não são duas ferramentas concorrentes: são
+os dois lados de uma mesma troca. **Você troca a capacidade de cancelar pela
+capacidade de não perguntar** — e não dá para ficar com as duas.
+
+(_Revogação_, aqui, é o nome técnico de "cancelar uma credencial antes de ela
+expirar sozinha" — o botão "sair de todos os dispositivos".)
 
 O access + refresh deste módulo não é um terceiro caminho: é escolher os dois em
 momentos diferentes.
@@ -243,7 +291,18 @@ O mesmo dilema no registro: `409 E-mail já cadastrado` confirma que a conta
 existe. A alternativa segura (responder 201 e mandar um e-mail para o dono) é mais
 complexa. Escolha consciente, não por acidente.
 
-### RBAC
+### Permissão por papel (RBAC)
+
+Autenticar responde "quem é você". Falta responder "o que você pode fazer".
+
+O jeito mais simples de organizar isso é não listar permissão por pessoa, e sim
+dar a cada pessoa um **papel** — `leitor`, `editor`, `admin` — e amarrar as
+permissões ao papel. Promover alguém passa a ser trocar uma palavra, em vez de
+copiar uma lista de trinta permissões.
+
+Isso tem sigla, **RBAC**, de _Role-Based Access Control_: controle de acesso
+baseado em papel. A sigla aparece bastante em documentação de nuvem e de banco de
+dados, e é só isso que ela quer dizer.
 
 ```ts
 export function exigirPapel(...papeis: Papel[]) {
@@ -388,16 +447,18 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 
 ## Os princípios deste módulo
 
-| Princípio                                                                                     | Onde reaparece |
-| --------------------------------------------------------------------------------------------- | -------------- |
-| **A senha nunca é armazenada** — nem criptografada. Guarda-se um hash de via única.           | 13             |
-| **Defesa por custo assimétrico:** você paga uma vez, o atacante paga bilhões.                 | 13             |
-| **Um canal lateral vaza tanto quanto a mensagem** — tempo, tamanho e status contam história.  | 13, 14         |
-| **Nada que identifica o autor da ação vem do cliente.**                                       | 12, 13         |
-| **Autorização por papel cabe no middleware; por dono, não** — ela depende dos dados.          | 08, 12         |
-| **Na dúvida, feche a porta** (fail closed). Checagem que libera ao falhar é pior que nenhuma. | 13             |
-| **Operação que muda credencial pede a credencial de novo.**                                   | —              |
-| **Falhe ao subir sem segredo** em vez de usar um de exemplo.                                  | 06, 16         |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                       | Onde volta |
+| ----------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| A senha nunca é armazenada, nem criptografada. O que se guarda é um hash, que não tem caminho de volta.                       | 13         |
+| A defesa é fazer a conta custar caro: você paga o custo uma vez por login, quem ataca paga bilhões de vezes.                  | 13         |
+| O tempo que uma resposta demora conta história igual ao conteúdo dela. Comparar segredo com `===` vaza pelo relógio.          | 13, 14     |
+| Nada que diz quem é o autor de uma ação pode vir do cliente. Só do token que o seu servidor assinou.                          | 12, 13     |
+| "É admin?" cabe no middleware; "é dono deste livro?" não cabe, porque depende de buscar o livro primeiro.                     | 08, 12     |
+| Quando a checagem falha por erro, ela tem que fechar a porta. Checagem que libera ao dar erro é pior do que não ter checagem. | 13         |
+| Operação que muda credencial (trocar senha, trocar e-mail) pede a credencial atual de novo.                                   | —          |
+| Sem o segredo configurado, o processo recusa subir — em vez de usar um valor de exemplo que ninguém lembra de trocar.         | 06, 16     |
 
 ## Para ir além
 
