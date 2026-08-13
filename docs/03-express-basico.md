@@ -12,7 +12,62 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 
 ## Conceitos
 
-### O que o framework resolve
+### O menor servidor Express que existe
+
+Comece por aqui. São quatro linhas, e elas rodam:
+
+```ts
+import express from 'express';
+
+const app = express();
+app.get('/cursos', (req, res) => res.json([{ id: 1, titulo: 'HTTP do zero' }]));
+app.listen(5051);
+```
+
+Salve como `teste.ts`, rode `node teste.ts`, abra `localhost:5051/cursos` e você
+tem uma API respondendo JSON.
+
+Três coisas aconteceram aí, e vale nomear cada uma:
+
+1. **`express()` cria a aplicação.** É um objeto que vai guardando o que você
+   registra nele. Nada foi para a rede ainda.
+2. **`app.get(caminho, função)` registra uma rota.** Ele está dizendo "quando
+   chegar um `GET` em `/cursos`, chame esta função". A função também não rodou
+   ainda — ficou guardada, esperando.
+3. **`app.listen(porta)` abre a porta.** Só agora o servidor existe de verdade e
+   passa a aceitar conexões.
+
+Essa função que você registrou é o **handler**: quem de fato responde àquela
+rota. Ela recebe dois objetos, `req` (o que chegou) e `res` (como responder), e
+eles são os mesmos objetos do módulo 01 — o Express só pendurou métodos a mais
+neles. `res.json(x)` termina chamando o `res.end(...)` que você escreveu na mão
+lá atrás.
+
+Agora dá para acrescentar a segunda peça, a que faz o corpo da requisição chegar
+até você:
+
+```ts
+app.use(express.json()); // vem ANTES das rotas
+```
+
+Sem essa linha, `req.body` é `undefined` em toda rota. O que ela faz por dentro
+— e por que a posição importa tanto — é o assunto do
+[módulo 05](./05-middlewares.md); por ora, basta saber que ela precisa ser
+registrada antes das rotas que leem o corpo.
+
+```mermaid
+flowchart LR
+    REQ([requisição]) --> J["express.json()<br/>preenche req.body"]
+    J --> ROTA{"casa com<br/>algum app.get/post?"}
+    ROTA -- sim --> H["handler<br/>(req, res)"] --> RES([res.json])
+    ROTA -- não --> E404["app.use final<br/>404 em JSON"]
+    style E404 fill:#fed7aa,stroke:#ea580c,color:#000
+```
+
+### O que o Express te poupou
+
+Volte ao [módulo 01](./01-fundamentos-http.md) e compare com o servidor cru. É a
+mesma funcionalidade, linha por linha:
 
 | No `node:http` (módulo 01)                 | No Express                     |
 | ------------------------------------------ | ------------------------------ |
@@ -23,46 +78,28 @@ roteamento, leitura de body e escrita de resposta — o trabalho manual do
 | `writeHead` + `JSON.stringify` + `end`     | `res.json(...)`                |
 | 404 escrito à mão no fim                   | automático — **mas em HTML**   |
 
-> **Nota:** O Express **não** substitui o HTTP. `req` e `res` continuam sendo os objetos do
-> `node:http`, só com métodos a mais. `res.json(x)` termina em `res.end(...)`.
+Repare no que **não** está nessa tabela: nenhuma capacidade nova. Tudo na coluna
+da esquerda você já conseguia fazer, e fez, no módulo 01. O Express não te deu
+poder que você não tinha.
 
-**O princípio:** um framework web não inventa capacidade nova — ele **remove
-trabalho repetitivo e padroniza a decisão**. Toda linha da coluna da esquerda
-você conseguiria escrever; o problema é que cada pessoa escreveria diferente, e a
-sexta rota já não pareceria com a primeira.
+O que ele te deu foi outra coisa: **um jeito único de escrever cada uma dessas
+linhas.** Você conseguiria escrever seu próprio roteador — o problema é que cada
+pessoa escreveria o dela diferente, e na sexta rota o seu código já não pareceria
+com o da primeira. O framework padroniza a decisão para que ela pare de ser uma
+decisão.
 
-E o que ele cobra em troca, para você saber que existe escolha:
+E isso tem preço. Vale saber qual, porque é o que te permite escolher não usar:
 
-| Custo                              | O que significa na prática                                          |
-| ---------------------------------- | ------------------------------------------------------------------- |
-| Uma abstração para aprender        | Middleware, `next()`, ordem de registro — coisas que o HTTP não tem |
-| Comportamento implícito            | `express.json()` decide pelo `Content-Type` sem você ver            |
-| Dependência                        | Versão nova quebra coisa (Express 5 mudou `req.query` e `req.body`) |
-| Perde-se contato com o baixo nível | Fica mais difícil saber por que algo é lento ou não fecha a conexão |
+| Custo                    | O que significa na prática                                                        |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| Uma abstração a aprender | Middleware, `next()`, ordem de registro — conceitos que o HTTP não tem            |
+| Comportamento implícito  | `express.json()` decide pelo `Content-Type` sozinho, e você não vê isso acontecer |
+| Dependência de terceiro  | Versão nova quebra coisa: o Express 5 mudou `req.query` e `req.body`              |
+| Distância do baixo nível | Fica mais difícil descobrir por que algo é lento ou por que a conexão não fecha   |
 
-O acordo compensa na esmagadora maioria dos casos — mas ele **é** um acordo. É
-por isso que o módulo 01 veio primeiro: sem escrever o servidor cru uma vez, o
+O acordo compensa na esmagadora maioria dos casos — mas ele **é** um acordo, e é
+por isso que o módulo 01 veio primeiro. Sem ter escrito o servidor cru uma vez, o
 Express parece mágica em vez de conveniência.
-
-### As três peças
-
-```ts
-import express from 'express';
-
-const app = express(); // 1. a aplicação
-app.use(express.json()); // 2. middlewares (módulo 05)
-app.get('/rota', (req, res) => res.json({})); // 3. rotas
-app.listen(5051);
-```
-
-```mermaid
-flowchart LR
-    REQ([requisição]) --> J["express.json()<br/>preenche req.body"]
-    J --> ROTA{"casa com<br/>algum app.get/post?"}
-    ROTA -- sim --> H["handler<br/>(req, res)"] --> RES([res.json])
-    ROTA -- não --> E404["app.use final<br/>404 em JSON"]
-    style E404 fill:#fed7aa,stroke:#ea580c,color:#000
-```
 
 ### Os dois 404
 
@@ -110,21 +147,29 @@ flowchart TD
     style B fill:#bbf7d0,stroke:#16a34a,color:#000
 ```
 
-**O princípio que decide os três:** cada posição carrega um tipo diferente de
-informação, e a posição é parte do contrato.
+Na hora de decidir onde um dado vai, existe um teste que resolve quase todos os
+casos: **tire o parâmetro e veja se a URL ainda faz sentido.**
 
-| Posição         | Responde a pergunta  | Some da URL e...                          |
+- `/livros` sem o `?ano=1937` continua sendo uma lista de livros. O filtro sumiu,
+  a lista existe. Então `ano` é query param.
+- `/livros/` sem o `:id` não é nada — não aponta para livro nenhum. Então o id é
+  route param.
+
+Fazendo esse teste em cada posição, dá para escrever o que cada uma significa:
+
+| Posição         | Responde a pergunta  | Se você tirar da URL...                   |
 | --------------- | -------------------- | ----------------------------------------- |
 | **Route param** | _qual_ recurso?      | a URL deixa de apontar para algo          |
 | **Query param** | _como_ eu quero ver? | a URL continua válida, com a visão padrão |
 | **Body**        | _com que conteúdo_?  | não há o que criar ou alterar             |
 
-O teste prático: **tire o parâmetro e veja se a URL ainda faz sentido.**
-`/livros` sem `?ano=1937` continua sendo uma lista; `/livros/` sem o `:id` não é
-nada. Por isso filtro nunca vira segmento de caminho (`/livros/ano/1937` é o erro
-clássico) e identificador nunca vira query (`/livro?id=7`).
+**A ideia por trás disso:** a posição onde o dado viaja não é arrumação — ela
+**diz o que o dado é**. Quem lê a URL entende o papel de cada pedaço sem
+documentação nenhuma. É por isso que filtro nunca vira segmento de caminho
+(`/livros/ano/1937` é o erro clássico) e identificador nunca vira query
+(`/livro?id=7`).
 
-Duas consequências que não são estéticas:
+E as consequências não são estéticas:
 
 - **Cacheabilidade.** Proxies e navegadores usam a URL inteira como chave.
   Identificador no corpo torna a resposta incachável.
@@ -332,16 +377,18 @@ res.location(url)      res.set('X-Foo','1')  res.sendStatus(204)
 
 ## Os princípios deste módulo
 
-| Princípio                                                                                                       | Onde reaparece               |
-| --------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Framework não dá capacidade nova; ele padroniza a decisão.**                                                  | 05 (middlewares), 10 (ORM)   |
-| **A posição do dado é parte do contrato** — caminho identifica, query modifica a visão, corpo carrega conteúdo. | 04 (design de URL)           |
-| **Nunca confie na forma do que chega de fora.**                                                                 | 07 (Zod), 09 (SQL injection) |
-| **Uma API responde no formato que promete, inclusive no erro.**                                                 | 06 (tratador global)         |
-| **O status descreve o que houve** — 400 é sintaxe, 409 é estado, 404 é ausência.                                | 06, 11 (401 × 403)           |
-| **Ausente e inválido são coisas diferentes.**                                                                   | 07 (`.optional()`)           |
-| **Idempotência decide se repetir é seguro.**                                                                    | 17 (jobs), 15 (retry)        |
-| **`undefined` não é "apague isto".**                                                                            | 07, 08, 10                   |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                             | Onde volta                   |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| O framework não te dá poder novo; ele te dá um jeito único de escrever o que você já conseguia fazer.                               | 05 (middlewares), 10 (ORM)   |
+| Onde o dado viaja diz o que ele é: caminho identifica, query modifica a visão, corpo carrega conteúdo.                              | 04 (design de URL)           |
+| O que chega de fora pode ter qualquer forma. `?horas=5` vem como texto, e `?horas=5&horas=9` vem como lista.                        | 07 (Zod), 09 (SQL injection) |
+| Se a API promete JSON, ela responde JSON também quando dá errado — senão o cliente estoura no `res.json()` e o erro real some.      | 06 (tratador global)         |
+| O status conta o que aconteceu, não o que seria mais simpático: `400` é sintaxe, `409` é estado, `404` é ausência.                  | 06, 11 (401 × 403)           |
+| "Não veio" e "veio errado" são coisas diferentes. Ignorar o segundo devolve 200 com a lista inteira e o filtro parece funcionar.    | 07 (`.optional()`)           |
+| Se repetir a operação é seguro, o cliente pode tentar de novo sozinho depois de um timeout. Se não é, alguém vai cobrar duas vezes. | 17 (jobs), 15 (retry)        |
+| `undefined` num objeto de atualização não quer dizer "apague este campo" — mas é assim que o spread trata.                          | 07, 08, 10                   |
 
 ## Para ir além
 
