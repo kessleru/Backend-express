@@ -10,3 +10,4 @@ e tem muita frase de efeito, eu nao quero frasesinhas de efeito, quero explicaca
 e o repo ta confuso, o readme que explica o repo tem muita coisa, ta bem poluido. as vezes me sinto meio perdido em tentar achar a instrucao que eu quero, e toma cuidado com codigos complexos logo de cara, vai aumentando o nivel, nao to falando pra simplificar so ir com calma, quero que reforce conceito importantes e tals, e agora que eu to no middlewares, quero um fluxo simples e facil de ler, dai tem um mermaid gigante com autenticao e etc coisa que eu nem vi, queria um fluxo mostrando claro como o express age
 
 
+REVISE BEM O REPO, NAO FACA COM PRESSA. QUERO TUDO REVISADO.
