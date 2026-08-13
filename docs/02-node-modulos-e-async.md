@@ -366,6 +366,12 @@ devolvida ao event loop, atende outras requisições, e volta a esta função qu
 o resultado estiver pronto. Se a thread também parasse, estaríamos de volta ao
 modelo de 10 GB de RAM parada.
 
+<img src="../assets/modulo-02-thread.svg" alt="Linha do tempo com duas requisições. A requisição A executa, fica 300ms esperando o banco e volta a executar. Durante essa espera a thread atende a requisição B inteira. A faixa de baixo mostra o que a única thread executa a cada momento." width="100%">
+
+Repare na faixa de baixo, que é o ponto: **a thread nunca está esperando.** Ela
+está rodando A, ou rodando B, ou livre — e "livre" aqui significa disponível para
+qualquer outra requisição que chegar, não parada por causa da A.
+
 Daí sai uma regra prática que economiza latência de graça:
 
 ```ts
