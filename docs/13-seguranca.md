@@ -99,9 +99,14 @@ app.get('/emprestimos/:id', autenticar, async (req, res) => {
 });
 ```
 
-**O princípio: autenticação diz quem é; só a autorização diz o que pode.** Um
-middleware `autenticar` na rota dá uma falsa sensação de proteção — ele impede
-anônimos, não impede o usuário A de ler os dados do usuário B.
+Repare no que o `autenticar` daquela rota realmente garante: que quem chamou tem
+um token válido. Ou seja, que é **alguém** — não que é a pessoa certa.
+
+Essa distinção é fácil de perder de vista, porque a rota "parece protegida". Ela
+está: contra anônimos. Contra o usuário A lendo os dados do usuário B, não —
+porque ninguém comparou o dono do recurso com quem pediu.
+
+**Autenticar responde "quem é você". Só a autorização responde "isto é seu".**
 
 ### Injeção — além do SQL
 
@@ -158,8 +163,15 @@ isso que o `X-Content-Type-Options: nosniff` do Helmet impede.
 CSRF explora o fato de o navegador **enviar o cookie automaticamente** para o
 domínio dono dele — inclusive numa requisição disparada por outro site.
 
-**O princípio: o risco existe quando a credencial viaja sozinha.** Isso decide
-tudo:
+Repare no detalhe que faz o ataque funcionar: o navegador anexa o cookie **sem
+ninguém pedir**. Um site qualquer manda uma requisição para o seu domínio, e o
+cookie vai junto, porque é assim que cookie funciona.
+
+Daí sai o critério que decide se você precisa se preocupar: **o risco existe
+quando a credencial viaja sozinha.** Se alguém precisa escrever a credencial na
+requisição, um site de terceiro não consegue — ele não tem o token.
+
+Isso responde a tabela inteira:
 
 | Como o cliente autentica        | Vulnerável a CSRF? | Por quê                                        |
 | ------------------------------- | ------------------ | ---------------------------------------------- |
@@ -310,8 +322,16 @@ proteção principal e precisa ser ajustado à mão.
 
 ### Segredos
 
-**O princípio: segredo não é código — ele muda por ambiente e nunca entra no
-git.**
+Vale separar duas coisas que costumam ir para o mesmo arquivo: **código** e
+**segredo**.
+
+Código é igual em todo lugar — o mesmo em desenvolvimento, em teste e em
+produção. Segredo não: a chave do banco local não é a de produção, e nem deveria
+ser. Ele muda por ambiente, e por isso não pertence ao lugar onde moram as coisas
+que não mudam.
+
+E há o motivo mais concreto: o git guarda **histórico**. Um segredo commitado não
+sai apagando o arquivo — ele continua acessível em todo clone que alguém já fez.
 
 | Regra                                             | Por quê                                                         |
 | ------------------------------------------------- | --------------------------------------------------------------- |
@@ -435,16 +455,18 @@ git rm --cached .env     # e ROTACIONE o segredo
 
 ## Os princípios deste módulo
 
-| Princípio                                                                                     | Onde reaparece |
-| --------------------------------------------------------------------------------------------- | -------------- |
-| **Toda entrada é hostil até prova em contrário** — e a prova é na fronteira do servidor.      | 07, 09, 19     |
-| **Defesa em profundidade:** camadas que falham de formas _diferentes_ multiplicam a proteção. | 11, 16         |
-| **Autenticado ≠ autorizado.** O erro nº 1 é entregar o recurso de outra pessoa.               | 08, 11         |
-| **Injeção é dado que vira código de outro interpretador** — SQL, shell, caminho, template.    | 09, 19         |
-| **CORS é regra do navegador, não do servidor.** Não é controle de acesso.                     | 05, 15         |
-| **Segredo vazado é segredo rotacionado** — remover do git não desfaz o vazamento.             | 14, 16         |
-| **Você não escreve a maior parte do código que sobe.** Auditar dependência é rotina.          | 16             |
-| **Uma resposta que varia conta um segredo** — mensagem, status ou tempo.                      | 11, 14         |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                      | Onde volta |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| Tudo que chega de fora é hostil até passar pela verificação — e a verificação que conta é a do servidor, nunca a do front.   | 07, 09, 19 |
+| Várias defesas só multiplicam a proteção se elas falharem por motivos **diferentes**. Duas que caem juntas valem por uma.    | 11, 16     |
+| Ter token válido não é ter direito ao recurso. Entregar o dado de outra pessoa é o erro mais comum de API.                   | 08, 11     |
+| Injeção é dado que atravessa uma fronteira e é lido como comando do outro lado — em SQL, no shell, num caminho de arquivo.   | 09, 19     |
+| CORS é regra que o navegador obedece, não porta que o servidor tranca. `curl` ignora e a requisição acontece do mesmo jeito. | 05, 15     |
+| Segredo que vazou tem que ser trocado, não apagado. O commit some do topo e continua no histórico e em todo clone.           | 14, 16     |
+| A maior parte do código que sobe com a sua API não foi você quem escreveu. Auditar dependência é rotina, não paranoia.       | 16         |
+| Qualquer coisa que varie conforme a resposta conta um segredo: a mensagem, o status e também o tempo que demorou.            | 11, 14     |
 
 ## Para ir além
 
