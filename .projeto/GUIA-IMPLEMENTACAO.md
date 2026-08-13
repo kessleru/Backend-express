@@ -312,6 +312,8 @@ Backend-express/
 │   ├── specs/                   #    desenhos aprovados
 │   └── plans/                   #    planos de execução
 │
+├── assets/                      # 🖼️ imagens do README (geradas por gerar.mjs)
+│
 ├── docs/                        # 📚 TEORIA — um arquivo por módulo
 │   ├── 00-glossario.md          #    toda palavra técnica, em uma frase
 │   ├── 01-fundamentos-http.md

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./docs/imagens/banner.svg" alt="Backend do zero — Node.js, Express e TypeScript" width="100%">
+<img src="./assets/banner.svg" alt="Backend do zero — Node.js, Express e TypeScript" width="100%">
 
 **Um curso de backend em 20 módulos, em português.**<br>
 Teoria explicada, código que roda de verdade e um exercício por módulo.
@@ -11,7 +11,7 @@ Teoria explicada, código que roda de verdade e um exercício por módulo.
 [![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](./tsconfig.json)
 [![Último commit](https://img.shields.io/github/last-commit/kessleru/Backend-express?style=for-the-badge&color=38bdf8)](https://github.com/kessleru/Backend-express/commits/main)
 
-<img src="./docs/imagens/quickstart.svg" alt="npm run dev subindo o servidor e respondendo em localhost:5050" width="620">
+<img src="./assets/quickstart.svg" alt="npm run dev subindo o servidor e respondendo em localhost:5050" width="620">
 
 </div>
 
@@ -147,8 +147,8 @@ em `coverage/index.html`.
 
 <table>
 <tr>
-  <td width="52%" valign="top"><img src="./docs/imagens/modulo-13-rate-limit.svg" alt="Sexta tentativa de login devolvendo 429" width="100%"></td>
-  <td width="48%" valign="top"><img src="./docs/imagens/testes.svg" alt="Vitest com 113 testes passando" width="100%"></td>
+  <td width="52%" valign="top"><img src="./assets/modulo-13-rate-limit.svg" alt="Sexta tentativa de login devolvendo 429" width="100%"></td>
+  <td width="48%" valign="top"><img src="./assets/testes.svg" alt="Vitest com 113 testes passando" width="100%"></td>
 </tr>
 <tr>
   <td align="center"><sub><b>Módulo 13</b> — o rate limit corta o ataque de força bruta</sub></td>
@@ -156,19 +156,9 @@ em `coverage/index.html`.
 </tr>
 </table>
 
-<img src="./docs/imagens/modulo-14-logs.svg" alt="Logs estruturados do Pino com a senha redigida e request id" width="560">
+<img src="./assets/modulo-14-logs.svg" alt="Logs estruturados do Pino com a senha redigida e request id" width="560">
 
 <sub><b>Módulo 14</b> — log estruturado: nível por status, `req.id` atravessando a stack e a senha redigida por configuração, não por disciplina.</sub>
-
-<details>
-<summary><b>Como as imagens deste README são geradas</b></summary>
-
-Elas não são desenhadas à mão: `node docs/imagens/gerar.mjs` transforma a saída
-real dos comandos em SVG. Se um exemplo mudar de comportamento, é só rodar de
-novo — screenshot desatualizado é pior que nenhum, porque quebra a confiança em
-tudo o mais que está escrito aqui.
-
-</details>
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Gera as imagens de terminal do README a partir de saída REAL capturada.
  *
- * Rodar:  node docs/imagens/gerar.mjs
+ * Rodar:  node assets/gerar.mjs
  *
  * O princípio: **a imagem do README é gerada, não desenhada.** Screenshot
  * desatualizado é pior que nenhum — se a saída do comando muda, este script
