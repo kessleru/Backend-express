@@ -96,7 +96,7 @@ PRIMARY KEY (livro_id, genero_id)
 **Normalização o suficiente:** cada fato num lugar só. O nome do autor mora em
 `autores`, não repetido em cada livro — senão corrigir um typo exige um UPDATE em
 mil linhas, e duas delas vão ficar diferentes. Desnormalize depois, com número na
-mão ([módulo 15](./15-performance-e-cache.md)), não por antecipação.
+mão (módulo 15, ainda não escrito), não por antecipação.
 
 ### SQL injection — e por que `?` resolve
 
