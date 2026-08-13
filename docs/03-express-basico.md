@@ -120,9 +120,13 @@ app.use((req, res) => {
 });
 ```
 
-**O princípio:** **uma API responde no formato que promete, inclusive no erro.**
-Sem esse handler o Express devolve um 404 em HTML; o cliente que faz
-`await res.json()` estoura num erro de parse, e o erro de verdade some.
+Repare no que acontece se você **não** escrever esse handler: o Express tem um
+404 próprio, e ele responde em **HTML**. O cliente do outro lado, que chamou
+`await res.json()` porque a sua API é uma API JSON, estoura num erro de parse — e
+a mensagem que ele mostra é "unexpected token `<`", não "rota não existe".
+
+O erro de verdade sumiu, substituído por um erro de formato. Daí a regra: **uma
+API responde no formato que prometeu, inclusive quando dá errado.**
 
 > **Atenção:** O terceiro caso mereceria `405 Method Not Allowed` — o recurso existe, o verbo
 > é que não. O Express não faz essa distinção sozinho, e o catch-all cobre os
@@ -216,9 +220,13 @@ o que diz ao cliente **se vale a pena tentar de novo**.
 | **409** Conflict    | o pedido está correto, mas **briga com o estado atual** | Sim, se o estado mudar             |
 | **404** Not Found   | o alvo não existe                                       | Sim, se o recurso passar a existir |
 
-**O princípio:** **o status descreve o que houve, não o que você quer que o
-usuário veja.** Devolver 400 num conflito manda o cliente caçar um erro de
-digitação que não existe — o body dele estava perfeito.
+Pense do lado de quem recebe. Se você devolve `400` num conflito, está dizendo
+"o seu pedido está malformado" — e a pessoa vai reler o JSON dela caçando um erro
+de digitação que não existe. O corpo estava perfeito; o problema era que já
+existia um curso com aquele título.
+
+É por isso que **o status descreve o que aconteceu, e não o que seria mais
+gentil dizer**. Ele é a instrução que diz ao cliente qual é o próximo passo dele.
 
 ```ts
 // o pedido está errado → 400
