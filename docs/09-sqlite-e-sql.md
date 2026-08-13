@@ -133,14 +133,6 @@ Essa falha tem o mesmo formato em toda parte, só troca de nome:
 | Log      | formato     | log estruturado (JSON), módulo 14       |
 | E-mail   | cabeçalho   | recusar `\n` no assunto                 |
 
-| Contexto | A instrução | Como se faz certo                       |
-| -------- | ----------- | --------------------------------------- |
-| Banco    | SQL         | query parametrizada (`?`)               |
-| Shell    | comando     | `spawn(cmd, [args])`, nunca `exec(str)` |
-| HTML     | marcação    | escapar na saída / template que escapa  |
-| Log      | formato     | log estruturado (JSON), módulo 14       |
-| E-mail   | cabeçalho   | recusar `\n` no assunto                 |
-
 A saída errada é tentar limpar o texto: procurar as aspas, as barras, os
 caracteres perigosos, e neutralizá-los. Isso é escapar — e o problema é que você
 precisa acertar a lista **inteira** de caracteres perigosos daquele
