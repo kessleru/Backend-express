@@ -3,7 +3,7 @@
 Repositório de **estudo de backend**: Node.js + Express + TypeScript, do básico
 ao avançado. O objetivo é ensinar, não entregar produto.
 
-**Antes de qualquer coisa, leia `GUIA-IMPLEMENTACAO.md`.** Ele tem o currículo
+**Antes de qualquer coisa, leia `.projeto/GUIA-IMPLEMENTACAO.md`.** Ele tem o currículo
 completo (20 módulos), o catálogo de ferramentas e a tabela de progresso
 (seção 9) que diz onde o trabalho parou.
 
@@ -17,13 +17,16 @@ completo (20 módulos), o catálogo de ferramentas e a tabela de progresso
 
 ## Estilo de escrita (detalhes na seção 7 do guia)
 
-Completo em cobertura, **denso em conteúdo**, enxuto em texto. Corte redundância,
-nunca profundidade — módulo raso é defeito, módulo longo não é.
+Completo em cobertura **e em explicação**. Corte redundância, nunca profundidade
+nem clareza — módulo raso é defeito, módulo longo não é.
 
-**Todo conceito passa pelas cinco camadas** (seção 7 do guia): problema →
-**princípio** → mecânica → trade-off → consequência. O princípio é sempre
-**nomeado em negrito**, numa frase que vale fora da ferramenta ("a senha nunca é
-armazenada", não "usamos hash"). É a camada que não se corta.
+**Todo conceito passa pelas cinco camadas, nesta ordem** (seção 7 do guia):
+problema → **mecânica** → princípio → trade-off → consequência.
+
+A ordem é obrigatória. O princípio vem **depois** de o leitor ver a coisa
+funcionar, e é escrito em frase comum — se precisa ser decorada para fazer
+sentido, é aforismo e está errada. "A senha nunca é armazenada" é princípio;
+"middleware é composição de funções sobre um valor mutável" é aforismo.
 
 - **Módulo de `docs/`: não tem limite de tamanho.** Termina quando o assunto
   acabou. O corte é por redundância — linha que não muda uma decisão sai.
@@ -35,8 +38,15 @@ armazenada", não "usamos hash"). É a camada que não se corta.
   nunca `foo`/`bar`).
 - **Falso amigo vira destaque**: o que parece certo e está errado (`.partial()`
   no PATCH, `decode` no lugar de `verify`).
-- Parágrafo: até 4 linhas. Tabela e lista no lugar de texto corrido.
-- Se dá pra mostrar em código comentado, mostre em código — não em prosa.
+- **Termo técnico é definido na estreia**, na própria linha ou na seguinte, e
+  entra em `docs/00-glossario.md`. Palavra não explicada trava a leitura.
+- **Diagrama não adianta módulo**: um mermaid só mostra o que já foi ensinado
+  até ali. O resto vai para `## Se quiser ir mais fundo`.
+- **Rampa**: `## Conceitos` abre no caso mínimo e cresce. Comparação com outro
+  framework e nome acadêmico do padrão saem do corpo.
+- Parágrafo: **uma ideia**. O limite é a ideia, não a linha.
+- Código mostra o **quê**; o texto ao redor diz o **porquê** e o que observar.
+  Bloco de código entre dois títulos, sem texto, é defeito.
 - Conceito já explicado vira link para o módulo, não é reexplicado.
 
 Todo módulo segue o template de `docs/` e tem um exercício correspondente em

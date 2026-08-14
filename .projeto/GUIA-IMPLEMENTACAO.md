@@ -4,7 +4,7 @@
 > currículo e para **sessões futuras do Claude Code** entenderem o projeto sem
 > precisar redescobrir tudo.
 >
-> Última atualização: 2026-08-03
+> Última atualização: 2026-08-13
 
 ---
 
@@ -23,212 +23,111 @@ Público-alvo: você, estudando do zero até conseguir projetar uma API de produ
 
 Idioma: **português** em toda documentação e comentários.
 
-**Estilo: completo em cobertura, denso em conteúdo, enxuto em texto.** Todos os
-20 módulos existem, cada um vai ao fundo do assunto, e o corte é de redundância —
-nunca de profundidade. Código e tabela no lugar de parágrafo. O padrão
-obrigatório está na seção 7, e a régua de qualidade de ensino é a subseção
-"Qualidade de ensino" — ela vale acima das outras regras de estilo.
+**Estilo: completo em cobertura e em explicação.** Todos os 20 módulos existem,
+cada um vai ao fundo do assunto, e o corte é de redundância — nunca de
+profundidade nem de clareza. Tabela compara e enumera **depois** da explicação,
+não no lugar dela. O padrão obrigatório está na seção 7, e a régua de qualidade
+de ensino é a subseção "Qualidade de ensino" — ela vale acima das outras regras
+de estilo.
 
 ---
 
-## 2. Estado atual
+## 2. Estado atual e achados técnicos
 
-### Já feito (sessão de 2026-07-29)
+**Onde o trabalho parou:** veja [`ULTIMO.md`](ULTIMO.md). A tabela da seção 9
+deste arquivo tem as fases.
 
-- `src/server.ts` migrado de `require` para `import express from 'express'`.
-- `@types/express` instalado (Express 5 não traz tipos próprios).
-- `package.json`: `"type": "commonjs"` → `"type": "module"`, necessário porque o
-  `tsconfig.json` usa `verbatimModuleSyntax: true` + `module: "nodenext"`.
-- Verificado: `npx tsc --noEmit` passa e o módulo carrega em runtime.
+Em resumo: **módulos 01 a 14 completos** (doc, exemplo, exercício e solução),
+faltando as soluções dos exercícios 13 e 14, os mini desafios dos módulos 02 a
+14, os módulos 15–20 e os apêndices.
 
-### Fase 0 concluída (2026-07-29)
+### Achados de comportamento, todos verificados rodando
 
-- `.gitignore` restaurado (+ regras para `data/*.sqlite`).
-- `tsconfig.json`: `rootDir`/`outDir` ativados, flags de compatibilidade com o
-  type stripping do Node, `jsx` removido, `src/playground` excluído do build.
-- `tsconfig.playground.json`: typecheck isolado do playground, para que código
-  seu em rascunho não quebre o build principal.
-- `package.json`: `main` corrigido, scripts `dev`/`start`/`build`/`typecheck`/
-  `typecheck:play`/`format`, `nodemon` removido.
-- Prettier + `.editorconfig` configurados.
-- `.env.example`, `data/`, `src/playground/`, `exercicios/`.
-- `CLAUDE.md` e `README.md`.
-- Verificado: `npm run dev`, `npm run build` e `npm start` funcionam; `/` e
-  `/health` respondem.
+Esta é a parte desta seção que não envelhece. Cada linha custou tempo de
+depuração e virou conteúdo de módulo — não repita a descoberta.
 
-**ESLint ficou de fora.** O `typescript-eslint` declara peer
-`typescript@">=4.8.4 <6.1.0"` e o projeto usa TS 7 — não há versão compatível
-ainda. Opções: (a) esperar o suporte, (b) baixar para TypeScript 5.9. Por ora o
-`tsc --strict` já cobre boa parte do que o ESLint pegaria.
+**Express 5**
 
-### Fases 1 e 2 concluídas (2026-07-30)
+| Achado                                                                                              | Onde virou conteúdo |
+| --------------------------------------------------------------------------------------------------- | ------------------- |
+| `req.body` fica **`undefined`** (não `{}`) quando falta o `Content-Type`                            | 03, 07              |
+| `req.query` virou **getter**: atribuir (`req.query = validado`) lança `TypeError`. Use `res.locals` | 07                  |
+| Wildcard `/*resto` devolve **array** de segmentos, não string                                       | 04                  |
+| `*` **exige** nome no caminho; `/:formato?` virou `{/:formato}`                                     | 04                  |
+| `throw` em rota `async` agora chega ao tratador sozinho — `asyncHandler` é código morto             | 06                  |
 
-- **Módulos 01–07** com doc, exemplo executável e exercício + solução.
-- Dependências novas: `cors`, `morgan` (módulo 05) e `zod` (07).
-- `tsconfig.exercicios.json` + script `typecheck:ex`, para checar os tipos das
-  soluções (que ficam fora de `src/`).
-- Achados que viraram conteúdo, todos verificados rodando:
-  - Express 5 deixa `req.body` **`undefined`** (não `{}`) sem `Content-Type`.
-  - Express 5 tornou `req.query` **getter**: `req.query = validado` lança
-    `TypeError`. O middleware de validação guarda em `res.locals`.
-  - Wildcard do Express 5 (`/*resto`) devolve **array** de segmentos.
-  - Zod: `schemaComDefault.partial()` **não** serve para PATCH — os `.default()`
-    continuam valendo e sobrescrevem o registro salvo.
-  - Zod 4: `z.string().email()` está deprecado; use `z.email()`.
+**Zod 4**
 
-### Fase 3 em andamento (2026-07-30)
+| Achado                                                                                                                              | Onde |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `schemaComDefault.partial()` **não** serve para PATCH: os `.default()` continuam valendo e sobrescrevem o registro salvo            | 07   |
+| `z.string().email()` está deprecado; use `z.email()`                                                                                | 07   |
+| `validar()` precisa de `req.body ?? {}`, senão body ausente produz "expected object, received undefined" em vez de listar os campos | 07   |
 
-- **Módulos 08 a 11** com doc, exemplo executável e exercício. Solução pronta
-  para 08, 09 e 10; a do **11 ainda não existe** (só o enunciado).
-- Dependências novas: `prisma` + `@prisma/client` +
-  `@prisma/adapter-better-sqlite3` (10) e `argon2`, `jsonwebtoken`,
-  `cookie-parser` (11).
-- Scripts novos: `db:migrate`, `db:generate`, `db:seed`, `db:reset`, `db:studio`.
-- `prisma/schema.prisma`, `prisma.config.ts`, `prisma/seed.ts` e a primeira
-  migration versionada.
-- Achados que viraram conteúdo, todos verificados rodando:
-  - **Prisma 7** tirou o `url` do `datasource` (erro P1012): ele vai para
-    `prisma.config.ts`, e o client recebe um **adapter** no construtor.
-  - O export do adapter é `PrismaBetterSqlite3` — **s** minúsculo.
-  - `createMany({ skipDuplicates: true })` não funciona no SQLite.
-  - `COUNT`/`SUM`/`MIN` via `$queryRaw` voltam `bigint`, e `JSON.stringify` de
-    bigint lança — 500 misterioso na rota.
-  - `exactOptionalPropertyTypes: true` briga com o idioma do Prisma
-    (`data: { x: undefined }` não compila) e com spread de update em geral.
-    Solução: spread condicional.
-  - `validar()` precisa de `req.body ?? {}`, senão body ausente produz
-    "expected object, received undefined" em vez de listar os campos que faltam.
-    Corrigido no exemplo do módulo 07 e nas 4 soluções que o copiam.
-  - `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10
-    poder importar o Prisma Client gerado em `src/`.
+**Prisma 7**
 
-### Fase 3 concluída (2026-08-03)
+| Achado                                                                                                                              | Onde |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| O `url` saiu do `datasource` (erro **P1012**): vai para `prisma.config.ts`, e o client recebe um **adapter**                        | 10   |
+| O export do adapter é `PrismaBetterSqlite3` — **s** minúsculo, ao contrário do que a doc de várias versões sugere                   | 10   |
+| `createMany({ skipDuplicates: true })` não funciona no SQLite                                                                       | 10   |
+| `COUNT`/`SUM`/`MIN` via `$queryRaw` voltam `bigint`, e `JSON.stringify` de bigint lança — 500 misterioso                            | 10   |
+| `exactOptionalPropertyTypes: true` briga com o idioma do Prisma (`data: { x: undefined }` não compila). Solução: spread condicional | 10   |
 
-- **Solução do exercício 11** criada sobre a base do 08 (repositórios em
-  memória). Os **18 critérios de aceite** foram verificados com `curl`, um por
-  um: 30 checagens, todas passando.
-- **Módulo 12 (testes)** com doc, exemplo executável, enunciado e solução.
-- Dependências novas: `vitest`, `supertest`, `@types/supertest`,
-  `@vitest/coverage-v8`.
-- Arquivos novos na raiz: `vitest.config.ts`, `vitest.setup.ts` e
-  `tsconfig.build.json`.
-- Scripts novos: `test`, `test:watch`, `test:cov`.
-- Suíte atual: **113 testes em 10 arquivos**, verde e idempotente (roda duas
-  vezes seguidas com o mesmo resultado). Cobertura ~80%.
+**Segurança (módulo 13)**
 
-Achados desta fase, todos verificados rodando:
+| Achado                                                                                                                                                                                                                                                  | Onde |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| `helmet()` liga 12 headers e remove `x-powered-by`. `x-xss-protection` vem **`0`** de propósito: o filtro antigo do navegador tinha bugs que criavam vulnerabilidades. "Corrigir" para `1; mode=block` **piora** a segurança — virou falso amigo no doc | 13   |
+| `express-rate-limit` 8 usa `standardHeaders: 'draft-8'`: o header vem como `ratelimit="2-in-1min"; r=0; t=60`, não mais `X-RateLimit-*`                                                                                                                 | 13   |
+| `req.params.nome` é `string \| string[] \| undefined` com `noUncheckedIndexedAccess` — normalize com `String(... ?? '')` antes de `resolve()`                                                                                                           | 13   |
+| `npm audit` acusou um **high real** (`fast-uri`, transitiva). Virou o exemplo de auditoria, em vez de um caso inventado                                                                                                                                 | 13   |
 
-- `criarApp()` **precisou ser extraído**: os módulos 01–11 chamam `listen` no
-  topo, e importar isso num teste sobe servidor de verdade (`EADDRINUSE`, o
-  processo não encerra). Os módulos anteriores **não** foram reescritos —
-  regra 7 da seção 10 — e o contraste virou conteúdo do 12.
-- O `JWT_SECRET` do `.env`/`.env.example` tinha 23 caracteres e reprovava no
-  próprio critério de aceite do módulo 11 (mínimo 32). Corrigido.
-- **Rate limit versus suíte de teste**: 10 tentativas/min por IP num balde
-  compartilhado entre `registrar`/`login`/`trocar-senha` estourava. Duas
-  correções: baldes separados por rota (cada `limitar()` tem o próprio Map) e
-  `criarApp(deps, { rateLimit: false })` para o teste — nunca afrouxar o limite
-  de produção para o teste caber.
-- `tsconfig.build.json` foi necessário para os testes serem **checados** por
-  `npm run typecheck` e ao mesmo tempo ficarem **fora** de `dist/`.
-- `process.loadEnvFile()` (nativo, Node 22+) no `vitest.setup.ts` — é o que faz
-  `npm test` funcionar sem `--env-file` na linha de comando, sem `dotenv`.
-- No `app.ts` da solução 12, `NODE_ENV=test` desliga o middleware de log: 200
-  linhas de `GET /livros 200 em 1.2ms` afogam a falha que importa.
+**Observabilidade (módulo 14)**
 
-### Revisão de profundidade dos docs 01–11 (2026-08-03)
+| Achado                                                                                                                                                                                                                                                                                                                                           | Onde |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---- |
+| **O `redact` do Pino vazou uma senha durante a escrita do exemplo.** A lista tinha `senha` e `req.body.senha`, mas a rota logava `{ corpo: req.body }` — o caminho real era `corpo.senha`. Ele age nos **caminhos listados**, não no nome do campo em qualquer profundidade. O que pegou o vazamento foi um **teste que procura a senha no log** | 14   |
+| `import pinoHttp from 'pino-http'` **não compila** com `verbatimModuleSyntax` (o pacote é CommonJS). Use `import { pinoHttp }`                                                                                                                                                                                                                   | 14   |
+| `genReqId`/`customLogLevel` recebem `IncomingMessage`/`ServerResponse` do `node:http`, e **não são inferidos** — anotar é obrigatório (TS7006)                                                                                                                                                                                                   | 14   |
+| **Pino não é mais rápido que `JSON.stringify` na mão** (220ms × 156ms, 50 mil linhas). O que ele compra é nível, redação, child logger e serialização de `Error`                                                                                                                                                                                 | 14   |
+| `JSON.stringify(new Error('x'))` devolve `{}` — as propriedades são não-enumeráveis, e a stack se perde justamente no log que mais importa                                                                                                                                                                                                       | 14   |
 
-A régua de "Qualidade de ensino" da seção 7 nasceu nesta sessão, depois dos
-módulos 01–10. Todos foram passados por ela — **acrescentando o que faltava, sem
-reescrever o que já existia** (regra 7 da seção 10):
+**Testes e build**
 
-- Bloco de **princípio nomeado** em cada conceito central.
-- Seção **"Os princípios deste módulo"** no fim dos docs 01 a 11, ligando cada
-  princípio aos módulos onde ele reaparece.
-- **Custos declarados** onde havia só elogio: o que o Express cobra (03), o que
-  camadas custam (08), o que o ORM esconde (10), o que o JWT troca por escala (11).
+| Achado                                                                                                                                                                                                                                              | Onde   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `criarApp()` precisou ser extraído: os módulos 01–11 chamam `listen` no topo, e importar isso num teste sobe servidor de verdade (`EADDRINUSE`, o processo não encerra). Os anteriores **não** foram reescritos, e o contraste virou conteúdo do 12 | 12     |
+| **Rate limit versus suíte**: baldes separados por rota e `criarApp(deps, { rateLimit: false })` no teste. Nunca afrouxar o limite de produção para o teste caber                                                                                    | 12, 13 |
+| `tsconfig.build.json` foi necessário para os testes serem checados por `npm run typecheck` e ficarem **fora** de `dist/`                                                                                                                            | 12     |
+| `process.loadEnvFile()` (nativo) no `vitest.setup.ts` é o que faz `npm test` rodar sem `--env-file` e sem `dotenv`                                                                                                                                  | 12     |
+| `tsconfig.exercicios.json` precisou de `rootDir: "."` para a solução do 10 importar o Prisma Client gerado em `src/`                                                                                                                                | 10     |
 
-### Fase 4 em andamento (2026-08-05)
+### Nomes de arquivo já reservados
 
-- **Módulo 13 (segurança)** com doc, exemplo executável e enunciado. A
-  **solução do exercício 13 ainda não existe**.
-- Dependências novas: `helmet` (8.3) e `express-rate-limit` (8.6).
-- **Referências externas** adicionadas em todos os 12 módulos anteriores: seção
-  "Para ir além" entre "Os princípios" e "Pratique", com 3 a 6 fontes cada
-  (RFC 9110, OWASP, docs oficiais, Fowler, livros). **Os 45 links foram
-  verificados por HTTP** — 3 estavam quebrados na primeira tentativa e foram
-  corrigidos.
-- O exemplo do 13 tem cada rota em **par** (versão insegura e segura), e as 12
-  afirmações da doc foram verificadas rodando: headers, rate limit, injeção,
-  path traversal, IDOR e enumeração de usuário.
+Os docs têm links apontando para módulos futuros. Eles só vão funcionar se os
+arquivos usarem **exatamente** estes nomes:
 
-Achados desta fase, todos verificados rodando:
+| Arquivo                     | Citado em |
+| --------------------------- | --------- |
+| `15-performance-e-cache.md` | 06, 09    |
+| `16-deploy-docker-ci.md`    | 06        |
+| `17-jobs-e-filas.md`        | 06        |
 
-- `helmet()` liga **12 headers** e remove `x-powered-by`. O valor de
-  `x-xss-protection` é **`0`** — ele _desliga_ o filtro antigo do navegador de
-  propósito, porque o filtro tinha bugs que criavam vulnerabilidades. "Corrigir"
-  para `1; mode=block` piora a segurança: virou falso amigo no doc.
-- `express-rate-limit` 8 usa `standardHeaders: 'draft-8'`, e o header vem no
-  formato `ratelimit="2-in-1min"; r=0; t=60` — não é mais o `X-RateLimit-*`.
-- `req.params.nome` é `string | string[] | undefined` com
-  `noUncheckedIndexedAccess`: normalizar com `String(... ?? '')` antes de passar
-  para `resolve()`.
-- `npm audit` acusou um **high real** (`fast-uri`, dependência transitiva). Virou
-  o exemplo de auditoria do módulo, em vez de um caso inventado.
-- Exemplo do módulo 10 falha com **P2021** numa árvore recém-clonada: além do
-  `db:generate`, é preciso `db:migrate` (as tabelas não existem) e `db:seed`.
-  Documentado no README, no guia e no `ULTIMO.md`.
-- Exercício 01 tinha os critérios de aceite marcados (`- [x]`), aparecendo como
-  já concluídos. Corrigido para `- [ ]`.
-- Módulo 12 era o único sem a seção "Os princípios deste módulo". Acrescentada.
+> **Nota:** na revisão de 2026-08-13 esses três links viraram texto simples
+> ("módulo 15, ainda não escrito"), porque link para arquivo inexistente dá 404
+> no GitHub. Ao criar os módulos, vale voltar e transformá-los em link de novo.
 
-Achados do **módulo 14**, todos verificados rodando:
+### Setup numa árvore recém-clonada
 
-- **O `redact` do Pino vazou uma senha durante a escrita do exemplo.** A lista
-  tinha `senha` e `req.body.senha`, mas a rota logava `{ corpo: req.body }` — o
-  caminho real era `corpo.senha`. `redact` age nos **caminhos listados**, não no
-  nome do campo em qualquer profundidade. Corrigido com `'*.senha'`, e o episódio
-  virou conteúdo do doc: o que pegou o vazamento foi um teste que procura a senha
-  no log, não releitura de código.
-- `import pinoHttp from 'pino-http'` **não compila** com `verbatimModuleSyntax`
-  ("This expression is not callable"): o pacote é CommonJS. Use o export nomeado
-  `import { pinoHttp } from 'pino-http'`.
-- Os callbacks `genReqId`/`customLogLevel` recebem `IncomingMessage`/
-  `ServerResponse` do `node:http` (não os do Express) e **não são inferidos** —
-  anotar é obrigatório, senão o `tsc` acusa TS7006.
-- **Pino não é mais rápido que `JSON.stringify` na mão** (220ms × 156ms para 50
-  mil linhas em arquivo). O que ele compra é nível, redação, child logger e
-  serialização de `Error`. Isso está dito no doc, contra o discurso de marketing.
-- Um `info()` descartado por nível custa ~0: **50 mil chamadas em 1ms**. É o que
-  justifica instrumentar generosamente.
-- `JSON.stringify(new Error('x'))` devolve `{}` — as propriedades do `Error` são
-  não-enumeráveis, e a stack se perde justamente no log que mais importa.
-
-### Ainda pendente
-
-- Fases 4, 5 e 6 da tabela da seção 9.
-
-**Nomes de arquivo já reservados.** Os docs 01–12 têm links apontando para
-módulos futuros. Eles só vão funcionar se os arquivos usarem **exatamente** estes
-nomes:
-
-| Arquivo                     | Citado em  |
-| --------------------------- | ---------- |
-| `13-seguranca.md`           | 05         |
-| `14-observabilidade.md`     | 03, 05, 10 |
-| `15-performance-e-cache.md` | 06, 09     |
-| `16-deploy-docker-ci.md`    | 06         |
-| `17-jobs-e-filas.md`        | 06         |
-
-**Setup numa árvore recém-clonada.** Duas coisas do módulo 10 não vêm no git, e
-cada uma quebra de um jeito diferente:
+Duas coisas do módulo 10 não vêm no git, e cada uma quebra de um jeito diferente:
 
 | O que falta                     | Como se manifesta                                                      | Resolve com           |
 | ------------------------------- | ---------------------------------------------------------------------- | --------------------- |
 | Prisma Client (`gerado/`)       | `npm run typecheck` acusa 4 erros em `src/exemplos/10-prisma/`         | `npm run db:generate` |
 | Banco `data/*.sqlite` (migrado) | O exemplo roda e lança **P2021**: "table `main.livros` does not exist" | `npm run db:migrate`  |
 
-A sequência completa é:
+A sequência completa:
 
 ```bash
 npm install
@@ -239,13 +138,6 @@ npm run db:seed       # popula (2 autores, 3 livros)
 
 Sem o terceiro passo o exemplo roda, mas devolve listas vazias — o que confunde
 mais do que um erro.
-
-### Ponto de partida histórico
-
-O commit `a5ddd5b` tinha um `src/index.js` com um CRUD de `/courses` em memória
-(GET/POST/PUT/PATCH/DELETE) e comentários sobre verbos HTTP e tipos de parâmetro.
-Esse conteúdo **não se perde**: vira o exemplo do módulo 03 (Express básico),
-agora em TypeScript e com as explicações movidas para a documentação.
 
 ---
 
@@ -291,14 +183,23 @@ editor de texto — que é exatamente o ponto.
 ```
 Backend-express/
 ├── CLAUDE.md                    # regras curtas para o Claude Code
-├── GUIA-IMPLEMENTACAO.md        # este arquivo
 ├── README.md                    # porta de entrada + índice do currículo
 ├── .gitignore                   # restaurado (foi deletado)
 ├── .env.example                 # variáveis de ambiente documentadas
 ├── package.json
 ├── tsconfig.json
 │
+├── .projeto/                    # 🔧 INTERNO — nada aqui é material de estudo
+│   ├── GUIA-IMPLEMENTACAO.md    #    este arquivo
+│   ├── GUIA-README.md           #    como fazer o README do GitHub
+│   ├── ULTIMO.md                #    bilhete entre sessões
+│   ├── specs/                   #    desenhos aprovados
+│   └── plans/                   #    planos de execução
+│
+├── assets/                      # 🖼️ imagens do README (geradas por gerar.mjs)
+│
 ├── docs/                        # 📚 TEORIA — um arquivo por módulo
+│   ├── 00-glossario.md          #    toda palavra técnica, em uma frase
 │   ├── 01-fundamentos-http.md
 │   ├── 02-node-modulos-e-async.md
 │   ├── ...
@@ -620,7 +521,13 @@ Vale saber por quê — você vai encontrá-las em tutoriais:
 
 ## 7. Padrão de escrita dos módulos
 
-A meta é **aprender rápido**, não ler um livro. Cobertura completa, texto curto.
+A meta é o leitor **entender**, não passar rápido pelo texto. Cobertura completa
+e explicação completa: o corte é por redundância, nunca por concisão.
+
+> **Atenção:**
+> Aqui dizia "cobertura completa, **texto curto**". Essa frase produziu módulos
+> que citavam conceito sem explicar, e foi trocada na revisão de 2026-08-13.
+> Módulo longo não é defeito; módulo em que o leitor trava numa palavra é.
 
 ### Template obrigatório de cada `docs/NN-*.md`
 
@@ -635,11 +542,15 @@ A meta é **aprender rápido**, não ler um livro. Cobertura completa, texto cur
 
 ## Conceitos
 
-Tabela ou bullets curtos. Um conceito por linha.
+Um conceito por vez, e cada um pelas cinco camadas na ordem: problema →
+mecânica → princípio → trade-off → consequência. Abre no caso mínimo e cresce.
+Tabela serve para comparar e enumerar, **depois** da explicação — nunca no
+lugar dela.
 
 ## Na prática
 
-Código comentado. É aqui que mora a explicação de verdade.
+O exemplo do módulo rodando, com os comandos e a saída que eles devolvem
+de verdade.
 
 ## Erros comuns
 
@@ -651,11 +562,18 @@ O resumo que você volta pra consultar depois.
 
 ## Os princípios deste módulo
 
-Tabela: princípio nomeado + em que módulos ele reaparece.
+Tabela: o princípio em frase comum + em que módulos ele reaparece. É recapitulação
+do que o leitor já viu no corpo — nunca a primeira aparição da ideia.
 
 ## Mini desafios
 
 Perguntas curtas que se respondem RODANDO. Formato na subseção abaixo.
+
+## Se quiser ir mais fundo
+
+Comparação com outros frameworks, nome acadêmico do padrão, caso de borda,
+detalhe de implementação. Tudo que é verdade mas atrapalha a primeira leitura.
+Some a seção inteira se o módulo não tiver nada assim.
 
 ## Para ir além
 
@@ -687,14 +605,14 @@ depois dos princípios, e não substituem o exercício da pasta `exercicios/`.
 
 ### Regras
 
-| Regra             | Limite                                                               |
-| ----------------- | -------------------------------------------------------------------- |
-| Tamanho do módulo | **Sem limite.** Acaba quando o assunto acaba, não na linha N.        |
-| Parágrafo         | Máximo 4 linhas. Sem muro de texto.                                  |
-| Prosa vs código   | Se dá pra mostrar em código comentado, mostre em código.             |
-| Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração.             |
-| Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora. |
-| Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.    |
+| Regra             | Limite                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tamanho do módulo | **Sem limite.** Acaba quando o assunto acaba, não na linha N.                                                                                     |
+| Parágrafo         | **Uma ideia.** O limite é a ideia, não a linha: um parágrafo de 8 linhas que desenvolve um raciocínio fica; dois de 3 dizendo a mesma coisa saem. |
+| Prosa e código    | Código mostra o **quê**; o texto ao redor diz o **porquê** e o que observar. Bloco de código entre dois títulos, sem texto, é defeito.            |
+| Listas e tabelas  | Preferidas a texto corrido para comparação e enumeração — **não** para substituir a explicação que precede a comparação.                          |
+| Teoria            | Só a que muda uma decisão sua. História e curiosidade ficam de fora.                                                                              |
+| Repetição         | Conceito já explicado vira link para o módulo, não é reexplicado.                                                                                 |
 
 ### Qualidade de ensino — o padrão que vale acima de tudo
 
@@ -707,35 +625,63 @@ num caso que o módulo não mostrou?
 
 #### As cinco camadas obrigatórias de todo conceito
 
-Todo conceito que entra num módulo passa pelas cinco. Faltou uma, o conceito
-está pela metade:
+Todo conceito que entra num módulo passa pelas cinco, **nesta ordem**. Faltou
+uma, o conceito está pela metade; fora de ordem, o leitor trava:
 
-| #   | Camada           | Pergunta que responde                        | Como cortar se ficar longo        |
-| --- | ---------------- | -------------------------------------------- | --------------------------------- |
-| 1   | **Problema**     | Que dor existia antes disto?                 | Vira uma frase, nunca some        |
-| 2   | **Princípio**    | Qual é a ideia geral, além desta ferramenta? | **Não corte. É o conteúdo.**      |
-| 3   | **Mecânica**     | Como funciona por baixo?                     | Vira diagrama ou código comentado |
-| 4   | **Trade-off**    | O que isto custa e quando **não** usar?      | Vira linha de tabela              |
-| 5   | **Consequência** | O que muda no código de quem usa?            | Vira o exemplo executável         |
+| #   | Camada           | Pergunta que responde                               | Como cortar se ficar longo                 |
+| --- | ---------------- | --------------------------------------------------- | ------------------------------------------ |
+| 1   | **Problema**     | Que dor existia antes disto?                        | Vira uma frase, nunca some                 |
+| 2   | **Mecânica**     | Como funciona por baixo?                            | **Não corte. É o que responde "por quê".** |
+| 3   | **Princípio**    | Que ideia geral isto que você acabou de ver mostra? | Vira uma frase, sempre depois da mecânica  |
+| 4   | **Trade-off**    | O que isto custa e quando **não** usar?             | Vira linha de tabela                       |
+| 5   | **Consequência** | O que muda no código de quem usa?                   | Vira o exemplo executável                  |
 
-> **Importante:** A camada 2 é a razão de o repositório existir. Express, Zod e Prisma mudam;
-> "não confie no cliente", "estado compartilhado precisa de coordenação" e
-> "custo assimétrico" não. **Sempre nomeie o princípio**, em negrito, com uma
-> frase que faça sentido fora do contexto da ferramenta.
+> **Atenção:**
+> **A ordem é obrigatória.** Princípio antes da mecânica foi o defeito que
+> motivou a revisão de 2026-08-13: o leitor ouvia o nome de uma coisa que ainda
+> não tinha visto acontecer, e parava ali.
+>
+> O caso que provocou a mudança estava no módulo 05: _"middleware é composição de
+> funções sobre um valor mutável — a mágica do framework é uma lista de funções e
+> um índice que anda"_. A lista e o índice nunca eram mostrados. O leitor
+> perguntou, com razão: **que valor mutável? que índice?**
+
+A camada 3 continua sendo a razão de o repositório existir — Express, Zod e
+Prisma mudam; "não confie no cliente" e "estado compartilhado precisa de
+coordenação" não. Mas ela é **conclusão, não premissa**: só entra depois que o
+leitor viu a coisa funcionar, e é escrita em frase comum.
+
+> **Cuidado:**
+> Se a frase precisa ser decorada para fazer sentido, ela está errada.
+>
+> "**A senha nunca é armazenada**" é princípio: qualquer pessoa entende, e
+> continua valendo quando o argon2 for substituído.
+>
+> "**Middleware é composição de funções sobre um valor mutável**" é aforismo:
+> soa profundo, exige três definições que não foram dadas, e não ensina ninguém
+> a decidir nada.
 
 #### Regras de material e exemplo
 
-| Regra                          | Detalhe                                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------- |
-| **Princípio nomeado**          | Em negrito e numa frase transferível: "**a senha nunca é armazenada**", não "usamos hash".               |
-| **Mostre a dor primeiro**      | O jeito ruim (comentado como ruim) antes do bom. Ferramenta sem dor prévia vira ritual.                  |
-| **Toda decisão tem um porquê** | Nenhum número, flag ou opção entra sem a frase que explica a escolha. `memoryCost: 19456` — por quê?     |
-| **Diga o custo**               | Toda técnica tem contrapartida. Módulo que só elogia a ferramenta não ensina a escolher.                 |
-| **Exemplo é progressivo**      | Começa mínimo e cresce. Um arquivo de 200 linhas despejado de uma vez não ensina, só impressiona.        |
-| **Exemplo é real**             | Reusa o domínio da biblioteca. Nada de `foo`/`bar` — o leitor tem que reconhecer o problema.             |
-| **Erro comum é reproduzível**  | A tabela "Erros comuns" descreve o sintoma exato (mensagem, status, comportamento), não "pode dar erro". |
-| **Falso amigo explicitado**    | O que "parece certo e está errado" (`.partial()` no PATCH, `decode` no lugar de `verify`) vira destaque. |
-| **Fecha o ciclo**              | O módulo lembra o que veio antes e diz qual módulo resolve o que ficou em aberto (`// TODO`).            |
+| Regra                          | Detalhe                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **Princípio derivado**         | Aparece **depois** da mecânica que o sustenta, em frase comum. O leitor tem que conseguir dizer "ah, é isso que eu acabei de ver". |
+| **Mostre a dor primeiro**      | O jeito ruim (comentado como ruim) antes do bom. Ferramenta sem dor prévia vira ritual.                                            |
+| **Toda decisão tem um porquê** | Nenhum número, flag ou opção entra sem a frase que explica a escolha. `memoryCost: 19456` — por quê?                               |
+| **Diga o custo**               | Toda técnica tem contrapartida. Módulo que só elogia a ferramenta não ensina a escolher.                                           |
+| **Exemplo é progressivo**      | Começa mínimo e cresce. Um arquivo de 200 linhas despejado de uma vez não ensina, só impressiona.                                  |
+| **Exemplo é real**             | Reusa o domínio da biblioteca. Nada de `foo`/`bar` — o leitor tem que reconhecer o problema.                                       |
+| **Erro comum é reproduzível**  | A tabela "Erros comuns" descreve o sintoma exato (mensagem, status, comportamento), não "pode dar erro".                           |
+| **Falso amigo explicitado**    | O que "parece certo e está errado" (`.partial()` no PATCH, `decode` no lugar de `verify`) vira destaque.                           |
+| **Fecha o ciclo**              | O módulo lembra o que veio antes e diz qual módulo resolve o que ficou em aberto (`// TODO`).                                      |
+
+#### Três regras que entraram na revisão de 2026-08-13
+
+| Regra                           | Detalhe                                                                                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Termo definido na estreia**   | Toda palavra técnica é explicada na primeira vez que aparece, na própria linha ou na seguinte, e entra em [`docs/00-glossario.md`](../docs/00-glossario.md). Escreveu "aridade" sem dizer que é o número de parâmetros? O leitor parou ali. |
+| **Diagrama não adianta módulo** | Um mermaid só pode conter o que já foi ensinado **até aquele módulo**. `helmet` num fluxo do 05 é ruído: o leitor vê sete caixas e reconhece duas. O que depende de módulo futuro vai para `## Se quiser ir mais fundo`.                    |
+| **Rampa**                       | `## Conceitos` abre no caso mínimo e cresce. Comparação com outro framework, caso de borda e nome acadêmico do padrão saem do corpo do módulo.                                                                                              |
 
 #### O mesmo padrão no código
 
@@ -944,8 +890,9 @@ retomar.
    doc precisa explicar qual problema ela resolve e o que ela custa.
 6. **Explique o porquê, não só o como.** O objetivo é ensinar princípios de
    backend; o Express é o veículo. Todo conceito passa pelas cinco camadas da
-   seção 7 (problema → princípio → mecânica → trade-off → consequência), e o
-   princípio é sempre **nomeado** em uma frase que vale fora da ferramenta.
+   seção 7 **nesta ordem** (problema → **mecânica** → princípio → trade-off →
+   consequência). O princípio vem depois de o leitor ver a coisa funcionar, e é
+   escrito em frase comum — nunca aforismo.
 7. **Não reescreva módulos já concluídos** por preferência de estilo. Corrija
    erro e acrescente profundidade que falta — não troque redação por gosto.
 8. **Siga o padrão de escrita da seção 7.** Corte o que se repete ou não muda uma

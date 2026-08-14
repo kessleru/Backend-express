@@ -3,6 +3,31 @@
 **Em uma frase:** separar "responder HTTP", "decidir a regra" e "guardar o dado"
 em arquivos diferentes, com as dependências apontando sempre para dentro.
 
+<!-- sumario:inicio -->
+
+**Sumário**
+
+- [Por que importa](#por-que-importa)
+- [Conceitos](#conceitos)
+  - [As quatro camadas](#as-quatro-camadas)
+  - [A regra da direção das dependências](#a-regra-da-direção-das-dependências)
+  - [O contrato do repositório](#o-contrato-do-repositório)
+  - [Injeção de dependência sem framework](#injeção-de-dependência-sem-framework)
+  - [Composition root](#composition-root)
+  - [O que vai em cada camada, na dúvida](#o-que-vai-em-cada-camada-na-dúvida)
+  - [DTO](#dto)
+  - [A pegadinha do exactOptionalPropertyTypes](#a-pegadinha-do-exactoptionalpropertytypes)
+  - [Quando não usar camadas](#quando-não-usar-camadas)
+  - [Clean Architecture e DDD, sem hype](#clean-architecture-e-ddd-sem-hype)
+- [Na prática](#na-prática)
+- [Erros comuns](#erros-comuns)
+- [Cheatsheet](#cheatsheet)
+- [Os princípios deste módulo](#os-princípios-deste-módulo)
+- [Para ir além](#para-ir-além)
+- [Pratique](#pratique)
+
+<!-- sumario:fim -->
+
 ## Por que importa
 
 - Rota de 200 linhas fazendo tudo é impossível de testar e de reusar.
@@ -62,27 +87,38 @@ flowchart LR
 > Teste rápido do seu código: se `servicos/*.ts` importa `express`, alguma
 > responsabilidade escorregou de camada.
 
-**O princípio (inversão de dependência): dependa de abstrações, não de
-implementações.** Mas a formulação que importa é a prática — **quem é mais
-estável não pode depender de quem é mais volátil.**
+Vale entender de onde vem essa regra, porque ela não é arbitrária.
 
-Ordene as peças por quanto elas mudam:
+Pegue as peças do seu sistema e ordene por uma pergunta só: **com que frequência
+isto muda?**
 
-| Volatilidade | Peça                                  | Muda quando              |
-| ------------ | ------------------------------------- | ------------------------ |
-| Alta         | Framework, driver de banco, ORM       | você troca de ferramenta |
-| Média        | Rota, controller, formato de resposta | a API evolui             |
-| **Baixa**    | **Regra de negócio, domínio**         | o **negócio** muda       |
+| Muda...         | Peça                                  | Quando muda              |
+| --------------- | ------------------------------------- | ------------------------ |
+| Muito           | Framework, driver de banco, ORM       | você troca de ferramenta |
+| Às vezes        | Rota, controller, formato de resposta | a API evolui             |
+| **Quase nunca** | **Regra de negócio, domínio**         | o **negócio** muda       |
 
-"Livro emprestado não pode ser removido" continua verdade com Express, com
-Fastify, com SQLite, com Postgres e num script de linha de comando. Se essa regra
-importa `express`, ela passa a mudar toda vez que o **framework** muda — o
-estável ficou refém do volátil.
+Agora repare no que acontece se você deixar a seta apontar para o lado errado.
 
-A interface do repositório é a costura: ela pertence ao **lado estável** (mora em
-`dominio/`), e é o lado volátil que se dobra para atendê-la. Repare que a seta
-aponta ao contrário do fluxo de execução — o service **chama** o repositório, mas
-**depende** de um tipo que ele próprio define. Isso é a "inversão".
+"Livro emprestado não pode ser removido" é uma regra que continua verdadeira com
+Express, com Fastify, com SQLite, com Postgres, e dentro de um script de linha de
+comando que não tem servidor nenhum. Ela é do negócio, não da ferramenta.
+
+Mas se o arquivo que contém essa regra tiver um `import express`, ela passa a
+depender do Express. E aí, no dia em que o Express mudar — versão nova, API
+diferente, ou a decisão de trocar de framework —, a regra de negócio precisa ser
+mexida junto. O que quase nunca muda virou refém do que muda toda hora.
+
+Daí a regra, que é a única coisa que vale decorar aqui: **quem é mais estável não
+pode depender de quem muda mais.**
+
+A interface do repositório é o que costura isso. Repare onde ela mora: em
+`dominio/`, o lado estável. E repare no sentido das setas do diagrama — o service
+**chama** o repositório, mas **depende** de um tipo que ele próprio define. A
+dependência aponta ao contrário da execução.
+
+É por isso que o nome disso é _inversão de dependência_: o que foi invertido é a
+direção da seta em relação ao que você esperaria.
 
 > **Nota:**
 > A prova disso não é teórica neste repositório: rode
@@ -125,19 +161,26 @@ export function criarServicoCursos(repositorio: RepositorioCursos) {
 }
 ```
 
-> **Nota:**
-> É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
-> decorator, sem container. No teste você passa um repositório falso; em
-> produção, o de verdade.
+Repare no que mudou em relação ao óbvio: o repositório **não** foi importado no
+topo do arquivo. Ele chega como argumento.
 
-Se o repositório fosse importado no topo do arquivo, testar exigiria mockar
-módulo — frágil, lento e acoplado ao caminho do arquivo.
+Compare as duas versões pensando em quem decide:
 
-**O princípio: uma dependência importada é uma decisão tomada; uma dependência
-recebida é uma decisão adiada.** Adiar não é indecisão — é deixar a escolha para
-quem tem contexto para fazê-la.
+```ts
+// ❌ Importado: a decisão de qual banco usar está tomada, aqui, para sempre.
+import { repositorioPrisma } from '../repositorios/cursos-prisma.ts';
 
-Quem tem contexto varia por execução, e é aí que o ganho aparece:
+// ✅ Recebido: este arquivo não decide nada. Quem chamar decide.
+export function criarServicoCursos(repositorio: RepositorioCursos) { ... }
+```
+
+Na primeira versão, testar esse service exige fazer o Node devolver outro módulo
+quando alguém importa aquele caminho — o que é frágil, lento e quebra quando o
+arquivo muda de lugar. Na segunda, testar é passar outro argumento.
+
+**A ideia geral:** uma dependência importada é uma decisão já tomada; uma
+dependência recebida é uma decisão adiada. E adiar aqui não é indecisão — é
+deixar a escolha para quem tem contexto para fazê-la, que é sempre outro lugar:
 
 | Quem monta              | Passa                    |
 | ----------------------- | ------------------------ |
@@ -147,10 +190,12 @@ Quem tem contexto varia por execução, e é aí que o ganho aparece:
 | Um worker de fila (17)  | o mesmo de produção      |
 
 > **Nota:**
-> É só isso: **receber por argumento em vez de importar**. Sem NestJS, sem
-> decorator, sem container. "Injeção de dependência" tem nome de coisa grande e é
-> um parâmetro de função — o que os frameworks adicionam é resolução automática
-> de quem passa o quê, útil quando há centenas de peças, e desnecessário aqui.
+> Isso tem um nome grande, _injeção de dependência_, e é **um parâmetro de
+> função**. Nada de NestJS, decorator ou container aqui.
+>
+> O que os frameworks de injeção acrescentam é resolver automaticamente quem
+> passa o quê — útil quando existem centenas de peças para montar, e
+> desnecessário quando você consegue escrever a montagem à mão em cinco linhas.
 
 > **Atenção:**
 > **O custo é real:** o `servidor.ts` cresce, e ler "o que este service usa?"
@@ -180,9 +225,12 @@ app.use('/api/v1/cursos', rotas);
 Essa é a resposta prática para "onde a decisão concreta é tomada?". Aqui — e só
 aqui.
 
-**O princípio: concentre as decisões concretas num lugar só, o mais tarde
-possível.** Se o `new PrismaClient()` estiver espalhado por 12 arquivos, trocar de
-banco é uma caçada; se estiver no composition root, é uma linha.
+Repare que a decisão concreta — **qual** repositório, de verdade — foi empurrada
+para o último momento possível, e para um lugar só.
+
+Imagine o contrário: `new PrismaClient()` espalhado por 12 arquivos. Trocar de
+banco vira uma caçada, e a chance de esquecer um é alta. Concentrado aqui, é uma
+linha.
 
 O padrão tem uma consequência que só aparece no [módulo 12](./12-testes.md): o
 composition root é justamente o que **não** se testa — ele não tem lógica, só
@@ -255,9 +303,12 @@ A ordem de adoção que faz sentido: **service primeiro** (regra fora do handler
 **repositório depois** (quando o banco entrar), **controller por último** (quando
 a rota ficar grande).
 
-**O princípio: abstração é um investimento, e investimento tem que retornar.**
-Cada camada compra uma flexibilidade específica — se você não vai usar aquela
-flexibilidade, comprou indireção e não levou nada.
+A forma de pensar que evita os dois erros — separar demais e separar de menos —
+é tratar cada camada como uma **compra**. Ela custa arquivos, indireção e
+navegação, e em troca entrega uma flexibilidade específica.
+
+Aí a pergunta fica objetiva: **você vai usar essa flexibilidade?** Se não vai,
+pagou a indireção e não levou nada.
 
 | Camada          | O que ela compra                              | Não compre se...                        |
 | --------------- | --------------------------------------------- | --------------------------------------- |
@@ -358,13 +409,15 @@ const servico = criarServicoX(repo);
 
 ## Os princípios deste módulo
 
-| Princípio                                                                         | Onde reaparece |
-| --------------------------------------------------------------------------------- | -------------- |
-| **Quem é mais estável não pode depender de quem é mais volátil.**                 | 09, 10, 12     |
-| **Dependência importada é decisão tomada; recebida é decisão adiada.**            | 12             |
-| **Concentre as decisões concretas num lugar só** (composition root).              | 11, 12, 16     |
-| **Abstração é investimento — só compre a flexibilidade que vai usar.**            | 10, 20         |
-| **Não expor um campo na entrada É a regra de segurança**, não um detalhe de tipo. | 11             |
+Recapitulando — cada linha é uma conclusão que o módulo mostrou acontecer:
+
+| A ideia                                                                                                                      | Onde volta |
+| ---------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| O que quase nunca muda não pode depender do que muda toda hora. Regra de negócio com `import express` vira refém do Express. | 09, 10, 12 |
+| Uma dependência importada é uma decisão já tomada; recebida por argumento, é uma decisão deixada para quem tem contexto.     | 12         |
+| As decisões concretas ficam num arquivo só, o mais tarde possível. Trocar de banco vira uma linha, não uma caçada.           | 11, 12, 16 |
+| Cada camada é uma compra: custa indireção e entrega uma flexibilidade. Se você não vai usar a flexibilidade, não compre.     | 10, 20     |
+| Não aceitar um campo na entrada não é detalhe de tipagem — é a regra de segurança que impede alguém de se tornar admin.      | 11         |
 
 ## Para ir além
 
