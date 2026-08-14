@@ -143,25 +143,6 @@ A partir do módulo 12 (testes): `npm test` roda a suíte uma vez,
 `npm run test:watch` reexecuta o que muda e `npm run test:cov` gera a cobertura
 em `coverage/index.html`.
 
-## O que você vai ter construído
-
-<table>
-<tr>
-  <td width="52%" valign="top"><img src="./assets/modulo-13-rate-limit.svg" alt="Sexta tentativa de login devolvendo 429" width="100%"></td>
-  <td width="48%" valign="top"><img src="./assets/testes.svg" alt="Vitest com 113 testes passando" width="100%"></td>
-</tr>
-<tr>
-  <td align="center"><sub><b>Módulo 13</b> — o rate limit corta o ataque de força bruta</sub></td>
-  <td align="center"><sub><b>Módulo 12</b> — a suíte que segura tudo isso</sub></td>
-</tr>
-</table>
-
-<img src="./assets/modulo-14-logs.svg" alt="Logs estruturados do Pino com a senha redigida e request id" width="560">
-
-<sub><b>Módulo 14</b> — log estruturado: nível por status, `req.id` atravessando a stack e a senha redigida por configuração, não por disciplina.</sub>
-
----
-
 <div align="center">
 
 Planejamento e estado do projeto: [`.projeto/GUIA-IMPLEMENTACAO.md`](./.projeto/GUIA-IMPLEMENTACAO.md)
