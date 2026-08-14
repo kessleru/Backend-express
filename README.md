@@ -11,7 +11,7 @@ Teoria explicada, código que roda de verdade e um exercício por módulo.
 [![TypeScript](https://img.shields.io/badge/typescript-7-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](./tsconfig.json)
 [![Último commit](https://img.shields.io/github/last-commit/kessleru/Backend-express?style=for-the-badge&color=38bdf8)](https://github.com/kessleru/Backend-express/commits/main)
 
-<img src="./assets/quickstart.svg" alt="npm run dev subindo o servidor e respondendo em localhost:5050" width="620">
+<img src="./assets/quickstart.svg" align="left" alt="npm run dev subindo o servidor e respondendo em localhost:5050" width="620">
 
 </div>
 
