@@ -33,7 +33,7 @@ async function buscarPrecosTolerante(
   const falhas: string[] = [];
 
   for (const [i, resultado] of resultados.entries()) {
-    const sku = skus[i]!; 
+    const sku = skus[i]!;
     if (resultado.status === 'fulfilled') ok[sku] = resultado.value;
     else falhas.push(sku);
   }
@@ -54,7 +54,9 @@ async function main(): Promise<void> {
   console.log(`Preços em série    → ${formatar(precosSerie)} (${msSerie.toFixed(1)}ms)`);
 
   const [precosParalelo, msParalelo] = await buscarPrecosEmParalelo(skusValidos);
-  console.log(`Preços em paralelo → ${formatar(precosParalelo)} (${msParalelo.toFixed(1)}ms)`);
+  console.log(
+    `Preços em paralelo → ${formatar(precosParalelo)} (${msParalelo.toFixed(1)}ms)`,
+  );
 
   console.log(`Ganho              → ${(msSerie / msParalelo).toFixed(1)}× mais rápido`);
 
@@ -69,7 +71,9 @@ async function main(): Promise<void> {
   }
 
   const { ok, falhas } = await buscarPrecosTolerante(skusComInvalido);
-  console.log(`Tolerante          → ok: ${JSON.stringify(ok)} · falhas: [${falhas.join(', ')}]`);
+  console.log(
+    `Tolerante          → ok: ${JSON.stringify(ok)} · falhas: [${falhas.join(', ')}]`,
+  );
 }
 
 // `main().catch()` em vez de await solto: garante que uma rejeição inesperada
@@ -78,7 +82,6 @@ main().catch((erro: unknown) => {
   console.error(erro instanceof Error ? erro.message : String(erro));
   process.exitCode = 1;
 });
-
 
 // Como executar: `node src/playground/02-async/precos.ts`
 // O Node 24 roda .ts direto, apagando os tipos — sem tsx, ts-node ou build.

@@ -51,7 +51,7 @@ rotasCursos.get('/', (req, res) => {
 // resolve uma vez e pendura o resultado no `req`. É um middleware (módulo 05)
 // especializado em parâmetro de rota.
 
-rotasCursos.param('id', (req, res, next, valor) => {
+rotasCursos.param('id', (_req, res, next, valor) => {
   const id = Number(valor);
   const curso = cursos.find((c) => c.id === id);
   if (!curso) return res.status(404).json({ erro: `Curso ${valor} não encontrado` });
