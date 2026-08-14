@@ -15,11 +15,10 @@ também o glossário, os sumários navegáveis, dois SVGs e a limpeza da raiz.
 
 ## ▶ POR QUE ESTA REVISÃO ACONTECEU
 
-O usuário travou no módulo 05 e disse o que estava errado:
-
-> "parece que os docs estão querendo explicar de maneira rápida e preguiçosa,
-> comendo palavra pra economizar (…) usando palavras que nem sei o que é. Muita
-> frase de efeito. Quero explicação clara e simples, abordando todos os aspectos."
+A leitura do módulo 05 travou, e o diagnóstico foi de escrita: os docs explicavam
+de forma apressada, economizando palavras, usando termos não definidos e apoiados
+em frase de efeito. Faltava explicação clara e completa, cobrindo todos os
+aspectos.
 
 O caso concreto era `docs/05-middlewares.md`:
 
@@ -27,8 +26,9 @@ O caso concreto era `docs/05-middlewares.md`:
 > Express não tem nada além disso — a 'mágica' do framework é uma lista de
 > funções e um índice que anda."
 
-As perguntas dele — **que valor mutável? além disso o quê? que índice?** — não
-tinham resposta no módulo. A lista e o índice eram citados e nunca mostrados.
+Três perguntas que o trecho levanta — **que valor mutável? além disso o quê? que
+índice?** — não tinham resposta no módulo. A lista e o índice eram citados e
+nunca mostrados.
 
 ### A causa era estrutural, não pontual
 
@@ -41,7 +41,7 @@ módulo — era o que a seção 7 do guia mandava fazer:
 
 Isso é um pedido de aforismo. Somado a "parágrafo: máximo 4 linhas", "enxuto em
 texto" e "se dá pra mostrar em código, mostre em código", produzia exatamente o
-material que o leitor rejeitou.
+material que falhou em ensinar.
 
 **Branch:** `revisao-didatica-docs` (não mergeada). Um commit por tarefa, e cada
 mensagem diz o que mudou e como foi verificado.
@@ -119,9 +119,9 @@ acharia que o material mentiu. Entrou o aviso com `rm -f data/exemplo-09.sqlite*
 
 ### Os dois SVGs
 
-Pedido do usuário, com limite explícito dito duas vezes: **"não quero que você
-encha de imagem, coloque onde cairia muito bem na explicação"**. E não precisa
-ser diagrama de caixinha — vale qualquer recurso visual.
+O limite foi definido de propósito, e vale manter: **não encher de imagem — só
+onde ela cai muito bem na explicação**. E não precisa ser diagrama de caixinha:
+vale qualquer recurso visual.
 
 Nada de imagem do Google: é obra de terceiro com direito autoral, num repo
 público. Os SVGs são escritos à mão, em `assets/`, no mesmo painel escuro
@@ -248,7 +248,7 @@ Nada disto foi tocado nesta sessão, e nada disto está no escopo da revisão:
 Branch `revisao-didatica-docs`, **não mergeada em `main`**. Um commit por tarefa,
 cada um dizendo o que mudou e como foi verificado.
 
-> **Atenção:** `PROMPT.md` aparece como deletado na árvore de trabalho. **Foi o
-> usuário quem apagou**, durante a sessão, e a deleção **não foi commitada** de
-> propósito — os commits desta revisão usam caminhos explícitos, nunca
+> **Atenção:** `PROMPT.md` aparece como deletado na árvore de trabalho. A
+> deleção foi **intencional e externa a esta revisão**, e **não foi commitada**
+> de propósito — os commits desta revisão usam caminhos explícitos, nunca
 > `git add -A`. Perguntar antes de apagar ou restaurar.
