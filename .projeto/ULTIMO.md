@@ -10,7 +10,8 @@ Duas entregas: a **solução do exercício 13** ficou pronta, e as **soluções 
 e 13 passaram a usar Prisma** como persistência de produção, com os repositórios
 em memória virando dublê de teste. A suíte saiu de 113 para **245 testes**.
 
-**Nada foi commitado.** Está tudo na árvore de trabalho da `main`.
+Tudo commitado na `main`, no commit `e72911b` ("att") — 75 arquivos, incluindo
+`prisma/schema.prisma`, a migration e a correção do `.env.example`.
 
 ## ▶ O QUE FAZER NA PRÓXIMA SESSÃO
 
@@ -235,6 +236,6 @@ topo.
   `exercicios/13-seguranca/solucao/README.md`.
 - ESLint continua fora: `typescript-eslint` exige TypeScript `<6.1.0` e o projeto
   usa TS 7.
-- `PROMPT.md` aparece como deletado na árvore de trabalho. A deleção é
-  **intencional e externa** e não foi commitada de propósito. Perguntar antes de
-  apagar ou restaurar.
+- `PROMPT.md` foi removido no commit `ce49d57` e não está mais na árvore. O
+  aviso antigo ("deletado, não commitado de propósito") não vale mais — a
+  deleção já entrou no histórico.
