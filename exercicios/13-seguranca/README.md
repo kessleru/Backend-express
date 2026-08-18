@@ -209,3 +209,7 @@ forma de provar que a vulnerabilidade era real, e não teórica.
 Se quiser ir além: meça o tempo de resposta do login com e-mail existente e
 inexistente, 20 vezes cada, e compare as médias antes e depois da correção de
 tempo constante. O número é mais convincente que o argumento.
+
+---
+
+Terminou? Compare com [`solucao/`](./solucao/).

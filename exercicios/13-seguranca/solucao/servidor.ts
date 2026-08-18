@@ -1,8 +1,8 @@
 /**
- * Solução do exercício 12 — o servidor DEPOIS da extração do `criarApp()`.
+ * Solução do exercício 13 — o mesmo servidor do 12, endurecido.
  *
  * Rodar:
- *   node --env-file=.env exercicios/12-testes/solucao/servidor.ts
+ *   node --env-file=.env exercicios/13-seguranca/solucao/servidor.ts
  *
  * Compare o tamanho deste arquivo com o do exercício 11. Tudo que era montagem
  * de app foi para `app.ts`; o que sobrou é exatamente o que NÃO se testa com
@@ -49,6 +49,19 @@ const livrosIniciais: Livro[] = [
 ];
 
 /**
+ * As origens permitidas são decisão de AMBIENTE, e por isso entram por variável
+ * de ambiente — não por `if (production)` dentro do `app.ts` (módulo 16).
+ *
+ * O separador é vírgula porque variável de ambiente é sempre string: não existe
+ * lista nativa. `.filter(Boolean)` remove o vazio que sobra quando alguém deixa
+ * uma vírgula no fim.
+ */
+const origens = (process.env.ORIGENS_PERMITIDAS ?? 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+/**
  * A ESCOLHA DA IMPLEMENTAÇÃO — a única decisão que este arquivo existe para tomar.
  *
  * Repare no que NÃO precisou mudar para a API passar a persistir: nenhum
@@ -87,7 +100,7 @@ function criarRepositorios() {
   };
 }
 
-const app = criarApp(criarRepositorios());
+const app = criarApp(criarRepositorios(), { origens });
 
 process.on('unhandledRejection', (motivo) => {
   console.error('UNHANDLED REJECTION — encerrando:', motivo);
@@ -98,9 +111,10 @@ process.on('uncaughtException', (erro) => {
   process.exit(1);
 });
 
-const PORT = 4120;
+const PORT = 4130;
 app.listen(PORT, () => {
-  console.log(`Biblioteca testada em http://localhost:${PORT}/api/v1`);
+  console.log(`Biblioteca endurecida em http://localhost:${PORT}/api/v1`);
+  console.log(`Origens aceitas pelo CORS: ${origens.join(', ')}`);
   console.log(
     `Persistência: ${usarMemoria ? 'MEMÓRIA (some no restart)' : 'Prisma + SQLite'}`,
   );
@@ -108,6 +122,20 @@ app.listen(PORT, () => {
     console.log('  Setup: npm run db:generate && npm run db:migrate && npm run db:seed');
     console.log('  Sem banco? Suba com  REPO=memoria node ...servidor.ts');
   }
-
+  console.log('');
+  console.log('Experimente:');
+  console.log(`  curl -i localhost:${PORT}/api/v1/livros | head -20`);
+  console.log('    → helmet ligou nosniff e CSP; x-powered-by sumiu\n');
+  console.log(`  for i in $(seq 1 6); do curl -s -o /dev/null -w "%{http_code} " \\`);
+  console.log(
+    `    -X POST localhost:${PORT}/auth/login -H 'Content-Type: application/json' \\`,
+  );
+  console.log(`    -d '{"email":"a@b.com","senha":"senha12345"}'; done; echo`);
+  console.log('    → 401 401 401 401 401 429  (o 6º cai no limitador)\n');
+  console.log(`  curl -i "localhost:${PORT}/api/v1/arquivos/..%2f..%2f.env"`);
+  console.log('    → 400, barrado pelo service\n');
+  console.log(`  curl -i --path-as-is "localhost:${PORT}/api/v1/arquivos/../../.env"`);
+  console.log('    → 404: a forma crua é barrada pelo ROTEAMENTO, não pela defesa.');
+  console.log('      Sem --path-as-is o curl normaliza o ../ e você mede outra coisa.\n');
   console.log('A suíte deste app roda com:  npm test\n');
 });

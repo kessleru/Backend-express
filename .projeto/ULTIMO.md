@@ -1,4 +1,4 @@
-# Onde a sessão parou — 2026-08-13 (revisão didática CONCLUÍDA)
+# Onde a sessão parou — 2026-08-18
 
 > Bilhete para a próxima sessão. O planejamento completo continua em
 > [`GUIA-IMPLEMENTACAO.md`](GUIA-IMPLEMENTACAO.md) (seção 2 = achados técnicos,
@@ -6,249 +6,235 @@
 
 ## Resumo em uma linha
 
-**Revisão didática concluída**: as regras de escrita foram trocadas e **os 14
-docs foram reescritos** sob elas, cada um verificado rodando o exemplo. Entraram
-também o glossário, os sumários navegáveis, dois SVGs e a limpeza da raiz.
+Duas entregas: a **solução do exercício 13** ficou pronta, e as **soluções 11, 12
+e 13 passaram a usar Prisma** como persistência de produção, com os repositórios
+em memória virando dublê de teste. A suíte saiu de 113 para **245 testes**.
 
-**Nada da revisão foi mergeado em `main`** — está tudo na branch
-`revisao-didatica-docs`.
+**Nada foi commitado.** Está tudo na árvore de trabalho da `main`.
 
-## ▶ POR QUE ESTA REVISÃO ACONTECEU
+## ▶ O QUE FAZER NA PRÓXIMA SESSÃO
 
-A leitura do módulo 05 travou, e o diagnóstico foi de escrita: os docs explicavam
-de forma apressada, economizando palavras, usando termos não definidos e apoiados
-em frase de efeito. Faltava explicação clara e completa, cobrindo todos os
-aspectos.
+Em ordem. Os dois primeiros itens são resíduo desta sessão e são rápidos:
 
-O caso concreto era `docs/05-middlewares.md`:
-
-> "O princípio: middleware é composição de funções sobre um valor mutável. O
-> Express não tem nada além disso — a 'mágica' do framework é uma lista de
-> funções e um índice que anda."
-
-Três perguntas que o trecho levanta — **que valor mutável? além disso o quê? que
-índice?** — não tinham resposta no módulo. A lista e o índice eram citados e
-nunca mostrados.
-
-### A causa era estrutural, não pontual
-
-Levantamento inicial: **36 blocos `**O princípio:**`** em 13 dos 14 docs, a
-maioria **antes** da mecânica que os justificaria. Não era descuido de um
-módulo — era o que a seção 7 do guia mandava fazer:
-
-> "**Sempre nomeie o princípio**, em negrito, com uma frase que faça sentido fora
-> do contexto da ferramenta."
-
-Isso é um pedido de aforismo. Somado a "parágrafo: máximo 4 linhas", "enxuto em
-texto" e "se dá pra mostrar em código, mostre em código", produzia exatamente o
-material que falhou em ensinar.
-
-**Branch:** `revisao-didatica-docs` (não mergeada). Um commit por tarefa, e cada
-mensagem diz o que mudou e como foi verificado.
-
-> **Nota:**
-> A spec com o diagnóstico completo e o plano com as 21 tarefas foram **apagados
-> depois de executados** — estavam obsoletos e custavam ~820 linhas de leitura
-> para quem abrisse `.projeto/`. Continuam no histórico do git:
->
-> ```bash
-> git show 0f6686d  # a spec: diagnóstico e decisões aprovadas
-> git show 2a36669  # o plano: as 21 tarefas com a verificação de cada uma
-> ```
-
-## As regras que mudaram
-
-Estão em `CLAUDE.md` e na seção 7 do guia. **A mais importante:**
-
-| Antes                                                          | Agora                                                          |
-| -------------------------------------------------------------- | -------------------------------------------------------------- |
-| problema → **princípio** → mecânica → trade-off → consequência | problema → **mecânica** → princípio → trade-off → consequência |
-
-O princípio virou **conclusão**, não premissa: só aparece depois de o leitor ver
-a coisa funcionar, e é escrito em frase comum. Aforismo está proibido.
-
-Quatro regras substituídas e três novas:
-
-1. Princípio depois da mecânica, em frase comum.
-2. Parágrafo é uma ideia (caiu o teto de 4 linhas).
-3. Código mostra o **quê**; o texto ao redor diz o **porquê**.
-4. Cobertura completa **e explicação completa** (caiu "enxuto em texto").
-5. **Novo:** termo técnico definido na estreia, e vai para `docs/00-glossario.md`.
-6. **Novo:** diagrama só usa o que já foi ensinado até aquele módulo.
-7. **Novo:** rampa — `## Conceitos` abre no mínimo; o avançado vai para a seção
-   nova `## Se quiser ir mais fundo`.
+1. **Atualizar os enunciados 11, 12 e 13** (`exercicios/NN-*/README.md`). Eles
+   ainda descrevem a persistência como estava: o do 11 diz "memória, SQLite ou
+   Prisma" sem apontar o que a solução de referência faz, e nenhum menciona a
+   suíte de contrato nem o `REPO=memoria`. **O código está pronto; o enunciado
+   ficou para trás.**
+2. **Conferir se `docs/11`, `docs/12` e `docs/13` afirmam algo que mudou.** Não
+   foi verificado nesta sessão. O candidato mais provável é o módulo 12, que fala
+   de suíte de contrato e SQLite `:memory:` — agora as soluções têm isso de fato.
+3. **Solução do exercício 14** (o enunciado existe desde 2026-08-13). É o que
+   fecha a Fase 4 junto com 15 e 16.
+4. **Mini desafios dos módulos 02 a 14.** Só o 01 tem. Os achados desta sessão
+   (listados abaixo) são material pronto para os módulos 12 e 13.
+5. **Seção de Postgres, em pasta à parte.** Pedido do usuário nesta sessão. A
+   ideia é uma trilha separada, não um módulo no meio do currículo: o repo
+   continua em SQLite por decisão da seção 3 do guia (zero instalação, e SQL que
+   transfere). O material tem gancho pronto — as diferenças que o ORM não apaga
+   já estão comentadas no código (`enum` que o SQLite não tem,
+   `mode: 'insensitive'` ignorado em silêncio, índice único parcial).
 
 ## O que foi feito nesta sessão
 
-As 21 tarefas do plano, todas concluídas. Um commit por tarefa.
+### 1. Solução do exercício 13 (`exercicios/13-seguranca/solucao/`)
 
-**Mudanças estruturais no repo:**
+Cópia da solução 12 evoluída — a convenção do repo: cada solução copia a
+anterior, e o `diff` entre as duas é o material de estudo.
 
-- `GUIA-IMPLEMENTACAO.md`, `GUIA-README.md` e este arquivo saíram da raiz e foram
-  para `.projeto/`. Sobram `README.md` e `CLAUDE.md` na raiz.
-- `docs/imagens/` virou `assets/` — as imagens são do README, não material de
-  estudo, e `docs/` agora só tem os módulos e o glossário. O `gerar.mjs` escreve
-  em `import.meta.dirname`, então funciona no lugar novo (verificado: os 4 SVGs
-  saem idênticos).
-- `docs/00-glossario.md`, novo: **34 termos** em linguagem comum, com link para o
-  módulo onde cada ideia é desenvolvida.
-- README de 241 → 179 linhas. As 5 tabelas de currículo viraram uma.
-- **Sumário navegável em cada doc**, gerado por `.projeto/gerar-sumarios.mjs`
-  (idempotente — dá para rodar de novo quando um doc ganhar seções). As 281
-  âncoras foram conferidas contra os títulos reais.
+| Arquivo                    | Mudança                                                    |
+| -------------------------- | ---------------------------------------------------------- |
+| `app.ts`                   | `helmet()`, `cors` com lista de origens, limitadores       |
+| `middlewares/limites.ts`   | **novo** — `criarLimites()`, quatro baldes por finalidade  |
+| `middlewares/limitar.ts`   | **apagado** — o escrito à mão no módulo 05 saiu            |
+| `servicos/emprestimos.ts`  | `buscarVisivel` fecha o IDOR: empréstimo de outro vira 404 |
+| `rotas/emprestimos.ts`     | `GET /emprestimos/:id` e `POST /emprestimos/:id/devolver`  |
+| `servicos/arquivos.ts`     | **novo** — resolve o caminho e o confina em `capas/`       |
+| `rotas/arquivos.ts`        | **novo** — `GET /arquivos/:nome`, com duas capas SVG       |
+| `schemas/livro.ts`         | busca `q`, com teto de 100 caracteres                      |
+| `testes/seguranca.test.ts` | de 7 para 25 casos                                         |
+| `solucao/README.md`        | **novo** — inclui o registro do `npm audit`                |
 
-### Quatro achados de conteúdo errado, todos corrigidos
+Isso fechou a pendência 4 da sessão anterior: `limitar()` escrito à mão foi
+trocado por `express-rate-limit`.
 
-1. **Doc 02** prometia `/io 1530ms → outro cliente esperou 13ms` e
-   `/cpu 1364ms → 1364ms`. **Essas rotas não existem em lugar nenhum do repo** —
-   os números não saíram de medição reproduzível. Trocado pela saída real do
-   `medindo-tempo.ts` (~10ms com I/O, ~370ms com cálculo).
-2. **Doc 10** afirmava que o repositório do 09 tem 172 linhas e o do 10 tem ~90.
-   Têm **134 e 113**. O argumento foi reescrito: o ganho do ORM não é escrever
-   menos código, é que tipo de código sumiu.
-3. **Docs 06 e 09** tinham 4 links para módulos que não existem (15, 16 e 17).
-   Viraram texto simples dizendo "ainda não escrito".
-4. **Doc 08** tinha o mesmo aviso duplicado em dois lugares do arquivo.
+### 2. Prisma nas soluções 11, 12 e 13
 
-### Um achado que virou aviso no doc
+**O motivo, na palavra do usuário:** a ideia do repositório é aprender a fazer
+sistemas reais, e num sistema real nenhum `servidor.ts` sobe com array em
+memória. Até aqui as soluções 11–13 tinham copiado o **08** (memória) e largado a
+progressão 09 → 10 (SQL → ORM) pelo caminho.
 
-O exemplo do módulo 09 é o primeiro do curso que **grava em disco**. Os `curl`
-dão os status prometidos na primeira execução; na segunda, o `201` vira `409`
-porque o curso ficou gravado. O doc não dizia isso — quem rodasse duas vezes
-acharia que o material mentiu. Entrou o aviso com `rm -f data/exemplo-09.sqlite*`.
+**A decisão que orienta tudo:** não é "Prisma ou memória" — num sistema real os
+dois existem, em lugares diferentes.
 
-### Os dois SVGs
+| Onde                   | Implementação | Por quê                                      |
+| ---------------------- | ------------- | -------------------------------------------- |
+| `servidor.ts`          | Prisma        | produção não pode perder dados no restart    |
+| testes de rota/serviço | memória       | suíte em segundos, sem banco nem migration   |
+| suíte de contrato      | **as duas**   | pega o dublê desviando da implementação real |
 
-O limite foi definido de propósito, e vale manter: **não encher de imagem — só
-onde ela cai muito bem na explicação**. E não precisa ser diagrama de caixinha:
-vale qualquer recurso visual.
+O que entrou:
 
-Nada de imagem do Google: é obra de terceiro com direito autoral, num repo
-público. Os SVGs são escritos à mão, em `assets/`, no mesmo painel escuro
-(`#0d1117`) dos que o `gerar.mjs` produz — assim funcionam em tema claro e
-escuro sem depender de `prefers-color-scheme`, que não é confiável dentro de
-`<img>` no GitHub.
+- `prisma/schema.prisma`: modelos `Usuario`, `Emprestimo` e `RefreshToken`, sob
+  um cabeçalho dizendo de qual módulo são. Migration
+  `20260818141303_modulo_11_auth_emprestimos`.
+- Um schema só para o repositório inteiro, de propósito: um projeto Prisma tem um
+  schema, um client e um histórico de migrations. Um segundo projeto obrigaria
+  quem estuda o módulo 11 a configurar Prisma antes de aprender autenticação.
+- `db/prisma.ts` e cinco `repositorios/*-prisma.ts` em cada uma das três soluções.
+- Os repositórios Prisma recebem o **cliente por parâmetro**, com o singleton
+  como padrão — é o que permite a suíte de contrato apontar para um banco
+  temporário em vez de escrever no `.sqlite` de desenvolvimento.
+- `servidor.ts` escolhe a implementação: Prisma por padrão, `REPO=memoria` para
+  subir sem nenhum setup de banco.
+- `testes/repositorio.test.ts` (soluções 12 e 13): a suíte de contrato.
 
-Ficaram **dois**, e só dois:
+## Quatro achados desta sessão, todos verificados rodando
 
-| Arquivo                       | O que mostra                                                                       |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| `assets/modulo-05-pilha.svg`  | Três momentos da mesma requisição: a pilha parada e o índice `i` andando           |
-| `assets/modulo-02-thread.svg` | Linha do tempo: a requisição A espera 300ms e a única thread atende a B nesse meio |
+Os quatro estão escritos por extenso no código, e três mudaram decisão de
+desenho. São material pronto para mini desafio.
 
-**Descartados de propósito**, e o motivo — vale manter o critério em sessões
-futuras:
+### 1. `export const rateLimit(...)` prende o balde ao MÓDULO, não ao app
 
-- **Módulo 01**, anatomia da requisição: o bloco ` ```http ` com as setas `←` já
-  mostra isso melhor que um desenho mostraria.
-- **Módulo 08**, camadas: o mermaid existente resolve.
+Um teste recebia 429 porque o caso anterior gastara as cinco tentativas — **em
+outro app, criado do zero, com outros repositórios.** O contador vivia no módulo.
+Virou a fábrica `criarLimites()`, chamada dentro de `criarApp`.
 
-A regra que ficou: **se um mermaid ou um bloco de código já resolve, não faça
-SVG.**
+### 2. O path traversal cru nem chega ao seu código
 
-## Como cada doc foi revisado
+`GET /arquivos/../../.env` responde **404**: são quatro segmentos, a rota
+`/:nome` casa com um só, e o handler nunca roda. Só a forma codificada
+(`..%2f..%2f.env`) chega ao service e leva 400. Quem testa só a forma crua vê
+404 e conclui que está protegido sem ter exercitado uma linha da defesa.
 
-1. Ler o doc inteiro antes de editar.
-2. Para cada bloco de princípio: a mecânica que o justifica já apareceu antes? Se
-   não, escrever a mecânica e mover o princípio para depois, em frase comum.
-3. Marcar todo termo não definido; definir na estreia e pôr no glossário.
-4. Conferir cada mermaid contra a regra de não adiantar módulo.
-5. Mover comparação com outro framework e caso de borda para
-   `## Se quiser ir mais fundo`.
-6. Reescrever a tabela de princípios do fim em frase comum.
-7. **Verificar rodando** o exemplo do módulo e todo `curl` que o doc promete.
+> **Atenção:** o `curl` normaliza `../` antes de enviar. Sem `--path-as-is` você
+> mede outra coisa. O Supertest não normaliza.
 
-### Verificações feitas por módulo
+### 3. O payload de injeção famoso não é o que morde
 
-| Doc | Como foi verificado                                                                                                                                                                          |
-| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 01  | Porta 4001: 4 curl + os resultados dos mini desafios 2, 4, 5 e 6 (5 headers; 201/201/400; `ana`; `HEAD` → 404)                                                                               |
-| 02  | Os 3 scripts; a ordem `a d c b` rodada num arquivo separado                                                                                                                                  |
-| 03  | Porta 5051: 14 curl, incluindo `?maxHoras=abc` → 400, vazio → 400, `=0` → 200                                                                                                                |
-| 04  | Porta 5052: 9 curl + wildcard vira array, literal antes de `:id`, aninhado herda o `:id`. `mergeParams` testado num arquivo à parte: sem ele vem `null`, com ele vem `'3'`                   |
-| 05  | Porta 5053: 9 curl, incluindo `/travado` estourando por timeout (curl exit 28)                                                                                                               |
-| 06  | Porta 5054: 9 curl. O par que o doc descreve: cliente recebe genérico com `requestId`, terminal recebe a stack                                                                               |
-| 07  | Porta 5055: 8 curl. Três erros numa resposta só; `.strict()` rejeitando `hora`; trim com defaults; PATCH que **não** zera `publicado`                                                        |
-| 08  | Porta 5056: 7 curl. E a promessa do doc conferida com `diff -rq`: os services do 08 e do 10 são mesmo idênticos                                                                              |
-| 09  | Porta 5057, **com banco limpo**: 201 e depois 409 (o `UNIQUE` é case-insensitive). Injeção testada de verdade: título com `DROP TABLE` volta vazio e a tabela fica de pé                     |
-| 10  | Porta 5058, depois de `db:generate` + `db:migrate` + `db:seed`: 5 curl                                                                                                                       |
-| 11  | Porta 5059: registro, login, `/eu` com e sem token, RBAC (o 1º cadastrado vira admin por desenho — o 403 só aparece do 2º em diante), e a mensagem de login idêntica nos dois casos de falha |
-| 12  | `npm test`: 113 testes, 10 arquivos                                                                                                                                                          |
-| 13  | Portas 5063 e 5064, cada par insegura × segura: rate limit (429 na 6ª), path traversal (400 × 200), helmet (4 headers × 0), login que vaza × que não vaza                                    |
-| 14  | Porta 5064: `/health` continua 200 com o banco fora e `/ready` vai a 503; o `redact` deixa a senha como `[REDACTED]` mesmo com o corpo inteiro sendo logado de propósito                     |
+Sabotando o repositório de propósito (`$queryRawUnsafe`), `'; DROP TABLE
+livros; --` **não apaga a tabela**: o `better-sqlite3` recusa mais de uma
+instrução por consulta, e o `;` torna o payload duas. Quem testa só com ele se
+protege do payload de camiseta, não de injeção.
 
-### A passada final
+O que passa é o de **uma instrução**: `' OR 1=1 --` devolve a tabela inteira —
+vazamento, que é o que a maioria dos incidentes reais é. O teste afirma as duas
+coisas: a busca não quebra **e o filtro continua filtrando**.
+
+### 4. `describe.runIf(false)` marca como PULADO, não deixa de registrar
+
+A suíte de contrato pula a parte Prisma quando o client não está gerado. A
+primeira versão usava `describe.runIf`, e o aviso "rode db:generate" aparecia no
+resumo **até quando o Prisma estava rodando** — aviso mentiroso. Trocado por um
+`if` comum em volta do `describe`.
+
+O princípio que ficou: teste que exige infraestrutura é **pulado com aviso
+visível**, nunca sumido em silêncio. Sem o marcador, 26 casos desapareciam de um
+total de 245 sem nada indicar.
+
+## Um bug PRÉ-EXISTENTE corrigido no caminho
+
+`.env` e `.env.example` traziam `DATABASE_URL_PRISMA=file:../data/prisma-10.sqlite`.
+O `../` só faz sentido rodando de dentro de uma subpasta, e **todos os comandos
+documentados são rodados da raiz** — então o `better-sqlite3` procurava a pasta
+fora do repositório.
+
+O efeito: **a solução do módulo 10 estava quebrada**. O servidor subia sem erro e
+a primeira query devolvia 500 com `Cannot open database because the directory
+does not exist`. Corrigido para `file:./data/prisma-10.sqlite` nos dois arquivos,
+com o porquê no `.env.example`. Verificado: as soluções 10 e 11 voltaram a
+responder.
+
+O `.env` é local e não versionado — num clone novo, quem copiar o `.env.example`
+já pega a versão certa.
+
+## Como foi verificado
 
 ```
-grep de aforismo remanescente  → 0  (eram 36)
-regra velha que voltou         → 0
-uso de [!NOTE] / @import       → 0  (as ocorrências são as regras que os proíbem)
-links relativos quebrados      → 0  (fora ../../actions, que é URL do GitHub num exemplo)
-âncoras de sumário conferidas  → 281, nenhuma quebrada
-npm run typecheck              → passa
-npm run typecheck:ex           → passa
-npm test                       → 113 testes, verde
-npm run build                  → passa, e dist/ sai sem arquivo de teste
+npm run typecheck        → passa
+npm run typecheck:ex     → passa
+npm run format:check     → limpo
+npm test                 → 245 testes, 17 arquivos, verde (eram 113 em 10)
+npx vitest run exercicios/13-seguranca → 110 testes
 ```
 
-## Pendências anteriores, que continuam de pé
+Servidores no ar, um por um:
 
-Nada disto foi tocado nesta sessão, e nada disto está no escopo da revisão:
+| Solução | Porta | O que foi conferido                                                         |
+| ------- | ----- | --------------------------------------------------------------------------- |
+| 10      | 4100  | voltou a responder depois da correção do `.env`                             |
+| 11      | 4110  | registrar → login → `/auth/eu` → emprestar → `/meus`, tudo gravado no banco |
+| 12      | 4120  | sobe com Prisma e lista livros do banco                                     |
+| 13      | 4130  | idem, e também com `REPO=memoria`                                           |
 
-1. **Mini desafios dos módulos 02 a 14.** Só o 01 tem. O formato que se firmou:
-   seção entre `## Cheatsheet` e `## Para ir além`, pergunta em negrito +
-   `<details>` com a resposta, e **todo desafio exige rodar, medir ou quebrar de
-   propósito**. Peça a previsão antes ("aposte o status"). Os melhores nascem de
-   comportamento surpreendente do próprio exemplo.
-2. **Soluções dos exercícios 13 e 14** (os enunciados existem).
-3. **Módulos 15 a 20** e os apêndices.
-4. `limitar()` escrito à mão no módulo 05 tem testes — dá para trocá-lo por
-   `express-rate-limit` na solução do 13 e provar que o comportamento não mudou.
+E na solução 13, com o servidor no ar:
+
+| O quê          | Resultado observado                                                                    |
+| -------------- | -------------------------------------------------------------------------------------- |
+| helmet         | CSP, HSTS, `nosniff`, `X-Frame-Options`; `x-powered-by` ausente                        |
+| rate limit     | `401 401 401 401 401 429`, com `Retry-After: 60` e corpo no formato da API             |
+| leitura        | `GET /livros` segue 200 com a cota de login esgotada                                   |
+| path traversal | cru → 404 (roteamento), codificado → 400 (a defesa), capa → 200 `image/svg+xml`        |
+| CORS           | origem listada recebe o `allow-origin`; a não listada **recebe os dados sem o header** |
+| IDOR           | dona 200, admin 200, terceiro 404 — corpo idêntico ao de um id que nunca existiu       |
+
+A suíte de contrato foi verificada nos dois cenários: com o client gerado (52
+casos, os mesmos contra memória e Prisma) e com a pasta `gerado/` renomeada para
+simular clone novo (26 passam, 2 pulados com o aviso visível).
+
+E o teste de injeção foi verificado **sabotando o repositório de propósito** —
+ficou vermelho, como tinha que ficar. O arquivo foi restaurado e conferido com
+`diff` contra a cópia limpa.
 
 ## Estado do que está pronto
 
-| Módulo                    | Doc | Revisto 08-13 | Exemplo | Enunciado | Solução      |
-| ------------------------- | --- | ------------- | ------- | --------- | ------------ |
-| 01 Fundamentos de HTTP    | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 02 Node, módulos e async  | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 03 Express básico         | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 04 Roteamento             | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 05 Middlewares            | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 06 Tratamento de erros    | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 07 Validação (Zod)        | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 08 Arquitetura em camadas | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 09 SQLite e SQL           | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 10 Prisma (ORM)           | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 11 Autenticação           | ✅  | ✅            | ✅      | ✅        | ✅           |
-| 12 Testes                 | ✅  | ✅            | ✅      | ✅        | ✅           |
-| **13 Segurança**          | ✅  | ✅            | ✅      | ✅        | ❌ **falta** |
-| **14 Observabilidade**    | ✅  | ✅            | ✅      | ✅        | ❌ **falta** |
-| 15–20                     | ❌  | —             | ❌      | ❌        | ❌           |
+| Módulo                 | Doc | Exemplo | Enunciado   | Solução      |
+| ---------------------- | --- | ------- | ----------- | ------------ |
+| 01 a 10                | ✅  | ✅      | ✅          | ✅           |
+| 11 Autenticação        | ✅  | ✅      | ⚠️ atrasado | ✅ + Prisma  |
+| 12 Testes              | ✅  | ✅      | ⚠️ atrasado | ✅ + Prisma  |
+| 13 Segurança           | ✅  | ✅      | ⚠️ atrasado | ✅ **novo**  |
+| **14 Observabilidade** | ✅  | ✅      | ✅          | ❌ **falta** |
+| 15–20                  | ❌  | ❌      | ❌          | ❌           |
+
+⚠️ = o enunciado não menciona a mudança de persistência. É o item 1 da lista do
+topo.
 
 ## Convenções que se firmaram e valem manter
 
 - **Portas:** exemplo do módulo NN → `50NN`; solução do exercício NN → `4NN0`. O
-  módulo 01 usa 4001/4010. **13 e 14 colidem na 5064** — não subir os dois juntos.
-- **Módulo 10 exige setup:** `db:generate` → `db:migrate` → `db:seed`, senão o
-  typecheck acusa 4 erros e o exemplo lança `P2021`.
-- Cada exercício NN copia a solução do NN−1 e evolui. Duplicação de propósito: o
-  `diff` entre duas vizinhas mostra o que o módulo acrescentou. O 11 é exceção
-  deliberada — copia o **08** (memória).
+  módulo 01 usa 4001/4010. **Os exemplos 13 e 14 colidem na 5064** — não subir os
+  dois juntos.
+- **Setup de banco agora vale para 10, 11, 12 e 13:** `db:generate` →
+  `db:migrate` → `db:seed`. Sem ele, os servidores dessas soluções falham na
+  primeira query (mas `npm test` continua verde, e a suíte de contrato pula com
+  aviso).
+- **Um schema, um client, um banco** para toda a biblioteca. O arquivo se chama
+  `prisma-10.sqlite` porque nasceu no módulo 10; o nome ficou.
+- Cada exercício NN copia a solução do NN−1 e evolui. O 11 copiava o **08**
+  (memória) — essa exceção acabou nesta sessão.
 - **A partir do 12, todo app novo se monta com `criarApp(deps)`;** só
-  `servidor.ts` chama `listen`. Os 01–11 ficaram como estão de propósito.
-- Todo achado de comportamento (Express 5, Zod 4, Prisma 7, Vitest 4) vira
-  comentário no código **e** uma linha na tabela "Erros comuns" do doc.
+  `servidor.ts` chama `listen`, e é o único arquivo que sabe se existe banco.
+- **Estado que não parece estado também entra por injeção.** Contador de rate
+  limit, cache em memória e cliente de banco são globais se declarados no topo do
+  módulo. Foi o achado nº 1 desta sessão.
+- Todo achado de comportamento vira comentário no código **e** uma linha na
+  tabela "Erros comuns" do doc.
 - `curl -d '{"json":1}'` com aspas simples não funciona em `cmd.exe` nem
-  PowerShell (eles não removem aspas simples). São 17 ocorrências em 8 módulos; o
-  aviso está no módulo 01, com a forma escapada. Dívida em aberto se o repo
-  virar multiplataforma de verdade.
+  PowerShell. São 17 ocorrências em 8 módulos; o aviso está no módulo 01.
+- **`morgan` não pode sair do `package.json`**, mesmo o exercício 14 pedindo: o
+  repositório tem um `package.json` só, e o exemplo do módulo 05 usa `morgan`.
+  Registrar a decisão no README da solução 14.
 
-## Estado do git
+## Restrições do repositório que valem lembrar
 
-Branch `revisao-didatica-docs`, **não mergeada em `main`**. Um commit por tarefa,
-cada um dizendo o que mudou e como foi verificado.
-
-> **Atenção:** `PROMPT.md` aparece como deletado na árvore de trabalho. A
-> deleção foi **intencional e externa a esta revisão**, e **não foi commitada**
-> de propósito — os commits desta revisão usam caminhos explícitos, nunca
-> `git add -A`. Perguntar antes de apagar ou restaurar.
+- `npm audit --omit=dev` acusa **4 high**, todas transitivas da CLI do Prisma.
+  Nenhuma roda no caminho de uma requisição; `npm audit fix --force` rebaixaria o
+  `prisma` de major e quebraria o módulo 10. Registro completo em
+  `exercicios/13-seguranca/solucao/README.md`.
+- ESLint continua fora: `typescript-eslint` exige TypeScript `<6.1.0` e o projeto
+  usa TS 7.
+- `PROMPT.md` aparece como deletado na árvore de trabalho. A deleção é
+  **intencional e externa** e não foi commitada de propósito. Perguntar antes de
+  apagar ou restaurar.

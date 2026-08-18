@@ -37,6 +37,11 @@ import { criarRepositorioEmprestimos } from './repositorios/emprestimos-memoria.
 import { criarRepositorioLivros } from './repositorios/livros-memoria.ts';
 import { criarRepositorioRefresh } from './repositorios/refresh-memoria.ts';
 import { criarRepositorioUsuarios } from './repositorios/usuarios-memoria.ts';
+import { criarRepositorioAutoresPrisma } from './repositorios/autores-prisma.ts';
+import { criarRepositorioEmprestimosPrisma } from './repositorios/emprestimos-prisma.ts';
+import { criarRepositorioLivrosPrisma } from './repositorios/livros-prisma.ts';
+import { criarRepositorioRefreshPrisma } from './repositorios/refresh-prisma.ts';
+import { criarRepositorioUsuariosPrisma } from './repositorios/usuarios-prisma.ts';
 import { criarRotasAutores } from './rotas/autores.ts';
 import { criarRotasAuth } from './rotas/auth.ts';
 import { criarRotasEmprestimos } from './rotas/emprestimos.ts';
@@ -81,14 +86,63 @@ const livrosIniciais: Livro[] = [
 ];
 
 // ---------------------------------------------------------------------
-// 1. REPOSITÓRIOS
+// 1. REPOSITÓRIOS — a escolha que este arquivo existe para fazer
 // ---------------------------------------------------------------------
+//
+// ESTE É O ÚNICO ARQUIVO DA SOLUÇÃO QUE SABE SE EXISTE BANCO.
+//
+// Nem `servicos/`, nem `controllers/`, nem `rotas/` importam Prisma. Eles
+// conhecem as interfaces de `dominio/` (`RepositorioLivros`,
+// `RepositorioUsuarios`...), e é só. Isso não é arrumação: é o que permite
+// trocar a linha abaixo e a API inteira passar a persistir sem que uma regra de
+// negócio seja tocada.
+//
+// A prova disso está no módulo 12: os testes montam o mesmo app com os
+// repositórios em MEMÓRIA e rodam em segundos, sem banco, sem migration e sem
+// limpar tabela entre casos. Produção e teste usam implementações diferentes da
+// mesma interface — que é exatamente para isso que a interface existe (módulo 08).
+//
+// ---------------------------------------------------------------------
+// POR QUE PRISMA É O PADRÃO AQUI, E MEMÓRIA CONTINUA EXISTINDO
+// ---------------------------------------------------------------------
+// Num sistema de verdade, a implementação de produção fala com um banco. Um
+// servidor que guarda usuário em array perde todo mundo no restart — e num
+// deploy com três réplicas, cada uma teria a sua lista de usuários.
+//
+// A memória não some por isso: ela vira DUBLÊ DE TESTE, que é o papel legítimo
+// dela. O que estava errado até o módulo 10 era ela ser a implementação de
+// produção também, por falta de outra.
+//
+// `REPO=memoria` continua disponível para você subir a API sem nenhum setup de
+// banco e comparar o comportamento dos dois lado a lado.
 
-const repoAutores = criarRepositorioAutores(autoresIniciais);
-const repoLivros = criarRepositorioLivros(livrosIniciais);
-const repoUsuarios = criarRepositorioUsuarios();
-const repoEmprestimos = criarRepositorioEmprestimos();
-const repoRefresh = criarRepositorioRefresh();
+const usarMemoria = process.env.REPO === 'memoria';
+
+function criarRepositorios() {
+  if (usarMemoria) {
+    // Os dados iniciais só existem neste caminho: em memória, o "banco" nasce
+    // vazio a cada boot e precisa ser semeado no código. Com Prisma, quem semeia
+    // é `prisma/seed.ts`, uma vez, e o dado sobrevive ao restart.
+    return {
+      repoAutores: criarRepositorioAutores(autoresIniciais),
+      repoLivros: criarRepositorioLivros(livrosIniciais),
+      repoUsuarios: criarRepositorioUsuarios(),
+      repoEmprestimos: criarRepositorioEmprestimos(),
+      repoRefresh: criarRepositorioRefresh(),
+    };
+  }
+
+  return {
+    repoAutores: criarRepositorioAutoresPrisma(),
+    repoLivros: criarRepositorioLivrosPrisma(),
+    repoUsuarios: criarRepositorioUsuariosPrisma(),
+    repoEmprestimos: criarRepositorioEmprestimosPrisma(),
+    repoRefresh: criarRepositorioRefreshPrisma(),
+  };
+}
+
+const { repoAutores, repoLivros, repoUsuarios, repoEmprestimos, repoRefresh } =
+  criarRepositorios();
 
 // ---------------------------------------------------------------------
 // 2. SERVICES
@@ -170,6 +224,15 @@ process.on('uncaughtException', (erro) => {
 const PORT = 4110;
 app.listen(PORT, () => {
   console.log(`Biblioteca com auth em http://localhost:${PORT}/api/v1`);
+  console.log(
+    `Persistência: ${usarMemoria ? 'MEMÓRIA (some no restart)' : 'Prisma + SQLite'}`,
+  );
+  if (!usarMemoria) {
+    console.log('  Precisa de setup: npm run db:generate && npm run db:migrate');
+    console.log('  Sem banco? Suba com  REPO=memoria node ...servidor.ts\n');
+  } else {
+    console.log('  Com banco? Suba sem a variável REPO.\n');
+  }
   console.log('  POST /auth/registrar  ← o PRIMEIRO usuário vira admin');
   console.log('  POST /auth/login /auth/refresh /auth/logout /auth/trocar-senha');
   console.log('  GET  /auth/eu | /auth/usuarios (admin)');

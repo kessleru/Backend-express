@@ -141,6 +141,12 @@ mais do que um erro.
 
 ---
 
+> **Atenção:** desde 2026-08-18 as soluções dos exercícios **11, 12 e 13** também
+> usam Prisma, não só o módulo 10. Sem `db:generate` + `db:migrate` + `db:seed`
+> os servidores delas falham na primeira query. `npm test` continua verde — os
+> testes usam repositórios em memória, e a suíte de contrato se pula sozinha com
+> aviso visível. Para subir qualquer uma sem banco: `REPO=memoria node ...`.
+
 ## 3. Decisões técnicas (e o porquê de cada uma)
 
 | Decisão                                     | Motivo                                                                                                                                                                                                       |
@@ -864,15 +870,15 @@ remover `pnpm-lock.yaml` do git.
 
 Cada fase é entregável sozinha. Dá pra parar entre fases.
 
-| Fase                        | O que entra                                                                                                                                  | Status                                               |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint)                                    |
-| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                                                   |
-| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                                                   |
-| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ✅                                                   |
-| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | 🔶 13 feito (falta a solução do 13; 14–16 pendentes) |
-| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                                                   |
-| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                                                   |
+| Fase                        | O que entra                                                                                                                                  | Status                                          |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| **0 — Base**                | `.gitignore`, `tsconfig.json`, `package.json`, `.env.example`, ESLint + Prettier, `src/playground/`, `exercicios/`, `CLAUDE.md`, `README.md` | ✅ (menos ESLint)                               |
+| **1 — Fundamentos**         | docs 01–02 + exemplos + exercícios                                                                                                           | ✅                                              |
+| **2 — Express**             | docs 03–07 + exemplos + exercícios (início da API de biblioteca)                                                                             | ✅                                              |
+| **3 — Arquitetura e dados** | docs 08–12 + exemplos + exercícios (SQLite → Prisma → auth → testes)                                                                         | ✅                                              |
+| **4 — Produção**            | docs 13–16 + exemplos + exercícios                                                                                                           | 🔶 13 completo; 14 sem solução; 15–16 pendentes |
+| **5 — Avançado**            | docs 17–20 + exemplos + exercícios                                                                                                           | ⬜                                              |
+| **6 — Apêndices**           | A, B, C, D, E                                                                                                                                | ⬜                                              |
 
 Marque `✅` conforme concluir. Sessões futuras leem esta tabela para saber onde
 retomar.

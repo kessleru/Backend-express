@@ -31,11 +31,11 @@ datasource db {
 // ---------------------------------------------------------------------
 
 model Autor {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   nome          String
   nacionalidade String
   nascimento    DateTime? // `?` = opcional; no banco, NULL
-  criadoEm      DateTime @default(now()) @map("criado_em")
+  criadoEm      DateTime  @default(now()) @map("criado_em")
 
   // A relação. Este campo NÃO existe como coluna no banco — é o Prisma
   // permitindo navegar de autor para livros. Quem tem a coluna é `Livro.autorId`.
@@ -66,7 +66,8 @@ model Livro {
   //   1. você vê a tabela que o módulo 09 criou à mão, e a correspondência fica clara
   //   2. dá para adicionar colunas na junção depois (ex.: `principal Boolean`)
   // O implícito é mais curto e você não consegue acrescentar nada nele.
-  generos LivroGenero[]
+  generos     LivroGenero[]
+  emprestimos Emprestimo[]
 
   @@index([autorId])
   @@index([disponivel])
@@ -108,4 +109,101 @@ model LivroGenero {
   // módulo 09. O par é único, então o gênero não se repete no mesmo livro.
   @@id([livroId, generoId])
   @@map("livros_generos")
+}
+
+// ---------------------------------------------------------------------
+// MÓDULO 11 — AUTENTICAÇÃO
+// ---------------------------------------------------------------------
+// Os três modelos abaixo não pertencem ao exemplo do módulo 10: eles entram
+// para as SOLUÇÕES dos exercícios 11, 12 e 13, que até aqui rodavam com
+// repositórios em memória e por isso perdiam tudo no restart.
+//
+// Eles moram neste mesmo schema de propósito. Um projeto Prisma tem um schema,
+// um client gerado e um histórico de migrations; criar um segundo só para os
+// exercícios significaria duplicar os três e obrigar quem estuda o módulo 11 a
+// configurar um projeto Prisma antes de aprender autenticação. O custo aceito
+// é o inverso: o banco do exemplo 10 passa a ter tabelas que aquele módulo não
+// usa. Elas ficam separadas por estes cabeçalhos.
+
+/// Usuário da biblioteca (módulo 11).
+model Usuario {
+  id    Int    @id @default(autoincrement())
+  email String @unique
+
+  /// O campo se chama `senhaHash`, nunca `senha` — o nome denuncia na leitura
+  /// quem tentar gravar texto puro aqui. Ver `dominio/usuario.ts`.
+  senhaHash String @map("senha_hash")
+
+  /// `String`, e não um `enum` do Prisma, porque **SQLite não tem enum** e o
+  /// Prisma recusa `enum` neste provider. Quem garante o conjunto fechado
+  /// (`leitor` | `admin`) é o tipo `Papel` no TypeScript.
+  ///
+  /// É um exemplo direto do que o módulo 10 promete: o ORM não apaga as
+  /// diferenças entre bancos. Em Postgres esta linha seria `papel Papel`, com
+  /// a validação descendo para o banco.
+  papel String @default("leitor")
+
+  criadoEm DateTime @default(now()) @map("criado_em")
+
+  emprestimos Emprestimo[]
+  refreshes   RefreshToken[]
+
+  @@map("usuarios")
+}
+
+/// Empréstimo de um livro por um usuário (módulo 11).
+///
+/// Até o módulo 10 "emprestado" era um booleano dentro do livro. A partir do
+/// momento em que existe autorização por dono, o empréstimo precisa ser entidade
+/// própria: sem `usuarioId` não há como responder "este empréstimo é seu?".
+model Emprestimo {
+  id Int @id @default(autoincrement())
+
+  livroId   Int @map("livro_id")
+  usuarioId Int @map("usuario_id")
+
+  pegoEm DateTime @default(now()) @map("pego_em")
+
+  /// `null` = ainda está com o usuário. É o que define "empréstimo aberto", e é
+  /// por isso que a busca do módulo 13 filtra por `devolvidoEm: null`.
+  devolvidoEm DateTime? @map("devolvido_em")
+
+  /// `Restrict` nos dois lados: apagar um livro ou um usuário que tem histórico
+  /// de empréstimo é recusado pelo banco. `Cascade` apagaria o histórico junto —
+  /// e histórico de empréstimo é justamente o que uma biblioteca não pode perder.
+  livro   Livro   @relation(fields: [livroId], references: [id], onDelete: Restrict)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  /// O índice que a regra de dono exige: `listarPorUsuario` roda em toda tela de
+  /// "meus empréstimos". Sem ele, cada abertura varre a tabela inteira.
+  @@index([usuarioId])
+  /// E este serve a `buscarAbertoPorLivro`, chamada em toda devolução.
+  @@index([livroId, devolvidoEm])
+  @@map("emprestimos")
+}
+
+/// Refresh tokens ainda válidos, indexados pelo `jti` (módulo 11).
+///
+/// Esta tabela é o que torna o logout possível. Um JWT assinado é
+/// auto-suficiente: não existe "invalidar" um. A saída é guardar do lado do
+/// servidor o identificador do token e conferi-lo — reintroduzindo o estado que
+/// o JWT prometia eliminar, mas só a cada 15 minutos, não a cada requisição.
+///
+/// Em produção isto costuma ser um Redis com TTL, e não uma tabela: a linha
+/// morre sozinha na expiração, sem job de limpeza. Módulo 15.
+model RefreshToken {
+  /// O `jti` do JWT é a chave primária — não há id artificial, porque o token
+  /// já traz um identificador único e é por ele que a busca sempre acontece.
+  jti String @id
+
+  usuarioId Int      @map("usuario_id")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  /// `Cascade` aqui, ao contrário dos empréstimos: apagar o usuário deve apagar
+  /// as sessões dele. Sessão órfã não é histórico, é credencial pendurada.
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  /// `revogarDoUsuario` (usado no "trocar senha") apaga por `usuarioId`.
+  @@index([usuarioId])
+  @@map("refresh_tokens")
 }
