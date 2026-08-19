@@ -1,0 +1,88 @@
+// O schema desta mini API — quatro modelos, e nenhum deles mora no schema da
+// raiz. Um projeto Prisma tem UM schema, UM client gerado e UM histórico de
+// migrations; pendurar `Lista` e `Item` no schema da biblioteca poria as tabelas
+// desta mini no mesmo banco do exemplo do módulo 10 e quebraria a promessa de
+// que cada mini API é lida sozinha. O preço aceito está no `## Rodar` do README:
+// esta é a única mini com passo de setup.
+
+generator client {
+  provider = "prisma-client"
+
+  // `output` é obrigatório no gerador `prisma-client` do Prisma 7, e o caminho é
+  // relativo a ESTE arquivo — o client sai em `prisma/gerado/`, dentro da pasta
+  // da mini. Ele não vai para o git (o `.gitignore` da raiz já o ignora): é
+  // artefato, recriado por `prisma generate` a partir do schema.
+  output  = "./gerado"
+  runtime = "nodejs"
+}
+
+datasource db {
+  provider = "sqlite"
+  // Sem `url` aqui: no Prisma 7 ela vive em `prisma.config.ts`.
+}
+
+/// Uma conta. O campo se chama `senhaHash` e nunca `senha` — o nome denuncia na
+/// leitura quem tentar gravar texto puro.
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  senhaHash String   @map("senha_hash")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  membros Membro[]
+
+  @@map("usuarios")
+}
+
+model Lista {
+  id       Int      @id @default(autoincrement())
+  nome     String
+  criadaEm DateTime @default(now()) @map("criada_em")
+
+  membros Membro[]
+  itens   Item[]
+
+  @@map("listas")
+}
+
+/// Quem participa de qual lista, e em que papel. É a tabela que responde
+/// "você pode ver isto?" — sem ela, uma lista seria de todo mundo ou de ninguém.
+model Membro {
+  listaId   Int @map("lista_id")
+  usuarioId Int @map("usuario_id")
+
+  /// `String`, não `enum`: o SQLite não tem enum e o Prisma recusa a palavra
+  /// neste provider. Quem fecha o conjunto (`dono` | `convidado`) é o tipo
+  /// `Papel` em `dominio.ts`. Em Postgres esta linha seria `papel Papel`, e a
+  /// checagem desceria para o banco — o ORM não apaga a diferença entre bancos.
+  papel String
+
+  /// `Cascade` na lista e `Restrict` no usuário, e a assimetria é proposital.
+  /// Apagar a lista tem que levar embora quem participava dela: a linha de
+  /// membro não significa nada sem a lista. Já apagar um usuário que é dono de
+  /// alguma lista é recusado pelo banco — com `Cascade` aqui, a lista sobreviveria
+  /// sem dono nenhum e ninguém mais poderia convidar para ela.
+  lista   Lista   @relation(fields: [listaId], references: [id], onDelete: Cascade)
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  /// Chave primária COMPOSTA: o par é a identidade. A mesma pessoa não entra
+  /// duas vezes na mesma lista, e quem recusa o convite repetido é o banco.
+  @@id([listaId, usuarioId])
+  /// `GET /listas` parte do usuário para as listas; sem este índice, cada
+  /// abertura da tela inicial varre a tabela de membros inteira.
+  @@index([usuarioId])
+  @@map("membros")
+}
+
+model Item {
+  id         Int     @id @default(autoincrement())
+  nome       String
+  quantidade Int     @default(1)
+  comprado   Boolean @default(false)
+
+  listaId Int   @map("lista_id")
+  lista   Lista @relation(fields: [listaId], references: [id], onDelete: Cascade)
+
+  @@index([listaId])
+  @@map("itens")
+}

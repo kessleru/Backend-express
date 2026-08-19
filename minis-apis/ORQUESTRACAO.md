@@ -11,16 +11,16 @@ ensina são os `docs/`. Aqui o texto é operacional.
 
 ---
 
-## 1. O que vale para as três
+## 1. O que vale para todas
 
-| Regra                     | Detalhe                                                                                                         |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| **Piso: módulo 03**       | Toda mini API começa no Express básico. Nenhuma pressupõe leitura anterior além do 03.                          |
-| **Teto: módulo 09**       | Nada de Prisma, JWT, argon2, helmet, rate-limit, Pino ou Vitest nesta leva. Cada tarefa tem o seu teto exato.   |
-| **Zero dependência nova** | Só o que já está no `package.json`: `express`, `cors`, `morgan`, `zod`, `node:sqlite`. Instalar algo é erro.    |
-| **Domínio próprio**       | Nenhuma delas é biblioteca/livros/cursos. O ponto da pasta é variar o domínio.                                  |
-| **Pequena de verdade**    | Cada tarefa traz um teto de linhas. Passou muito do teto, o escopo cresceu sozinho — corte, não peça exceção.   |
-| **Roda sem setup**        | `node minis-apis/NN-nome/servidor.ts` e pronto. A de SQLite cria e popula o banco sozinha na primeira execução. |
+| Regra                     | Detalhe                                                                                                                                                                                                                         |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Piso: módulo 03**       | Toda mini API começa no Express básico. Nenhuma pressupõe leitura anterior além do 03.                                                                                                                                          |
+| **Teto: por tarefa**      | Cada tarefa declara o módulo em que para, e nada acima dele entra. A leva 1 inteira fica abaixo do 09; a leva 2 vai até o 11.                                                                                                   |
+| **Zero dependência nova** | Nada de `npm install`. Na leva 1, `express`, `cors`, `morgan`, `zod` e `node:sqlite`; a leva 2 abre `@prisma/client`, `argon2` e `jsonwebtoken`, já instalados.                                                                 |
+| **Domínio próprio**       | Nenhuma delas é biblioteca/livros/cursos. O ponto da pasta é variar o domínio.                                                                                                                                                  |
+| **Pequena de verdade**    | Cada tarefa traz um teto de linhas. Passou muito do teto, o escopo cresceu sozinho — corte, não peça exceção.                                                                                                                   |
+| **Roda sem setup**        | `node minis-apis/NN-nome/servidor.ts` e pronto; a de SQLite cria e popula o banco na primeira execução. Única exceção: a `06-compras`, cujo Prisma exige `migrate` e `generate` antes — e o README dela diz isso no `## Rodar`. |
 
 ### Convenções técnicas (as mesmas do repositório)
 
@@ -28,8 +28,9 @@ ensina são os `docs/`. Aqui o texto é operacional.
 - **Import relativo com extensão `.ts`**: `import { rotas } from './rotas.ts'`.
 - **Sem `enum`, `namespace`, `import =`** — `erasableSyntaxOnly` está ligado.
 - **Tudo em português**: nome de arquivo, variável, rota, mensagem de erro, doc.
-- **Portas 6001, 6002, 6003.** A faixa `50NN` é dos exemplos e a `4NN0` das
-  soluções; a `600N` é desta pasta e não colide com nada.
+- **Porta na faixa `600N`**, uma por mini, seguindo a numeração da pasta (`01` →
+  6001, `07` → 6007). A faixa `50NN` é dos exemplos e a `4NN0` das soluções; a
+  `600N` é desta pasta e não colide com nada.
 - **Banco em `data/minis-NN-nome.sqlite`** — o `.gitignore` já ignora `data/*.sqlite`.
 - **`src/playground/` é intocável.** Nenhum agente lê, escreve ou cita.
 
@@ -98,6 +99,9 @@ em negrito: `> **Atenção:** ...`. Bloco de código sempre com linguagem.
 
 ## 2. Passo 0 — antes de despachar qualquer agente
 
+> **Feito na leva 1.** O arquivo e o script já existem; a seção fica como
+> registro de por que existem.
+
 `npm run typecheck` cobre só `src/**/*.ts`; esta pasta ficaria sem checagem
 nenhuma. O orquestrador cria **uma vez** o `tsconfig.minis.json` na raiz:
 
@@ -138,6 +142,24 @@ minis-apis/NN-nome/
 ├── servidor.ts    ← único arquivo que chama listen()
 └── (demais arquivos conforme a tarefa)
 ```
+
+### Pasta por camada: a régua
+
+Os nomes de arquivo que cada tarefa cita são indicativos. Quem decide o layout é
+o tamanho:
+
+> **Camada com dois ou mais arquivos vira pasta; camada com um arquivo só fica
+> plana.**
+
+É por isso que a `03-despesas` e a `04-enquetes` são planas — nelas cada camada
+cabe num arquivo, e `repositorios/` com um `repositorio.ts` dentro custa um
+clique sem separar nada. E é por isso que a `06-compras` tem `rotas/`: três
+grupos de rota em três arquivos são coisas diferentes de verdade.
+
+Onde houver divisão, o layout de referência é o de `src/exemplos/08-camadas/`
+(`rotas/`, `servicos/`, `repositorios/`, `dominio/`) — uma mini que aplica o
+módulo 08 usando uma organização que o exemplo do próprio módulo não usa passa a
+mensagem trocada.
 
 ### O `README.md` ensina — ele não é um índice de rotas
 
@@ -197,7 +219,7 @@ redundância, não por linha.
 
 ---
 
-## 4. As três tarefas
+## 4. Leva 1 — as quatro tarefas
 
 ### Tarefa 1 — `01-encurtador` · módulos 03 → 05 · porta 6001
 
@@ -379,17 +401,66 @@ O que a tarefa tem que deixar visível no código:
 
 ---
 
+### Tarefa 4 — `04-enquetes` · módulos 03 → 09, **sem o 07** · porta 6004 · SQLite
+
+> **Registro retroativo.** Esta mini foi construída depois das três primeiras e
+> antes de existir esta entrada. O texto abaixo descreve **o que ela é hoje**,
+> para que o README da pasta e as levas seguintes tenham a referência. Não é um
+> briefing a executar.
+
+Enquete com apuração: uma pergunta, um conjunto fechado de opções, um voto por
+pessoa, e um resultado que se confere.
+
+O que a separa da tarefa 3 é o **buraco proposital no teto**: ela vai até o
+módulo 09 mas **pula o 07**. A validação é escrita à mão — não por limitação, e
+sim porque a tarefa 2 já mostrou o Zod resolvendo o problema, e ver o mecanismo
+por baixo (ler `req.body` como `unknown`, checar tipo, juntar os erros numa
+lista) é o que impede o Zod de virar mágica. O `README.md` dela registra isso na
+seção `## O que ficou de fora`, apontando o módulo 07.
+
+Tamanho real: ~1.070 linhas de código em 8 arquivos (`servidor.ts`, `rotas.ts`,
+`servico.ts`, `repositorio.ts`, `dominio.ts`, `validacao.ts`, `erros.ts`,
+`db.ts`). Banco em `data/minis-04-enquetes.sqlite`.
+
+| Método   | Rota                         | O que faz                                            |
+| -------- | ---------------------------- | ---------------------------------------------------- |
+| `GET`    | `/enquetes`                  | lista; `?estado=abertas\|encerradas&pagina=&limite=` |
+| `POST`   | `/enquetes`                  | cria com 2 a 8 opções                                |
+| `GET`    | `/enquetes/:id`              | a cédula: pergunta e opções, sem os números          |
+| `DELETE` | `/enquetes/:id`              | apaga a enquete, as opções e os votos                |
+| `POST`   | `/enquetes/:id/encerramento` | encerra a votação, uma vez só                        |
+| `POST`   | `/enquetes/:id/votos`        | vota; exige `X-Eleitor` e `{ "opcaoId": N }`         |
+| `DELETE` | `/enquetes/:id/votos`        | retira o voto de quem está no `X-Eleitor`            |
+| `GET`    | `/enquetes/:id/resultado`    | apuração com percentual, vencedora e empate          |
+
+O que ela deixa visível no código, e que as levas seguintes podem citar em vez de
+reexplicar:
+
+- **Um voto é uma linha, não um contador.** O campo `total` ao lado da opção
+  economiza espaço e perde três coisas: voto único por pessoa, troca de voto e
+  recontagem. Contar vira consequência do registro.
+- **Identidade declarada não é identidade provada.** O `X-Eleitor` é um
+  cabeçalho que qualquer um escreve. A mini assume isso em voz alta e aponta o
+  módulo 11 — que é onde as tarefas 6 e 7 desta leva 2 começam.
+- **`Number('')` é `0`, não `NaN`.** `?limite=` vazio passa pela checagem "é
+  número?" e vira `LIMIT 0`, devolvendo lista vazia sem erro nenhum.
+- **Chave repetida na query vira array.** `?pagina=1&pagina=2` chega como
+  `['1','2']`, e `Number` disso é `NaN` — o validador à mão precisa tratar o
+  caso que o Zod trataria sozinho.
+
+---
+
 ## 5. Como despachar
 
-As três tarefas são independentes — nenhuma importa arquivo da outra. Despache
-**em paralelo**, um agente por tarefa, depois do Passo 0.
+As tarefas de uma mesma leva são independentes — nenhuma importa arquivo da
+outra. Despache **em paralelo**, um agente por tarefa, depois do Passo 0 (o
+geral da seção 2 e o da própria leva, se houver).
 
 Prompt de cada agente (trocando o que está entre colchetes):
 
 ```
-Leia /workspaces/Backend-express/CLAUDE.md e
-/workspaces/Backend-express/minis-apis/ORQUESTRACAO.md (seções 1, 3 e a
-tarefa [NN]).
+Leia CLAUDE.md e minis-apis/ORQUESTRACAO.md (seções 1, 3 e a tarefa [NN]) na
+raiz do repositório.
 
 Construa a mini API da Tarefa [NN] em minis-apis/[NN-nome]/, respeitando o
 teto de módulos e o teto de linhas.
@@ -446,11 +517,292 @@ Depois que as três voltarem:
 
 ---
 
-## 6. Próximas levas
+---
 
-Esta é a **leva 1**, toda abaixo do módulo 09 por pedido do usuário. As
-seguintes podem subir o teto — autenticação de verdade (11), suíte de testes
-(12), upload (19) — e é onde entram ideias como API de cadastro com login,
-webhook com assinatura, ou catálogo com busca paginada. Nada disso entra aqui:
-cada leva vira uma nova seção deste arquivo, com as tarefas numeradas na
-sequência (`04-`, `05-`, ...).
+## 6. Leva 2 — as três tarefas
+
+A leva 1 parou no módulo 09 e não tinha login em nenhuma das quatro. Esta sobe o
+teto: a **5** fica no 07 (memória, Zod fazendo o que `if` não faz) e a **6** e a
+**7** vão até o **11** — cadastro, senha guardada como hash e requisição
+autenticada.
+
+O par 6 × 7 é **deliberado**: mesmo teto de módulos, camadas de dados opostas. A
+6 usa Prisma (módulo 10), a 7 escreve SQL na mão (módulo 09), e as duas
+respondem "quem pode ver isto?" em formatos diferentes. Quem ler as duas enxerga
+o que era do ORM e o que era do problema.
+
+### Passo 0 da leva 2 — feito pelo orquestrador, antes de despachar
+
+A 6 é a única mini com projeto Prisma próprio, e o client gerado não entra no
+git. Uma linha no `.gitignore` da raiz:
+
+```
+minis-apis/06-compras/prisma/gerado/
+```
+
+Fora isso, nada na raiz muda. O `tsconfig.minis.json` da seção 2 já cobre a
+pasta inteira.
+
+---
+
+### Tarefa 5 — `05-reservas` · módulos 03 → 07 · porta 6005 · memória
+
+Reserva de sala por intervalo de tempo: quem pega a sala, de quando até quando, e
+o que acontece quando duas pessoas querem o mesmo horário.
+
+**Teto: ~360 linhas de código, em 5 ou 6 arquivos** (`servidor.ts`, `rotas.ts`,
+`schemas.ts`, `validar.ts`, `erros.ts`, `dados.ts`). Armazenamento em memória —
+banco está acima do teto. Três salas fixas como dado inicial, com capacidades
+diferentes.
+
+| Método   | Rota                  | O que faz                                          |
+| -------- | --------------------- | -------------------------------------------------- |
+| `GET`    | `/salas`              | lista as salas                                     |
+| `GET`    | `/salas/:id/reservas` | agenda da sala; `?data=2026-08-19&pagina=&limite=` |
+| `POST`   | `/salas/:id/reservas` | reserva: 201, 409 se o horário choca               |
+| `GET`    | `/reservas/:id`       | uma reserva, 404 se não existe                     |
+| `PATCH`  | `/reservas/:id`       | remarca: muda início, fim ou título                |
+| `DELETE` | `/reservas/:id`       | 204, ou 404 se não existe                          |
+
+**O que a seção `## Como funciona` do README precisa explicar** — o mecanismo de
+uma agenda, sem citar biblioteca nenhuma:
+
+- **Uma agenda não guarda "ocupado", guarda intervalos.** Não existe um campo
+  dizendo que a sala está livre às 14h: existem as reservas, e "livre" é o que
+  sobra. Isso muda a pergunta que o sistema responde — de "está livre?" para
+  "este intervalo encosta em algum outro?".
+- **A conta da sobreposição, em uma linha.** Dois intervalos `[a, b)` e `[c, d)`
+  se sobrepõem quando `a < d` **e** `c < b`. Mostre por que essa dupla de
+  comparações cobre os quatro casos que alguém tentaria enumerar à mão (começa
+  antes e termina dentro, engole o outro inteiro, cabe dentro dele, começa
+  dentro e termina depois) — e por que enumerar é justamente onde se esquece um.
+- **Por que o intervalo é semiaberto**, com o fim de fora. A reserva das 10h às
+  11h e a das 11h às 12h **não** conflitam. Se o fim entrasse na conta, toda
+  reserva bloquearia o instante seguinte e duas reuniões nunca poderiam se
+  encostar. É a decisão que mais gera "achei que estava livre" quando tomada ao
+  contrário.
+- **Por que a conferência acontece no servidor, no momento da gravação.** A tela
+  que mostrou a sala livre é uma foto de alguns minutos atrás. Quem decide é
+  quem grava.
+- **Instante × horário local.** "14:00" sozinho não é um instante: depende de
+  onde a pessoa está. A API troca datas em ISO 8601 com fuso
+  (`2026-08-19T14:00:00-03:00`) e diz o que quebra ao aceitar a forma solta —
+  duas pessoas em fusos diferentes reservando "14:00" e nenhuma das duas
+  errando.
+- **O limite honesto**: duas reservas chegando ao mesmo tempo. Aqui elas não se
+  atropelam, porque é um processo só e a checagem e a gravação acontecem sem
+  pausa entre elas; explique que num banco, com dois processos, essa garantia
+  desaparece e o assunto passa a ser transação — e aponte o módulo.
+
+O que a tarefa tem que deixar visível no código:
+
+- **Middleware `validar(schema)` genérico** (módulo 07) aplicado a `body`,
+  `params` e `query` — um só, parametrizado.
+- **Regra que envolve dois campos não cabe no campo.** `fim > inicio` não é
+  validação de `fim`: é do par, e por isso vive num `.refine()` sobre o objeto.
+  Tentar prendê-la ao campo é o falso amigo aqui.
+- **`z.coerce` na query** — `?pagina=2` chega como texto. Conceito já explicado
+  na tarefa 2: referência de uma linha, não reexplicação.
+- **Campo desconhecido é recusado**, não ignorado: `strict()`. Mandar
+  `capacidade: 999` numa reserva é bug do cliente ou tentativa; silêncio esconde
+  os dois.
+- **A divisão entre 422 e 409, e o critério que a decide.** Duração acima do teto
+  e horário fora do expediente são **422**: dá para recusar olhando só o corpo,
+  sem consultar nada. Sobreposição é **409**: o corpo está perfeito, o que nega é
+  o estado da agenda. O README precisa registrar esse critério — "dá para decidir
+  sem olhar o resto do mundo?" — porque é ele que transfere para outro domínio.
+- **O `PATCH` e o falso amigo do `.partial()`.** Tornar tudo opcional aceita
+  corpo vazio e, pior, aceita `{ "fim": ... }` sozinho — e aí o `fim` novo é
+  comparado com o `inicio` antigo, que o schema não enxerga. A checagem do par
+  tem que acontecer **depois** de juntar o que veio com o que já estava gravado.
+- **Tratador de erro central + `AppError`** (módulo 06): formato único de erro,
+  stack trace nunca no cliente.
+- Middlewares: `cors()` e `morgan('dev')`. Não invente um terceiro para cumprir
+  cota — a tarefa 1 já mostrou middleware próprio.
+
+---
+
+### Tarefa 6 — `06-compras` · módulos 03 → 11 · porta 6006 · Prisma
+
+Lista de compras compartilhada: cada pessoa tem conta, cria listas, convida
+outras e marca o que já foi comprado.
+
+**Teto: ~700 linhas de código**, com as camadas do módulo 08
+(`rotas → servico → repositorio`), Prisma do módulo 10 e autenticação do 11. É a
+maior da pasta, e o escopo é o teto: dois papéis, quatro tabelas, nada de
+notificação, histórico ou convite por link.
+
+**Esta mini tem projeto Prisma próprio, dentro da pasta:**
+
+```
+minis-apis/06-compras/
+├── prisma/schema.prisma   ← output = "./gerado", provider sqlite
+├── prisma.config.ts       ← url = file:../../data/minis-06-compras.sqlite
+└── prisma/migrations/     ← vai para o git
+```
+
+O schema da raiz não é tocado. A alternativa — pendurar os modelos lá — poria as
+tabelas da mini no mesmo banco da biblioteca e quebraria a regra de a mini ser
+lida sozinha. O preço aceito é que **esta é a única mini com passo de setup**, e
+o `## Rodar` do README precisa trazê-lo antes do `node servidor.ts`:
+
+```bash
+npx prisma migrate deploy --config minis-apis/06-compras/prisma.config.ts
+npx prisma generate --config minis-apis/06-compras/prisma.config.ts
+node minis-apis/06-compras/servidor.ts
+```
+
+Modelos: `Usuario` (e-mail único, `senhaHash`), `Lista`, `Membro` (chave primária
+composta `[listaId, usuarioId]` e `papel` em texto — SQLite não tem `enum`, e o
+Prisma recusa `enum` neste provider) e `Item` (nome, quantidade, `comprado`).
+
+| Método   | Rota                        | O que faz                                  |
+| -------- | --------------------------- | ------------------------------------------ |
+| `POST`   | `/usuarios`                 | cadastro: 201, 409 se o e-mail repete      |
+| `POST`   | `/sessoes`                  | login: 200 com o token, 401 se não confere |
+| `GET`    | `/listas`                   | as minhas — como dono ou como convidado    |
+| `POST`   | `/listas`                   | cria; quem criou vira dono                 |
+| `GET`    | `/listas/:id`               | a lista com membros e itens                |
+| `POST`   | `/listas/:id/membros`       | convida por e-mail — **só o dono**         |
+| `POST`   | `/listas/:id/itens`         | acrescenta item                            |
+| `PATCH`  | `/listas/:id/itens/:itemId` | marca comprado ou muda a quantidade        |
+| `DELETE` | `/listas/:id/itens/:itemId` | 204                                        |
+
+**O que a seção `## Como funciona` do README precisa explicar** — o mecanismo de
+ter conta e de dividir uma lista, sem citar biblioteca nenhuma:
+
+- **A senha nunca é armazenada.** O servidor guarda uma **prova derivada** dela:
+  um valor calculado a partir da senha do qual não se volta. Conferir é refazer a
+  conta e comparar os resultados. Explique por que a conta é **lenta de
+  propósito** — quem levar o banco embora precisa testar senha por senha, e cada
+  tentativa custa — e o que é o **sal**: um valor aleatório por senha, guardado
+  junto, que faz duas pessoas com a mesma senha terem provas diferentes.
+- **Autenticar × autorizar**, com o domínio na mão: autenticar responde "quem é
+  você"; autorizar responde "você pode fazer isto **nesta lista**". A segunda
+  pergunta só existe porque a lista é compartilhada.
+- **HTTP não lembra.** Cada requisição chega sem passado. "Continuar logado" é o
+  cliente reenviar uma prova a cada pedido — e a prova é o crachá assinado que o
+  login devolveu.
+- **O que é um crachá assinado**: um texto legível por qualquer um, com uma
+  assinatura que só o servidor sabe produzir. Diga as duas consequências que
+  quase todo mundo inverte — o conteúdo **não é secreto** (não ponha nada
+  sigiloso nele) e ele **não pode ser rasgado depois de emitido**, e é daí que
+  sai o prazo curto de validade.
+- **404 × 403, e por que a escolha vaza informação.** Pedir uma lista que não é
+  sua responde **404**: dizer "403" confirmaria que aquela lista existe, e quem
+  varre os números anota quais deram 403 e monta o mapa das listas alheias. Já
+  convidar alguém para uma lista que você **já enxerga** responde **403** — ali a
+  existência não é segredo, só a permissão falta. É o conceito mais transferível
+  desta mini, e precisa aparecer no código com comentário.
+- **Por que dois papéis bastam** — dono e convidado — e o que custaria um
+  terceiro.
+
+O que a tarefa tem que deixar visível no código:
+
+- **`argon2.hash` no cadastro, `argon2.verify` no login.** O sal não é passado
+  porque o argon2 gera um por senha e o embute no resultado. Comparar hash com
+  `===` é erro; a verificação tem função própria.
+- **Login com mensagem única** — "e-mail ou senha inválidos" nos dois casos.
+  Dizer "esse e-mail não existe" entrega ao curioso a lista de quem tem conta.
+- **`jwt.verify`, nunca `jwt.decode`.** O `decode` lê a carga **sem conferir a
+  assinatura**: qualquer um forja um token com `usuarioId: 1` e entra. É o falso
+  amigo mais caro do módulo 11 e merece o comentário mais longo do arquivo.
+- **O segredo vem do ambiente**, com um valor de desenvolvimento embutido para a
+  mini rodar sem setup — e um comentário dizendo por que esse valor embutido
+  seria falha grave em produção.
+- **Middleware `autenticar`** que resolve o token e preenche `req.usuario` (com o
+  tipo declarado, não `any`), e **`exigirDono`** separado — autorizar é uma
+  decisão diferente de autenticar, e separá-los é o que impede a regra de sumir
+  no meio da rota.
+- **A camada é o ponto**: só o repositório conhece o Prisma. O serviço decide 403
+  × 404 e não sabe o que é `findUnique`.
+- **`include` e o N+1**, em uma frase: buscar as listas e depois pedir os itens de
+  cada uma numa volta é uma consulta por lista; `include` traz tudo de uma vez.
+- **`onDelete` escolhido, não herdado**: `Cascade` em itens e membros — apagar a
+  lista leva junto o que só existe dentro dela; `Restrict` no usuário, porque
+  apagar quem é dono deixaria a lista sem dono. Diga a alternativa e o que ela
+  custaria.
+
+---
+
+### Tarefa 7 — `07-habitos` · módulos 03 → 11 · porta 6007 · SQLite (`node:sqlite`)
+
+Rastreador de hábitos privado: cada pessoa tem os seus, marca o dia em que
+cumpriu e olha o resumo do mês.
+
+**Teto: ~650 linhas de código**, com as camadas do módulo 08, SQL na mão do 09 e
+autenticação do 11. Banco em `data/minis-07-habitos.sqlite`, com migration
+idempotente. **Sem Prisma** — o contraste com a tarefa 6 é o ponto.
+
+Tabelas: `usuarios`, `habitos` (com `usuario_id`) e `marcacoes` (`habito_id`,
+`dia` em texto `YYYY-MM-DD`, com unicidade no par).
+
+| Método   | Rota                          | O que faz                                  |
+| -------- | ----------------------------- | ------------------------------------------ |
+| `POST`   | `/usuarios`                   | cadastro: 201, 409 se o e-mail repete      |
+| `POST`   | `/sessoes`                    | login: 200 com o token, 401                |
+| `GET`    | `/habitos`                    | os meus                                    |
+| `POST`   | `/habitos`                    | cria; 409 se eu já tenho um com esse nome  |
+| `DELETE` | `/habitos/:id`                | 204, e leva as marcações junto             |
+| `PUT`    | `/habitos/:id/marcacoes/:dia` | marca o dia — **idempotente**              |
+| `DELETE` | `/habitos/:id/marcacoes/:dia` | desmarca                                   |
+| `GET`    | `/habitos/:id/resumo`         | `?mes=2026-08` → dias, percentual, seguida |
+
+**O que a seção `## Como funciona` do README precisa explicar** — o mecanismo de
+acompanhar um hábito, sem citar biblioteca nenhuma:
+
+- **O que se guarda é uma linha por dia cumprido**, não um contador — a mesma
+  escolha da mini 4, aplicada a outro domínio. Uma linha de referência a ela
+  basta; não reexplique.
+- **Dia não é instante.** "Marquei hoje" depende de onde a pessoa está: à
+  meia-noite e meia em São Paulo, em Lisboa já é outro dia. A API grava
+  `2026-08-19`, e quem decide que dia é hoje é o cliente. Diga o custo dessa
+  escolha: quem quiser, marca o mês inteiro de uma vez — o servidor não tem como
+  saber que não foi ontem.
+- **O que é idempotência**, e por que marcar o dia é `PUT` e não `POST`. Apertar
+  o botão duas vezes tem que terminar no mesmo lugar. Com `POST` a segunda vez
+  criaria a segunda marcação — ou precisaria de um erro para se defender; com
+  `PUT` o segundo pedido apenas confirma o que já vale.
+- **Privado é diferente de proibido.** Aqui não existe compartilhamento: hábito
+  de outra pessoa não é "acesso negado", é **inexistente** do ponto de vista de
+  quem perguntou — sempre 404. Diga em uma frase por que a mini 6 responde 403 em
+  alguns casos e esta nunca responde: lá a existência já é conhecida por quem
+  pergunta.
+- **O que o banco responde bem, e o que não.** "Quantos dias em agosto" é agrupar
+  e contar — pergunta de banco. "Quantos dias seguidos até hoje" é uma pergunta
+  sobre a **ordem entre as linhas**, e a resposta honesta é trazer os dias do mês
+  (31 linhas, não 50 mil) e contar em JavaScript. É a contra-lição do relatório
+  da mini 3, e ela precisa vir com a régua: o que muda a decisão é o **tamanho do
+  que se traz**, não onde a conta é escrita.
+- **A regra "um por dia" mora no banco.** Um `if` conferindo antes de inserir
+  falha no dia em que dois pedidos chegam juntos; a restrição de unicidade não
+  falha, porque quem decide é quem grava.
+
+O que a tarefa tem que deixar visível no código:
+
+- **Unicidade em `(habito_id, dia)`** e o que fazer com a violação: em `PUT`, o
+  erro de unicidade do SQLite não vira 409 — vira **sucesso**, porque o estado
+  pedido já é o estado atual. É o trecho onde idempotência deixa de ser palavra.
+- **O `WHERE usuario_id = ?` vive no repositório**, em toda consulta, não num
+  `if` no serviço. A diferença é que um `if` dá para esquecer numa rota nova; a
+  cláusula na consulta, não.
+- **404 sempre, nunca 403** — com o comentário dizendo por quê e apontando a mini
+  6 como o caso em que 403 é o certo.
+- **Consulta sempre parametrizada** (`?`), inclusive no filtro de mês montado
+  dinamicamente. Conceito da mini 3: referência de uma linha.
+- **`PRAGMA foreign_keys = ON` é por conexão** — referência à mini 3, não
+  reexplicação. O que muda aqui é o apagamento em cascata das marcações.
+- **Argon2 e JWT como na mini 6**, sem repetir a explicação: uma linha de
+  referência, e comentário só onde esta mini decide diferente.
+- **O resumo**: `GROUP BY` para o mês, contagem de dias seguidos em JavaScript, e
+  o comentário que diz por que cada metade está onde está.
+
+---
+
+## 7. Próximas levas
+
+O que ainda não apareceu em mini nenhuma: **testes automatizados** (12) — todas
+foram conferidas com `curl` na mão —, **rate limit e cabeçalhos de segurança**
+(13), **log estruturado** (14), **cache** (15) e **upload** (19). São os
+candidatos naturais da leva 3. Cada leva vira uma nova seção deste arquivo, com
+as tarefas numeradas na sequência (`08-`, `09-`, ...).
