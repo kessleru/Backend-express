@@ -1,0 +1,18 @@
+// Config para checar os tipos das minis APIs, que ficam fora de src/.
+// Uso: npm run typecheck:minis
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // `rootDir` é a raiz do repo, não `./minis-apis`: como aqui é só
+    // `--noEmit`, `rootDir` não decide layout de saída nenhum, e a raiz larga
+    // evita TS6059 se algum arquivo de fora entrar no grafo.
+    "rootDir": ".",
+    "noEmit": true,
+    // Sem emissão, gerar declaração e sourcemap é trabalho jogado fora.
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["minis-apis/**/*.ts"],
+  "exclude": []
+}

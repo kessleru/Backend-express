@@ -91,6 +91,55 @@ O que entrou:
   subir sem nenhum setup de banco.
 - `testes/repositorio.test.ts` (soluções 12 e 13): a suíte de contrato.
 
+### 3. `minis-apis/` — leva 1, três mini APIs fora do domínio da biblioteca
+
+Pasta nova, com briefing próprio em
+[`minis-apis/ORQUESTRACAO.md`](../minis-apis/ORQUESTRACAO.md). O objetivo é ver o
+conteúdo dos módulos aplicado a outro domínio: vinte módulos com livros e
+empréstimos ensinam a biblioteca junto com o conceito, e essa pasta separa os
+dois.
+
+Toda a leva 1 fica **abaixo do módulo 09**, por pedido do usuário. Cada mini API
+foi construída por um agente, em paralelo, a partir da tarefa correspondente da
+seção 4 do briefing.
+
+| Mini API        | Domínio                     | Módulos | Porta | Persistência | Linhas de código |
+| --------------- | --------------------------- | ------- | ----- | ------------ | ---------------- |
+| `01-encurtador` | encurtador de links         | 03–05   | 6001  | `Map`        | 123 (teto ~180)  |
+| `02-inscricoes` | inscrição em evento         | 03–07   | 6002  | memória      | 296 (teto ~320)  |
+| `03-despesas`   | controle de gastos pessoais | 03–09   | 6003  | SQLite       | 493 (teto ~450)  |
+
+A **3 passou ~10% do teto**. O excedente está no DDL dentro de template string e
+nos mapeadores de linha para JSON, não em escopo extra — são os 7 endpoints
+pedidos e os 2 recursos. Fica registrado como dívida, não como erro.
+
+O que entrou junto:
+
+- `tsconfig.minis.json` na raiz e o script `typecheck:minis` no `package.json` —
+  o `npm run typecheck` cobre só `src/**`, e a pasta ficaria sem checagem
+  nenhuma.
+- `minis-apis/README.md`: a porta de entrada, com a **ordem de leitura por dor** —
+  a 1 valida com `if` na mão (a dor), a 2 resolve com Zod e cria a dor da memória
+  volátil, a 3 resolve com banco.
+
+Três coisas que valem virar material dos módulos:
+
+- **`X-Tempo-ms` no `res.on('finish')` não funciona.** Nesse ponto os cabeçalhos
+  já saíram e `setHeader` estoura `ERR_HTTP_HEADERS_SENT`. O jeito certo é
+  envolver `res.writeHead`. O exemplo do módulo 05 só mostra o `finish`, que
+  serve para logar — cabe uma linha na tabela "Erros comuns" do 05.
+- **`unrecognized_keys` do Zod 4 vem com `path` vazio.** Quem monta a lista de
+  campos que falharam a partir do `path` perde o nome do campo recusado; é
+  preciso ler as chaves de dentro do issue. Material do módulo 07.
+- **Corpo JSON com acento se corrompe no pipeline do shell no Windows.** Acento
+  vindo do código-fonte e do seed trafega certo; o que quebra é o `curl` com
+  `-d`. Soma-se ao aviso de aspas do módulo 01.
+
+Verificação de cada uma, feita pelo agente que a construiu: `tsc --noEmit -p
+tsconfig.minis.json` limpo, todos os endpoints exercitados com `curl.exe` no Git
+Bash (caminho feliz e os erros da tabela), `prettier --check` limpo, servidor
+derrubado. A 3 subiu duas vezes, para provar migration idempotente e persistência.
+
 ## Quatro achados desta sessão, todos verificados rodando
 
 Os quatro estão escritos por extenso no código, e três mudaram decisão de
@@ -204,9 +253,11 @@ topo.
 
 ## Convenções que se firmaram e valem manter
 
-- **Portas:** exemplo do módulo NN → `50NN`; solução do exercício NN → `4NN0`. O
-  módulo 01 usa 4001/4010. **Os exemplos 13 e 14 colidem na 5064** — não subir os
-  dois juntos.
+- **Portas:** exemplo do módulo NN → `50NN`; solução do exercício NN → `4NN0`;
+  mini API NN → `600N`. O módulo 01 usa 4001/4010. **Os exemplos 13 e 14 colidem
+  na 5064** — não subir os dois juntos.
+- **Cada pasta fora de `src/` precisa do seu `tsconfig`:** já são três
+  (`playground`, `exercicios`, `minis`), com o script `typecheck:*` ao lado.
 - **Setup de banco agora vale para 10, 11, 12 e 13:** `db:generate` →
   `db:migrate` → `db:seed`. Sem ele, os servidores dessas soluções falham na
   primeira query (mas `npm test` continua verde, e a suíte de contrato pula com
