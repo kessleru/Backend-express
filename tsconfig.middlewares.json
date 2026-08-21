@@ -1,0 +1,17 @@
+// Config para checar os tipos do catálogo de middlewares, que fica fora de src/.
+// Uso: npm run typecheck:mw
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Mesma escolha do tsconfig.minis.json: com `--noEmit` o `rootDir` não
+    // decide layout de saída, e a raiz larga evita TS6059 se um arquivo de
+    // fora entrar no grafo.
+    "rootDir": ".",
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["middlewares/**/*.ts"],
+  "exclude": []
+}

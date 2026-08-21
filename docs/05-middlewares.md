@@ -530,3 +530,26 @@ entende o assunto quando ele aparecer com outro rótulo.
 ## Pratique
 
 👉 [`exercicios/05-middlewares/`](../exercicios/05-middlewares/)
+
+## Middlewares prontos, para consultar
+
+Este módulo ensina o mecanismo com middlewares mínimos — eles existem para o
+conceito aparecer, não para serem usados. Quando você precisar de um de verdade,
+o catálogo está em 👉 [`middlewares/`](../middlewares/): um por pasta, com o
+código comentado e um README que diz o que ele resolve, onde ele entra na pilha e
+**o que ele custa**.
+
+Ele é para **copiar**, não para importar — a pasta que você copia vem com a
+explicação junto, que é exatamente o que falta no trecho colado de um tutorial.
+São quatro grupos:
+
+| Grupo                       | O que reúne                                                            |
+| --------------------------- | ---------------------------------------------------------------------- |
+| `01-requisicao-e-resposta`  | tempo de resposta, id de requisição, log                               |
+| `02-validacao-e-erros`      | validar com schema, tratador central, 404, e o wrapper `async`         |
+| `03-acesso-e-seguranca`     | autenticar, exigir papel, limitar requisições, cabeçalhos de segurança |
+| `04-desempenho-e-convencao` | cache condicional com ETag, timeout, paginação                         |
+
+Metade deles usa assunto de módulos mais à frente (11, 13, 14): a pasta de cada
+um diz de qual módulo ele vem, e dá para ler os dos grupos 01 e 02 agora sem
+depender de nada além deste módulo.

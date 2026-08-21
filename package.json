@@ -11,6 +11,7 @@
     "typecheck:play": "tsc --noEmit -p tsconfig.playground.json",
     "typecheck:ex": "tsc --noEmit -p tsconfig.exercicios.json",
     "typecheck:minis": "tsc --noEmit -p tsconfig.minis.json",
+    "typecheck:mw": "tsc --noEmit -p tsconfig.middlewares.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:migrate": "prisma migrate dev",
