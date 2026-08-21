@@ -54,11 +54,11 @@ As duas comparações acima cobrem os quatro de uma vez.
 
 Com uma reserva existente das 10h às 11h (`c = 10h`, `d = 11h`):
 
-| O pedido                    | `[a, b)`    | `a < d` | `c < b` | Choca? |
-| --------------------------- | ----------- | ------- | ------- | ------ |
-| começa antes, termina dentro | 09:00–10:30 | sim     | sim     | sim    |
-| engole a existente          | 09:00–12:00 | sim     | sim     | sim    |
-| cabe dentro dela            | 10:15–10:45 | sim     | sim     | sim    |
+| O pedido                      | `[a, b)`    | `a < d` | `c < b` | Choca? |
+| ----------------------------- | ----------- | ------- | ------- | ------ |
+| começa antes, termina dentro  | 09:00–10:30 | sim     | sim     | sim    |
+| engole a existente            | 09:00–12:00 | sim     | sim     | sim    |
+| cabe dentro dela              | 10:15–10:45 | sim     | sim     | sim    |
 | começa dentro, termina depois | 10:30–12:00 | sim     | sim     | sim    |
 | termina quando a outra começa | 09:00–10:00 | sim     | **não** | não    |
 | começa quando a outra termina | 11:00–12:00 | **não** | sim     | não    |
@@ -299,14 +299,14 @@ nenhuma do motivo.
 
 ## Endpoints
 
-| Método   | Rota                  | O que faz                                    | Status                        |
-| -------- | --------------------- | -------------------------------------------- | ----------------------------- |
-| `GET`    | `/salas`              | lista as três salas com a capacidade          | `200`                         |
-| `GET`    | `/salas/:id/reservas` | agenda da sala — `?data=&pagina=&limite=`     | `200` `404` `422`             |
-| `POST`   | `/salas/:id/reservas` | reserva um intervalo                          | `201` `400` `404` `409` `422` |
-| `GET`    | `/reservas/:id`       | uma reserva                                   | `200` `404` `422`             |
-| `PATCH`  | `/reservas/:id`       | remarca: `titulo`, `inicio` e/ou `fim`        | `200` `400` `404` `409` `422` |
-| `DELETE` | `/reservas/:id`       | cancela e devolve o horário à agenda          | `204` `404` `422`             |
+| Método   | Rota                  | O que faz                                 | Status                        |
+| -------- | --------------------- | ----------------------------------------- | ----------------------------- |
+| `GET`    | `/salas`              | lista as três salas com a capacidade      | `200`                         |
+| `GET`    | `/salas/:id/reservas` | agenda da sala — `?data=&pagina=&limite=` | `200` `404` `422`             |
+| `POST`   | `/salas/:id/reservas` | reserva um intervalo                      | `201` `400` `404` `409` `422` |
+| `GET`    | `/reservas/:id`       | uma reserva                               | `200` `404` `422`             |
+| `PATCH`  | `/reservas/:id`       | remarca: `titulo`, `inicio` e/ou `fim`    | `200` `400` `404` `409` `422` |
+| `DELETE` | `/reservas/:id`       | cancela e devolve o horário à agenda      | `204` `404` `422`             |
 
 O `201` traz o cabeçalho `Location` — o campo da resposta que aponta para o
 endereço do recurso recém-criado (`/reservas/4`), para o cliente guardar e usar na
@@ -391,22 +391,22 @@ auditório.
 
 ## Onde é fácil errar
 
-| Sintoma                                                                     | Causa                                                                                                                       |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Reserva das 11h aceita com outra terminando às 11h                          | não é bug: o intervalo é semiaberto e o fim fica de fora                                                                    |
-| Nenhuma reunião pode começar quando outra termina                           | `<=` no lugar de `<` em `sobrepoe`. Um caractere que fecha o intervalo                                                      |
-| Sobreposição não detectada quando o pedido engole a reserva existente       | validação escrita como lista de casos. As duas comparações cobrem os quatro                                                 |
-| `409` ao remarcar, apontando para a própria reserva                         | faltou o `ignorarId`: a reserva alterada continua na busca por choque                                                       |
-| Servidor não sobe: `.partial() cannot be used on object schemas containing refinements` | `criarReservaSchema.partial()` no `PATCH`. O Zod 4 recusa `partial` em objeto com checagem sobre o objeto        |
-| `PATCH` com `{ "fim": ... }` aceito sem conferir a ordem                    | o par foi conferido no schema, que não enxerga o `inicio` gravado. A checagem tem que vir depois da junção                   |
-| `PATCH` com `{}` respondendo `200` sem mudar nada                           | tudo opcional aceita corpo vazio. É o que o `.refine` de "ao menos um campo" impede                                         |
-| `422` com "precisa ser uma data-hora ISO 8601 com fuso"                     | mandou `2026-08-19T14:00:00` solto. Sem fuso não há instante                                                                |
-| Reserva das 23h à meia-noite aceita                                         | checar só a hora do fim: zero minuto é menor que o horário de fechamento. Falta comparar o dia                               |
-| Agenda do dia 19 mostrando a madrugada do dia 20                            | sinal trocado no deslocamento do fuso ao converter o dia em intervalo                                                       |
-| Agenda fora de ordem depois de uma remarcação                               | ordenar por texto guardando o fuso de origem. Só funciona com o instante em UTC                                             |
-| `404` para uma sala que existe                                              | comparar `req.params.id` (texto) com `id` numérico. Faltou `z.coerce.number()` (mini 02)                                     |
-| `curl` recusando o JSON no PowerShell                                       | lá `curl` é apelido de `Invoke-WebRequest`, e aspas simples não funcionam. Use o Git Bash com `curl.exe`                     |
-| `500` numa rota que valida certo                                            | faltou o `validar(schema, alvo)` na cadeia, e `validados()` falhou alto — é proposital, evita `undefined`                    |
+| Sintoma                                                                                 | Causa                                                                                                      |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Reserva das 11h aceita com outra terminando às 11h                                      | não é bug: o intervalo é semiaberto e o fim fica de fora                                                   |
+| Nenhuma reunião pode começar quando outra termina                                       | `<=` no lugar de `<` em `sobrepoe`. Um caractere que fecha o intervalo                                     |
+| Sobreposição não detectada quando o pedido engole a reserva existente                   | validação escrita como lista de casos. As duas comparações cobrem os quatro                                |
+| `409` ao remarcar, apontando para a própria reserva                                     | faltou o `ignorarId`: a reserva alterada continua na busca por choque                                      |
+| Servidor não sobe: `.partial() cannot be used on object schemas containing refinements` | `criarReservaSchema.partial()` no `PATCH`. O Zod 4 recusa `partial` em objeto com checagem sobre o objeto  |
+| `PATCH` com `{ "fim": ... }` aceito sem conferir a ordem                                | o par foi conferido no schema, que não enxerga o `inicio` gravado. A checagem tem que vir depois da junção |
+| `PATCH` com `{}` respondendo `200` sem mudar nada                                       | tudo opcional aceita corpo vazio. É o que o `.refine` de "ao menos um campo" impede                        |
+| `422` com "precisa ser uma data-hora ISO 8601 com fuso"                                 | mandou `2026-08-19T14:00:00` solto. Sem fuso não há instante                                               |
+| Reserva das 23h à meia-noite aceita                                                     | checar só a hora do fim: zero minuto é menor que o horário de fechamento. Falta comparar o dia             |
+| Agenda do dia 19 mostrando a madrugada do dia 20                                        | sinal trocado no deslocamento do fuso ao converter o dia em intervalo                                      |
+| Agenda fora de ordem depois de uma remarcação                                           | ordenar por texto guardando o fuso de origem. Só funciona com o instante em UTC                            |
+| `404` para uma sala que existe                                                          | comparar `req.params.id` (texto) com `id` numérico. Faltou `z.coerce.number()` (mini 02)                   |
+| `curl` recusando o JSON no PowerShell                                                   | lá `curl` é apelido de `Invoke-WebRequest`, e aspas simples não funcionam. Use o Git Bash com `curl.exe`   |
+| `500` numa rota que valida certo                                                        | faltou o `validar(schema, alvo)` na cadeia, e `validados()` falhou alto — é proposital, evita `undefined`  |
 
 O falso amigo principal é a regra do par presa ao campo. `fim > inicio` parece
 uma validação de `fim`, e não é: é uma afirmação sobre os dois juntos. Quem tenta
@@ -668,18 +668,18 @@ curl.exe -s -X POST http://localhost:6005/salas/1/reservas \
 
 ## O que ficou de fora
 
-| O que falta                            | Por quê                                                                                                             | Onde entra                      |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
-| Persistência                           | a agenda morre com o processo; aqui o assunto era o intervalo, não o armazenamento                                  | módulo 09 (SQLite), 10 (Prisma) |
-| Garantia real contra reserva simultânea | funciona porque é um processo só e nada roda entre a checagem e a gravação; com banco, quem garante é uma transação | módulo 09                       |
-| Login de quem reserva                  | `responsavel` é um texto que qualquer um escreve, e qualquer um cancela a reserva de qualquer um                    | módulo 11                       |
-| Camadas (`rotas → serviço → repositório`) | com seis rotas e dois arrays, a separação seria cerimônia sem ganho                                              | módulo 08                       |
-| Testes automatizados                   | os `curl` acima foram rodados à mão, um a um                                                                        | módulo 12                       |
-| Limite de requisições                  | uma agenda aberta na internet é alvo óbvio de robô                                                                  | módulo 13                       |
-| Sugerir horários livres                | "livre" é o complemento da lista de reservas, e calculá-lo é outro exercício                                        | —                               |
-| Reserva que se repete toda semana      | recorrência multiplica cada regra desta mini API por "e nas próximas ocorrências também"                            | —                               |
-| Horário de verão                       | o fuso do prédio é um número fixo; com horário de verão ele passa a depender da data                                | —                               |
-| Conferir participantes × capacidade    | a sala informa quantos cabem, e a reserva não pergunta quantos vão                                                  | —                               |
+| O que falta                               | Por quê                                                                                                             | Onde entra                      |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Persistência                              | a agenda morre com o processo; aqui o assunto era o intervalo, não o armazenamento                                  | módulo 09 (SQLite), 10 (Prisma) |
+| Garantia real contra reserva simultânea   | funciona porque é um processo só e nada roda entre a checagem e a gravação; com banco, quem garante é uma transação | módulo 09                       |
+| Login de quem reserva                     | `responsavel` é um texto que qualquer um escreve, e qualquer um cancela a reserva de qualquer um                    | módulo 11                       |
+| Camadas (`rotas → serviço → repositório`) | com seis rotas e dois arrays, a separação seria cerimônia sem ganho                                                 | módulo 08                       |
+| Testes automatizados                      | os `curl` acima foram rodados à mão, um a um                                                                        | módulo 12                       |
+| Limite de requisições                     | uma agenda aberta na internet é alvo óbvio de robô                                                                  | módulo 13                       |
+| Sugerir horários livres                   | "livre" é o complemento da lista de reservas, e calculá-lo é outro exercício                                        | —                               |
+| Reserva que se repete toda semana         | recorrência multiplica cada regra desta mini API por "e nas próximas ocorrências também"                            | —                               |
+| Horário de verão                          | o fuso do prédio é um número fixo; com horário de verão ele passa a depender da data                                | —                               |
+| Conferir participantes × capacidade       | a sala informa quantos cabem, e a reserva não pergunta quantos vão                                                  | —                               |
 
 ## Para estudar
 

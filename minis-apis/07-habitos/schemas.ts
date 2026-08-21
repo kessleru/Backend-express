@@ -19,10 +19,20 @@ import { dadosInvalidos } from './erros.ts';
 const diaSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, '`dia` deve estar no formato YYYY-MM-DD')
-  .refine(
-    (v) => new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v,
-    '`dia` não é uma data existente no calendário',
-  );
+  .refine((v) => {
+    // O `Number.isNaN` parece redundante — a regex acima já garantiu o formato,
+    // então a data só poderia ser inválida no calendário, nunca impossível de
+    // ler. Ele não é, e o motivo é do Zod 4: as checagens de um mesmo schema
+    // NÃO param na primeira que falha. Com `19-08-2026` a regex reprova e este
+    // `refine` roda mesmo assim, sobre a string que já se sabe malformada.
+    // `new Date('19-08-2026T00:00:00Z')` é Invalid Date, e `toISOString()` num
+    // Invalid Date não devolve falso: lança `RangeError`. A exceção escapa do
+    // validador, o tratador central não a reconhece como erro de formato, e o
+    // cliente recebe 500 no lugar do 422 — um erro de digitação virando "o
+    // servidor quebrou". A guarda mantém o `refine` capaz de responder sozinho.
+    const data = new Date(`${v}T00:00:00Z`);
+    return !Number.isNaN(data.getTime()) && data.toISOString().slice(0, 10) === v;
+  }, '`dia` não é uma data existente no calendário');
 
 const mesSchema = z
   .string({ error: '`mes` é obrigatório, no formato YYYY-MM' })

@@ -45,7 +45,7 @@ um texto que represente a pessoa e que seja o mesmo nas duas tentativas. Aqui é
 o e-mail; poderia ser a matrícula, o CPF, o apelido no chat.
 
 Duas armadilhas aparecem nesse instante, e as duas são sobre o mesmo assunto —
-identificadores que *parecem* diferentes:
+identificadores que _parecem_ diferentes:
 
 - `Ana@Exemplo.com` e `ana@exemplo.com` são a mesma pessoa e textos diferentes.
   Se o registro não normalizar antes de comparar, ela vota duas vezes trocando
@@ -57,8 +57,8 @@ identificadores que *parecem* diferentes:
 
 Note também o que se perdeu ao guardar quem votou em quê: **o voto não é
 secreto.** Quem tem acesso ao registro sabe a escolha de cada pessoa. Voto
-secreto de verdade é um mecanismo diferente — o registro guarda *que* fulano
-votou, sem guardar *em quê* —, e ele custa exatamente a funcionalidade de
+secreto de verdade é um mecanismo diferente — o registro guarda _que_ fulano
+votou, sem guardar _em quê_ —, e ele custa exatamente a funcionalidade de
 "trocar meu voto", porque ninguém mais sabe qual voto era seu.
 
 ### A votação tem um fim, e o fim serve para alguma coisa
@@ -208,7 +208,11 @@ fim o acumulado é lançado:
 ```ts
 const coletor = new Coletor();
 const pergunta = coletor.texto(objeto.pergunta, 'pergunta', { min: 5, max: 200 });
-const opcoes = coletor.listaDeTextos(objeto.opcoes, 'opcoes', { min: 2, max: 8, itemMax: 80 });
+const opcoes = coletor.listaDeTextos(objeto.opcoes, 'opcoes', {
+  min: 2,
+  max: 8,
+  itemMax: 80,
+});
 coletor.fechar(); // lança 422 com a lista inteira, se houver
 ```
 
@@ -255,24 +259,24 @@ JavaScript depois, sobre essas três linhas — o que era caro já foi feito.
 
 ## Endpoints
 
-| Método   | Rota                        | O que faz                                             | Status          |
-| -------- | --------------------------- | ----------------------------------------------------- | --------------- |
-| `GET`    | `/enquetes`                 | lista; `?estado=abertas\|encerradas&pagina=&limite=`  | 200, 422        |
-| `POST`   | `/enquetes`                 | cria com 2 a 8 opções                                 | 201, 400, 422   |
-| `GET`    | `/enquetes/:id`             | a cédula: pergunta e opções, sem os números           | 200, 404, 422   |
-| `DELETE` | `/enquetes/:id`             | apaga a enquete, as opções e os votos                 | 204, 404        |
-| `POST`   | `/enquetes/:id/encerramento`| encerra a votação, uma vez só                         | 200, 404, 409   |
-| `POST`   | `/enquetes/:id/votos`       | vota; exige `X-Eleitor` e `{ "opcaoId": N }`          | 201, 404, 409, 422 |
-| `DELETE` | `/enquetes/:id/votos`       | retira o voto de quem está no `X-Eleitor`             | 204, 404, 409   |
-| `GET`    | `/enquetes/:id/resultado`   | apuração com percentual, vencedora e empate           | 200, 404        |
+| Método   | Rota                         | O que faz                                            | Status             |
+| -------- | ---------------------------- | ---------------------------------------------------- | ------------------ |
+| `GET`    | `/enquetes`                  | lista; `?estado=abertas\|encerradas&pagina=&limite=` | 200, 422           |
+| `POST`   | `/enquetes`                  | cria com 2 a 8 opções                                | 201, 400, 422      |
+| `GET`    | `/enquetes/:id`              | a cédula: pergunta e opções, sem os números          | 200, 404, 422      |
+| `DELETE` | `/enquetes/:id`              | apaga a enquete, as opções e os votos                | 204, 404           |
+| `POST`   | `/enquetes/:id/encerramento` | encerra a votação, uma vez só                        | 200, 404, 409      |
+| `POST`   | `/enquetes/:id/votos`        | vota; exige `X-Eleitor` e `{ "opcaoId": N }`         | 201, 404, 409, 422 |
+| `DELETE` | `/enquetes/:id/votos`        | retira o voto de quem está no `X-Eleitor`            | 204, 404, 409      |
+| `GET`    | `/enquetes/:id/resultado`    | apuração com percentual, vencedora e empate          | 200, 404           |
 
 As três recusas, e o que separa uma da outra:
 
-| Status | Significa                                       | Exemplo aqui                            |
-| ------ | ----------------------------------------------- | --------------------------------------- |
-| `422`  | entendi o pedido e o **conteúdo** é inválido    | `opcoes` com um item só                 |
-| `404`  | o recurso apontado **não existe**               | opção de outra enquete                  |
-| `409`  | o pedido está perfeito, o **estado** é que nega | enquete encerrada; eleitor já votou     |
+| Status | Significa                                       | Exemplo aqui                        |
+| ------ | ----------------------------------------------- | ----------------------------------- |
+| `422`  | entendi o pedido e o **conteúdo** é inválido    | `opcoes` com um item só             |
+| `404`  | o recurso apontado **não existe**               | opção de outra enquete              |
+| `409`  | o pedido está perfeito, o **estado** é que nega | enquete encerrada; eleitor já votou |
 
 ## As decisões e o porquê
 
@@ -354,19 +358,19 @@ cliente sabe que aquele número ainda muda.
 
 ## Onde é fácil errar
 
-| Sintoma                                                              | Causa                                                                                                                             |
-| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Opção que ninguém votou aparece com **1 voto**                       | `COUNT(*)` no `LEFT JOIN` conta a linha que o próprio join criou, com as colunas de voto nulas. `COUNT(v.id)` ignora nulo e dá 0.  |
-| Opção que ninguém votou **some** do resultado                        | `JOIN` interno em vez de `LEFT JOIN`: sem linha em `votos`, não há par para casar.                                                 |
-| Apaguei a enquete e os votos continuam no banco                      | `PRAGMA foreign_keys = ON` esquecido. Ele é **por conexão**; sem ele o `ON DELETE CASCADE` não dispara.                            |
-| `?limite=` vazio devolve lista vazia, sem erro                       | `Number('')` é **`0`**, não `NaN`. Falso amigo: a checagem "é número?" passa, e o `LIMIT 0` devolve nada.                          |
-| `?pagina=1&pagina=2` responde "não é inteiro"                        | Chave repetida na query vira **array**, não texto. `Number(['1','2'])` é `NaN`, e a mensagem sai errada se o array não for tratado.|
-| A mesma pessoa votou duas vezes                                      | Identificador não normalizado: `Ana@X.com` e `ana@x.com` são textos diferentes, e o índice único compara texto.                    |
-| Dois cliques rápidos gravaram dois votos                             | `SELECT` antes do `INSERT`. A garantia tem que estar na escrita — índice único —, não numa pergunta feita antes.                   |
-| O voto foi gravado com o eleitor **vazio**                           | `router.use(...)` do middleware registrado **depois** das rotas de voto: middleware só vale para o que vem abaixo dele.            |
-| Corpo `["A"]` passou pela checagem de "é objeto?"                    | `typeof [] === 'object'` em JavaScript. Sem `Array.isArray`, um array entra como corpo válido de campo nenhum.                     |
-| Encerrar duas vezes ao mesmo tempo sobrescreveu o horário            | `SELECT` para ver se está aberta e `UPDATE` depois. O `WHERE ... AND encerrada_em IS NULL` põe a regra dentro do próprio `UPDATE`. |
-| Data volta como `Invalid Date` no cliente                            | `datetime('now')` devolve `2026-08-19 00:34:09`, com espaço e sem fuso — não é ISO-8601. Daí o `strftime` com `T` e `Z`.           |
+| Sintoma                                                   | Causa                                                                                                                               |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Opção que ninguém votou aparece com **1 voto**            | `COUNT(*)` no `LEFT JOIN` conta a linha que o próprio join criou, com as colunas de voto nulas. `COUNT(v.id)` ignora nulo e dá 0.   |
+| Opção que ninguém votou **some** do resultado             | `JOIN` interno em vez de `LEFT JOIN`: sem linha em `votos`, não há par para casar.                                                  |
+| Apaguei a enquete e os votos continuam no banco           | `PRAGMA foreign_keys = ON` esquecido. Ele é **por conexão**; sem ele o `ON DELETE CASCADE` não dispara.                             |
+| `?limite=` vazio devolve lista vazia, sem erro            | `Number('')` é **`0`**, não `NaN`. Falso amigo: a checagem "é número?" passa, e o `LIMIT 0` devolve nada.                           |
+| `?pagina=1&pagina=2` responde "não é inteiro"             | Chave repetida na query vira **array**, não texto. `Number(['1','2'])` é `NaN`, e a mensagem sai errada se o array não for tratado. |
+| A mesma pessoa votou duas vezes                           | Identificador não normalizado: `Ana@X.com` e `ana@x.com` são textos diferentes, e o índice único compara texto.                     |
+| Dois cliques rápidos gravaram dois votos                  | `SELECT` antes do `INSERT`. A garantia tem que estar na escrita — índice único —, não numa pergunta feita antes.                    |
+| O voto foi gravado com o eleitor **vazio**                | `router.use(...)` do middleware registrado **depois** das rotas de voto: middleware só vale para o que vem abaixo dele.             |
+| Corpo `["A"]` passou pela checagem de "é objeto?"         | `typeof [] === 'object'` em JavaScript. Sem `Array.isArray`, um array entra como corpo válido de campo nenhum.                      |
+| Encerrar duas vezes ao mesmo tempo sobrescreveu o horário | `SELECT` para ver se está aberta e `UPDATE` depois. O `WHERE ... AND encerrada_em IS NULL` põe a regra dentro do próprio `UPDATE`.  |
+| Data volta como `Invalid Date` no cliente                 | `datetime('now')` devolve `2026-08-19 00:34:09`, com espaço e sem fuso — não é ISO-8601. Daí o `strftime` com `T` e `Z`.            |
 
 ## Testando
 
@@ -586,26 +590,26 @@ empate se desfaz e o percentual passa a somar 100,0:
 
 ## O que ficou de fora
 
-| O que falta                        | Por quê                                                                                                                    | Onde se resolve |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Identidade **provada**             | `X-Eleitor` é declarado: qualquer um manda outro nome e vota de novo. É enquete, não urna.                                  | módulo 11       |
-| Dono da enquete                    | Qualquer pessoa encerra ou apaga qualquer enquete. Sem login não há dono para comparar.                                     | módulo 11       |
-| Validação com schema               | O validador à mão existe para mostrar o mecanismo; ele não infere tipo e cresce mal.                                        | módulo 07       |
-| Testes automatizados               | Cada caminho aqui foi conferido com `curl` na mão — o que não protege contra a próxima alteração.                           | módulo 12       |
-| Limite de requisições              | Nada impede mil votos por segundo com mil identificadores inventados.                                                       | módulo 13       |
-| Log estruturado                    | `morgan('dev')` é bonito no terminal e inútil para investigar um caso específico depois.                                    | módulo 14       |
-| ORM                                | O SQL aqui é escrito e mantido à mão, de propósito.                                                                         | módulo 10       |
-| Voto secreto                       | O registro guarda quem votou em quê. Anonimizar exige um desenho diferente — e custa a retirada de voto.                    | —               |
-| Múltipla escolha e prazo automático| "Escolha até 3" e "fecha sozinha na sexta" são variações do mesmo mecanismo; nenhuma acrescenta conceito novo à mini API.   | —               |
+| O que falta                         | Por quê                                                                                                                   | Onde se resolve |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Identidade **provada**              | `X-Eleitor` é declarado: qualquer um manda outro nome e vota de novo. É enquete, não urna.                                | módulo 11       |
+| Dono da enquete                     | Qualquer pessoa encerra ou apaga qualquer enquete. Sem login não há dono para comparar.                                   | módulo 11       |
+| Validação com schema                | O validador à mão existe para mostrar o mecanismo; ele não infere tipo e cresce mal.                                      | módulo 07       |
+| Testes automatizados                | Cada caminho aqui foi conferido com `curl` na mão — o que não protege contra a próxima alteração.                         | módulo 12       |
+| Limite de requisições               | Nada impede mil votos por segundo com mil identificadores inventados.                                                     | módulo 13       |
+| Log estruturado                     | `morgan('dev')` é bonito no terminal e inútil para investigar um caso específico depois.                                  | módulo 14       |
+| ORM                                 | O SQL aqui é escrito e mantido à mão, de propósito.                                                                       | módulo 10       |
+| Voto secreto                        | O registro guarda quem votou em quê. Anonimizar exige um desenho diferente — e custa a retirada de voto.                  | —               |
+| Múltipla escolha e prazo automático | "Escolha até 3" e "fecha sozinha na sexta" são variações do mesmo mecanismo; nenhuma acrescenta conceito novo à mini API. | —               |
 
 ## Para estudar
 
-| Módulo                                                  | O que desta API vem de lá                                        |
-| ------------------------------------------------------- | ---------------------------------------------------------------- |
-| [03 — Express básico](../../docs/03-express-basico.md)   | `app`, `express.json()`, `listen`                                 |
-| [04 — Roteamento](../../docs/04-roteamento.md)           | `Router`, parâmetro de rota, sub-recurso, por que `?estado=`      |
-| [05 — Middlewares](../../docs/05-middlewares.md)         | `cors`, `morgan` e o `identificarEleitor` com escopo de rota      |
-| [06 — Tratamento de erros](../../docs/06-tratamento-de-erros.md) | `AppError`, tratador central, 422 × 404 × 409             |
-| [08 — Arquitetura em camadas](../../docs/08-arquitetura-em-camadas.md) | rotas → serviço → repositório, e o contrato no meio |
-| [09 — SQLite e SQL](../../docs/09-sqlite-e-sql.md)       | migration, chave estrangeira, índice único, `LEFT JOIN`, `GROUP BY` |
-| [07 — Validação com Zod](../../docs/07-validacao-zod.md) | o que `validacao.ts` faz à mão — leia depois, para comparar        |
+| Módulo                                                                 | O que desta API vem de lá                                           |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [03 — Express básico](../../docs/03-express-basico.md)                 | `app`, `express.json()`, `listen`                                   |
+| [04 — Roteamento](../../docs/04-roteamento.md)                         | `Router`, parâmetro de rota, sub-recurso, por que `?estado=`        |
+| [05 — Middlewares](../../docs/05-middlewares.md)                       | `cors`, `morgan` e o `identificarEleitor` com escopo de rota        |
+| [06 — Tratamento de erros](../../docs/06-tratamento-de-erros.md)       | `AppError`, tratador central, 422 × 404 × 409                       |
+| [08 — Arquitetura em camadas](../../docs/08-arquitetura-em-camadas.md) | rotas → serviço → repositório, e o contrato no meio                 |
+| [09 — SQLite e SQL](../../docs/09-sqlite-e-sql.md)                     | migration, chave estrangeira, índice único, `LEFT JOIN`, `GROUP BY` |
+| [07 — Validação com Zod](../../docs/07-validacao-zod.md)               | o que `validacao.ts` faz à mão — leia depois, para comparar         |

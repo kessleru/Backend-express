@@ -57,14 +57,24 @@ export const criarItemSchema = z
     nome: z.string().trim().min(1, '`nome` não pode ser vazio').max(80),
     // O teto de 999 é o que cabe num carrinho de supermercado. Sem teto,
     // `quantidade: 1e9` entra no banco e o total da lista vira ficção.
-    quantidade: z.number().int().positive().max(999).default(1),
+    quantidade: z
+      .number({ error: '`quantidade` deve ser um número' })
+      .int('`quantidade` deve ser inteira')
+      .positive('`quantidade` deve ser maior que zero')
+      .max(999, '`quantidade` máxima é 999')
+      .default(1),
   })
   .strict();
 
 export const alterarItemSchema = z
   .object({
     nome: z.string().trim().min(1).max(80).optional(),
-    quantidade: z.number().int().positive().max(999).optional(),
+    quantidade: z
+      .number({ error: '`quantidade` deve ser um número' })
+      .int('`quantidade` deve ser inteira')
+      .positive('`quantidade` deve ser maior que zero')
+      .max(999, '`quantidade` máxima é 999')
+      .optional(),
     comprado: z.boolean().optional(),
   })
   .strict()
@@ -87,10 +97,23 @@ export function analisar<S extends z.ZodType>(schema: S, valor: unknown): z.outp
   const resultado = schema.safeParse(valor);
   if (!resultado.success) {
     throw dadosInvalidos(
-      resultado.error.issues.map((problema) => ({
-        campo: problema.path.join('.') || '(raiz)',
-        mensagem: problema.message,
-      })),
+      resultado.error.issues.map((problema) => {
+        // O `.strict()` reprova a chave desconhecida no OBJETO, não num campo:
+        // o caminho do problema vem vazio e viraria `(raiz)`, escondendo do
+        // cliente justamente o nome que ele precisa corrigir. A chave recusada
+        // está em `problema.keys`, e é ela que vai para o campo. A mensagem
+        // padrão do Zod também chega em inglês; aqui tudo é português.
+        if (problema.code === 'unrecognized_keys') {
+          return {
+            campo: problema.keys.join(', '),
+            mensagem: 'campo desconhecido: esta rota não aceita este campo',
+          };
+        }
+        return {
+          campo: problema.path.join('.') || '(raiz)',
+          mensagem: problema.message,
+        };
+      }),
     );
   }
   return resultado.data;
